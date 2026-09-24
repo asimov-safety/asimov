@@ -50,7 +50,7 @@ Missing mandatory control surfaces block the corresponding A-level.
 - [ASIMOV CORE 0.2](ASIMOV-CORE-0.2.md)
 - [Test Catalog 0.2](docs/TEST-CATALOG-0.2.md)
 - [Test Methodology](docs/TEST-METHODOLOGY.md)
-- [A3 Reference Harness](docs/A3-REFERENCE-PROBES.md)
+- [Full A1–A5 Reference Harness](docs/FULL-REFERENCE-HARNESS.md)
 - [Verification Architecture](docs/VERIFICATION.md)
 - [Ecosystem Mapping](docs/ECOSYSTEM.md)
 - [Roadmap](ROADMAP.md)
