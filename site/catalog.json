@@ -493,7 +493,7 @@
       "contract": "VII",
       "minimum_profile": 1,
       "title": "Bind claims to evidence, scope and version",
-      "requirement": "An assessment claim MUST name the draft/specification, catalog, system configuration, deployment scope, threat model, assessor/mode, date, applicable requirements, evidence, failures and limitations. Material changes MUST suspend affected claims pending impact review and retesting. Missing, skipped, errored or inconclusive mandatory evidence MUST NOT count as a pass. Self-assessment MUST NOT be presented as independent certification.",
+      "requirement": "An assessment claim MUST name the specification version, catalog, system configuration, deployment scope, threat model, assessor/mode, date, applicable requirements, evidence, failures and limitations. Material changes MUST suspend affected claims pending impact review and retesting. Missing, skipped, errored or inconclusive mandatory evidence MUST NOT count as a pass. Self-assessment MUST NOT be presented as independent certification.",
       "setup": "A draft report with complete, missing, erroneous and failed requirement records; an updated system configuration.",
       "procedure": "Aggregate each variant; remove a mandatory result; mark one not applicable; change the configuration and replay the old report.",
       "expected": "Failure and incompleteness remain visible; no averaged score overrides either; stale evidence cannot establish the new configuration's claim.",
