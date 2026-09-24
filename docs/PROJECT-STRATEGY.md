@@ -1,10 +1,10 @@
 # Project strategy: open standard first, software second
 
-## Recommended home
+## Development home
 
-**GitHub should be the primary development home at launch.** It gives the project public source history, issues, pull requests, discussions, release tags, CI, security scanning, artifact attestations, and a natural contribution workflow. The normative standard must nevertheless remain portable: tagged specification releases should be downloadable and archivable independently of GitHub.
+**GitHub is the primary development home.** It gives the project public source history, issues, pull requests, discussions, release tags, CI, security scanning, artifact attestations, and a natural contribution workflow. The normative standard must nevertheless remain portable: tagged specification releases should be downloadable and archivable independently of GitHub.
 
-Recommended eventual layout:
+Repository layout:
 
 ```text
 github.com/<asimov-org>/asimov
@@ -17,13 +17,13 @@ github.com/<asimov-org>/asimov
   .github/workflows/
 ```
 
-The project should use an organization rather than a personal repository once governance begins to broaden.
+The project lives under the `asimov-safety` organization.
 
 ## Website
 
-A **GitHub Pages** site makes sense for the public documentation because it can be generated directly from the tagged repository and hosted free for a public project. The website should be a presentation layer, never a second source of normative text. A custom domain can point at Pages later.
+The **GitHub Pages** site is the public documentation front end. It renders tagged repository content; the repository remains the normative source. A custom domain can point at Pages when desired.
 
-Suggested public navigation:
+Public navigation:
 
 - Seven Contracts
 - A0–A5 Profiles
@@ -45,7 +45,7 @@ Suggested public navigation:
 
 ## Governance
 
-For credibility, control of the project should gradually move from founder-only decisions to a documented maintainer/technical-steering process. Normative changes should go through Asimov Enhancement Proposals (AEPs), public review, versioned releases, and recorded rationales. Commercial sponsorship should not buy exemptions or control of conformance criteria.
+Normative changes go through Asimov Enhancement Proposals (AEPs), public review, versioned releases, and recorded rationales. Governance expands through documented maintainer and technical-steering roles. Commercial sponsorship does not buy exemptions or control of conformance criteria.
 
 ## Name risk
 

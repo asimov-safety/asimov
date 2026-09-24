@@ -1,7 +1,7 @@
 # Asimov
 ## Seven contracts. Testable control. Accountable autonomy.
 
-**Draft 0.2 · September 24, 2026**
+**Version 0.2 · September 24, 2026**
 
 Asimov is a free, open-source safety standard and conformance suite defining the technical conditions under which autonomous AI remains under accountable human control.
 
