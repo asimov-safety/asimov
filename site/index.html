@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Asimov — Accountable control for autonomous AI</title>
+<style>
+body{font-family:system-ui,-apple-system,sans-serif;max-width:1000px;margin:48px auto;padding:0 22px;line-height:1.55}h1{font-size:3rem;margin:.2rem 0}.lede{font-size:1.25rem}.box{border:1px solid #aaa;border-radius:10px;padding:16px;margin:22px 0}table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:9px;border-bottom:1px solid #ddd}code{background:#eee;padding:2px 5px;border-radius:4px}a{color:inherit}
+</style>
+</head>
+<body>
+<p><strong>Founding working draft</strong></p>
+<h1>Asimov</h1>
+<p class="lede">An open safety standard and conformance suite defining minimum technical conditions under which autonomous AI can remain under accountable human control.</p>
+<div class="box"><strong>Asimov does not certify that an AI is safe.</strong> It tests whether specified mechanisms for observation, mediation, revocation, oversight, delegation, human intervention, and accountability exist and remain effective within a declared scope and threat model.</div>
+<h2>The Seven Contracts</h2>
+<ol>
+<li><strong>Observable Agency</strong> — consequential actions are externally observable.</li>
+<li><strong>Mediated Action</strong> — consequential effects cross enforceable boundaries.</li>
+<li><strong>Revocable Authority</strong> — authority can be withdrawn outside the actor.</li>
+<li><strong>Protected Oversight</strong> — the actor cannot silently weaken its supervisor.</li>
+<li><strong>Bounded Delegation</strong> — delegation cannot expand or orphan authority.</li>
+<li><strong>Human Authority</strong> — designated humans retain effective intervention paths.</li>
+<li><strong>Accountability</strong> — consequential behavior leaves trustworthy, reconstructable evidence.</li>
+</ol>
+<h2>Assurance profiles</h2>
+<table><tr><th>Profile</th><th>Meaning</th></tr><tr><td>A1</td><td>Observable</td></tr><tr><td>A2</td><td>Controlled</td></tr><tr><td>A3</td><td>Supervised</td></tr><tr><td>A4</td><td>Hardened</td></tr><tr><td>A5</td><td>Critical</td></tr></table><div class="box"><strong>Executable milestone:</strong> all 21 A1/A2 families now have reference probes and paired broken-control mutations. Missing mandatory observability/control surfaces block a profile rather than receiving partial credit.</div>
+<h2>Current implementation milestone</h2>
+<p>The repository defines 42 cumulative requirement families. Nine families now have executable reference-target probes plus mutation tests that deliberately remove the corresponding control and require the probe to fail.</p>
+<pre><code>python -m asimov_conformance reference-probes
+python -m asimov_conformance reference-mutations</code></pre>
+<p>Normative text, test methodology, evidence verification design, and implementation status live in the public repository. The project is a working draft, not an adopted certification scheme.</p>
+</body></html>
