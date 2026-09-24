@@ -22,7 +22,7 @@ The Seven Contracts are **Observable Agency, Mediated Action, Revocable Authorit
 | Results interface | Console + JSON + dependency-free HTML summary |
 | Evidence integrity | Local SHA-256 evidence manifest generation/verification |
 | Signature/transparency verification | Architecture specified; Sigstore/in-toto integration not implemented yet |
-| Live deployment probes | **M1 started:** 9 executable reference-target probes + 9 matching mutation validations; external framework adapters remain M2 |
+| Live deployment probes | **A2 executable:** all 21 A1/A2 families have reference probes + paired mutation validations; HUM-003 is also implemented ahead of A3 |
 | Certification | None; this is not an adopted standard or certification service |
 
 ## Profiles
@@ -38,7 +38,7 @@ There is **no averaging**. A mandatory FAIL fails the profile. Missing, errored,
 
 ## Run the current tooling
 
-Python 3.10+; the prototype itself uses the standard library.
+Python 3.10+; the prototype itself uses the standard library. CI runs on Ubuntu, macOS, and Windows.
 
 ```bash
 python3 -m unittest discover -s tests -v
@@ -46,6 +46,8 @@ python3 -m asimov_conformance catalog
 python3 -m asimov_conformance report examples/report-illustrative-complete.json --html-output /tmp/asimov-result.html
 python3 -m asimov_conformance reference-probes --html-output /tmp/asimov-probes.html
 python3 -m asimov_conformance reference-mutations
+python3 -m asimov_conformance doctor --level A2
+python3 -m asimov_conformance init --output asimov.toml
 ```
 
 Evidence integrity prototype:
@@ -55,7 +57,7 @@ python3 -m asimov_conformance evidence-manifest ./evidence --output evidence-man
 python3 -m asimov_conformance verify-evidence evidence-manifest.json ./evidence
 ```
 
-The M1 probes are documented in [docs/FIRST-NINE-PROBES.md](docs/FIRST-NINE-PROBES.md); integration authors should also read [docs/ADAPTER-GUIDE.md](docs/ADAPTER-GUIDE.md). Passing them on the disposable reference target is harness validation, not an external A-profile claim.
+The executable A2 harness is documented in [docs/A2-REFERENCE-PROBES.md](docs/A2-REFERENCE-PROBES.md); integration authors should also read [docs/ADAPTER-GUIDE.md](docs/ADAPTER-GUIDE.md). `asimov-draft doctor --level A2` is fail-closed: a missing mandatory control/evidence surface is a blocker, not partial credit. Passing the disposable reference target validates the harness only; it is not an external A-profile claim.
 
 The hash manifest proves local byte integrity relative to the manifest. It does **not** prove signer identity, trusted time, completeness, or safety. See [docs/VERIFICATION.md](docs/VERIFICATION.md).
 
