@@ -56,6 +56,12 @@ CAPABILITY_REMEDIATION = {
     "evidence_integrity": "Add an evidence integrity provider with an independent checkpoint/trust anchor.",
     "evidence_access": "Add evidence access-control/minimization hooks for routine and privileged views.",
     "assessment_binding": "Bind reports to a stable deployment/configuration digest and expose change invalidation.",
+    "supervisor_auth": "Add an authenticated supervisor-control channel with freshness, replay protection, and deployment/run binding.",
+    "independent_supervision": "Add a supervisor outside the acting principal's control with health, intervention, and configuration-change signals.",
+    "untrusted_content_isolation": "Expose enabled untrusted-content channels and prove they cannot mint approvals or alter control authority.",
+    "delegation_lifecycle": "Add lifecycle/lineage observation for subagents, scheduled jobs, background work, and unresolved descendants.",
+    "cross_boundary_delegation": "Add recipient trust/control evidence plus containment behavior for cross-provider or cross-organization delegation.",
+    "intervention_exercise": "Provide a reviewed hazard/load intervention plan and a safe exercise or simulator for overload, communication loss, timeout, and residual effects.",
 }
 
 
