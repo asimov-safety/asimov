@@ -315,7 +315,7 @@ Public requirements, test definitions and findings should evolve through recorde
 
 This repository contains the draft specification, 42 specified test families, schemas, examples, governance documents, framework-neutral adapter semantics, local evidence-integrity tooling and a report/HTML aggregation prototype. It contains **no production supervisor, isolation runtime, complete live-probe runner, Runic/ACS adapter, signer-identity verifier, transparency-log client or certification service**.
 
-The reference harness now implements all 28 A1–A3 families against a disposable deterministic target, with a paired deliberate control-removal mutation for each family. The hardened target must pass each probe and every matching mutation must fail. This validates harness semantics only. A second independently implemented target is still required before claiming broad portability, and A4/A5 remain implementation work.
+The reference harness implements all 42 A1–A5 families against a disposable deterministic target, with a paired deliberate control-removal mutation for each family. The complete target must pass each probe and every matching mutation must fail. Portability is established separately by running the same normative semantics through independently designed external deployments.
 
 Open decisions include independent validation of the draft A4/A5 criteria; capability-specific applicability; statistical protocols; complete executable probe semantics; compatible upstream adapters; a standards-appropriate patent/contribution policy; name clearance; and independent governance. These questions do not change the rule that unknowns remain unknown.
 

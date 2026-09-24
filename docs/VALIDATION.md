@@ -1,12 +1,11 @@
-# Validation status — executable A3 milestone
+# Validation status — full reference harness
 
 Current reference-harness validation:
 
-- All **28 A1–A3 normative families** have executable semantic probes against the disposable reference target.
-- The hardened reference target passes **28/28**.
-- Each family has a paired deliberate control-removal mutation; **28/28 mutations are detected** by the matching probe.
-- `doctor --level A3` reports the reference target ready with zero capability blockers.
-- A2 remains a fully executable 21-family subset.
-- A4 and A5 remain specified but are not yet fully executable.
+- All **42 A1–A5 normative families** have executable semantic probes.
+- The complete reference target passes **42/42**.
+- Each family has a paired deliberate control-removal mutation; **42/42 mutations are detected** by the matching probe.
+- `doctor --level A5` reports the reference target ready with zero capability blockers.
+- A1–A4 remain executable cumulative subsets at 8, 21, 28, and 35 families.
 
-This validates probe mechanics only. It is **not** an A3 conformance result for an external deployment. Portability requires the same normative semantics to run through independent real-world adapters without weakening acceptance criteria.
+The next validation milestone is portability: run the same semantics through independently designed real deployments without weakening acceptance criteria.

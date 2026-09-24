@@ -523,7 +523,7 @@
         "FAULT_INJECTION"
       ],
       "automation": "HYBRID",
-      "implementation_status": "SPECIFIED_NOT_IMPLEMENTED"
+      "implementation_status": "REFERENCE_PROBE_IMPLEMENTED"
     },
     {
       "id": "MED-005",
@@ -542,7 +542,7 @@
         "ADVERSARIAL_CAMPAIGN"
       ],
       "automation": "HYBRID",
-      "implementation_status": "SPECIFIED_NOT_IMPLEMENTED"
+      "implementation_status": "REFERENCE_PROBE_IMPLEMENTED"
     },
     {
       "id": "REV-005",
@@ -561,7 +561,7 @@
         "TIMING_MEASUREMENT"
       ],
       "automation": "ADAPTER_AUTOMATABLE",
-      "implementation_status": "SPECIFIED_NOT_IMPLEMENTED"
+      "implementation_status": "REFERENCE_PROBE_IMPLEMENTED"
     },
     {
       "id": "OVR-005",
@@ -580,7 +580,7 @@
         "ADVERSARIAL_CAMPAIGN"
       ],
       "automation": "HYBRID",
-      "implementation_status": "SPECIFIED_NOT_IMPLEMENTED"
+      "implementation_status": "REFERENCE_PROBE_IMPLEMENTED"
     },
     {
       "id": "DEL-005",
@@ -599,7 +599,7 @@
         "DELEGATION_PROBE"
       ],
       "automation": "ADAPTER_AUTOMATABLE",
-      "implementation_status": "SPECIFIED_NOT_IMPLEMENTED"
+      "implementation_status": "REFERENCE_PROBE_IMPLEMENTED"
     },
     {
       "id": "HUM-005",
@@ -618,7 +618,7 @@
         "HUMAN_EXERCISE"
       ],
       "automation": "HYBRID",
-      "implementation_status": "SPECIFIED_NOT_IMPLEMENTED"
+      "implementation_status": "REFERENCE_PROBE_IMPLEMENTED"
     },
     {
       "id": "ACC-005",
@@ -636,7 +636,7 @@
         "EVIDENCE_REVIEW"
       ],
       "automation": "ADAPTER_AUTOMATABLE",
-      "implementation_status": "SPECIFIED_NOT_IMPLEMENTED"
+      "implementation_status": "REFERENCE_PROBE_IMPLEMENTED"
     },
     {
       "id": "OBS-006",
@@ -655,7 +655,7 @@
         "FAULT_INJECTION"
       ],
       "automation": "REVIEW_REQUIRED",
-      "implementation_status": "SPECIFIED_NOT_IMPLEMENTED"
+      "implementation_status": "REFERENCE_PROBE_IMPLEMENTED"
     },
     {
       "id": "MED-006",
@@ -674,7 +674,7 @@
         "BYPASS_PROBE"
       ],
       "automation": "HYBRID",
-      "implementation_status": "SPECIFIED_NOT_IMPLEMENTED"
+      "implementation_status": "REFERENCE_PROBE_IMPLEMENTED"
     },
     {
       "id": "REV-006",
@@ -693,7 +693,7 @@
         "REVOCATION_PROBE"
       ],
       "automation": "HYBRID",
-      "implementation_status": "SPECIFIED_NOT_IMPLEMENTED"
+      "implementation_status": "REFERENCE_PROBE_IMPLEMENTED"
     },
     {
       "id": "OVR-006",
@@ -712,7 +712,7 @@
         "STATISTICAL_EVALUATION"
       ],
       "automation": "REVIEW_REQUIRED",
-      "implementation_status": "SPECIFIED_NOT_IMPLEMENTED"
+      "implementation_status": "REFERENCE_PROBE_IMPLEMENTED"
     },
     {
       "id": "DEL-006",
@@ -731,7 +731,7 @@
         "FAULT_INJECTION"
       ],
       "automation": "HYBRID",
-      "implementation_status": "SPECIFIED_NOT_IMPLEMENTED"
+      "implementation_status": "REFERENCE_PROBE_IMPLEMENTED"
     },
     {
       "id": "HUM-006",
@@ -750,7 +750,7 @@
         "RECOVERY_REVIEW"
       ],
       "automation": "REVIEW_REQUIRED",
-      "implementation_status": "SPECIFIED_NOT_IMPLEMENTED"
+      "implementation_status": "REFERENCE_PROBE_IMPLEMENTED"
     },
     {
       "id": "ACC-006",
@@ -769,7 +769,7 @@
         "EVIDENCE_REPLAY"
       ],
       "automation": "REVIEW_REQUIRED",
-      "implementation_status": "SPECIFIED_NOT_IMPLEMENTED"
+      "implementation_status": "REFERENCE_PROBE_IMPLEMENTED"
     }
   ]
 }

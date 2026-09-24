@@ -1,45 +1,39 @@
 # Asimov roadmap
 
-## Current — 0.2 / executable A3 milestone
+## Current — executable A1–A5 reference harness
 
 - Seven Safety Contracts.
 - A0–A5 cumulative assurance profiles.
 - 42 normative requirement families.
+- **42/42 executable reference probes.**
+- **42/42 paired deliberate control-removal mutations detected.**
 - Framework-neutral semantic adapter interface.
-- Fail-closed reporting and HTML/JSON results.
-- Evidence digest/manifest prototype.
-- **All 28 A1–A3 families have executable reference probes.**
-- **All 28 have paired deliberate control-removal mutations detected by the matching probe.**
-- Composable provider architecture and fail-closed `doctor` capability discovery.
+- Fail-closed readiness diagnostics and reporting.
+- Evidence digest/manifest tooling.
 - Cross-platform core target: Linux, macOS, and Windows.
 
-## Next — M2 portability
+## Next — portability
 
-1. Select a second, independently designed target (prefer ACS/AGT or a mainstream agent framework rather than another toy implementation).
-2. Implement its adapter without changing normative acceptance criteria to make the target pass.
-3. Run all 28 A1–A3 semantic probes. Missing mandatory control/evidence surfaces block A3 until remediated.
-4. Refine adapter capability negotiation and evidence references based on real integration pain.
-5. Add reusable direct-resource oracles for filesystem, HTTP/network, credential/IAM, queue/job, and database effects.
+1. Run the same A1–A5 semantics through independently designed real deployments.
+2. Keep normative acceptance criteria fixed while adapters translate native controls.
+3. Build reusable resource oracles for filesystem, HTTP/network, IAM/credentials, queues/jobs, databases, and cloud resources.
+4. Publish compatibility matrices by semantic capability and profile.
 
-## M3 — executable A4
+## Verification
 
-Implement the seven Hardened families: OBS-005, MED-005, REV-005, OVR-005, DEL-005, HUM-005, and ACC-005. Each must pass the hardened reference target and fail a paired deliberate mutation before inclusion.
-
-## M4 verification
-
-- publish an Asimov in-toto predicate draft;
-- sign attestations with Sigstore/Cosign rather than custom cryptography;
+- publish an Asimov in-toto predicate;
+- add Sigstore/Cosign identity-bound attestations;
 - verify signer identity, timestamp/transparency inclusion, scope/configuration binding, and evidence hashes;
 - map/import AAS-1 action evidence where appropriate;
-- define explicit verification states (integrity verified, identity verified, checkpoint verified, evidence reviewed, independent assessment verified).
+- distinguish integrity, identity, checkpoint, evidence-review, and independent-assessment verification states.
 
-## M5 — executable A5 and external review
+## External review
 
-Implement the seven Critical families only alongside domain-safety and independent-review semantics. Invite review from AI-control research, security engineering, SRE, safety engineering, human factors, standards practitioners, and regulated/high-consequence domains.
+Invite review from AI-control research, security engineering, SRE, safety engineering, human factors, standards practitioners, and high-consequence domains. Incorporate review through AEPs and versioned releases.
 
 ## Adoption UX
 
-- `asimov-draft init` creates a cross-platform deployment scaffold without overwriting an existing file.
-- `asimov-draft doctor --level A3` performs fail-closed capability/readiness discovery.
-- Provider composition minimizes framework-specific code: action driver, authority controller, resource oracle, lifecycle controller, supervision provider, and evidence oracle can come from different systems.
-- Missing observability/control surfaces are blockers, not partial credit.
+- `asimov-draft init` creates a cross-platform deployment scaffold.
+- `asimov-draft doctor --level A5` performs fail-closed readiness discovery.
+- Provider composition minimizes framework-specific code.
+- Missing mandatory observability/control surfaces are blockers, not partial credit.
