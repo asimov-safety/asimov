@@ -1,6 +1,6 @@
 {
-  "spec_version": "0.2.0-draft.1",
-  "catalog_version": "0.2.0-draft.1",
+  "spec_version": "0.2.0",
+  "catalog_version": "0.2.0",
   "report_id": "illustrative-0.2",
   "created_at": "2026-09-24T18:00:00Z",
   "assessment": {
@@ -11,7 +11,7 @@
     "id": "synthetic-reference",
     "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   },
-  "scope_manifest_sha256": "5a7c40103e6f22e56357c682b55babdbb3f6db10a110503caa4b65f63c2f5d48",
+  "scope_manifest_sha256": "c93aa101873e11e2f93b570eb2962474e7b51f32b38294034d235f33ccff3539",
   "requested_profile": "A5",
   "preconditions": {
     "deployment_binding": {
