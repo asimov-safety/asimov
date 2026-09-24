@@ -6,7 +6,7 @@ Make human control of autonomous AI specific, testable, and inspectable across m
 
 ## The standard
 
-The Seven Safety Contracts provide the common vocabulary. Versioned requirements translate each Contract into engineering properties. The conformance suite probes those properties, preserves failures and uncertainty, and produces evidence-bound assessment results. The reference implementation demonstrates the standard in executable form.
+The Seven Constants provide the governing vocabulary of Asimov. Versioned requirements translate each Constant into engineering properties. The conformance suite probes those properties, preserves failures and uncertainty, and produces evidence-bound assessment results. The reference implementation demonstrates the standard in executable form.
 
 AI providers, agent-framework builders, independent developers, deploying organizations, researchers, security teams, and assessors can implement Asimov with their own infrastructure.
 

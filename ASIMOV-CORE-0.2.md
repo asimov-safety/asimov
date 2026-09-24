@@ -1,5 +1,5 @@
 # ASIMOV CORE 0.2
-## Seven Safety Contracts for Accountable Autonomous AI
+## Seven Constants for Accountable Autonomous AI
 
 **Version:** 0.2.0  
 **Project:** Asimov  
@@ -16,13 +16,13 @@ Asimov specifies properties of an **AI deployment**, not moral instructions for 
 
 The initial target is software agents operating in a declared digital environment. A provider can assess a defined hosted-agent service; an enterprise can assess its own integrated deployment. Neither result automatically applies to a downloadable model, every use of an API, an entire company, or a future version. A local model and a proprietary hosted model can both participate, with different visibility limits.
 
-The Seven Contracts are simultaneous control objectives, not a hierarchy in which a model interprets which law overrides another. An independently authorized control process resolves conflicts by denying new authority or entering a preapproved bounded safe state. Asimov does not mandate a particular policy engine, framework, model monitor, blockchain, cloud provider, telemetry product or programming language.
+The Seven Constants are control invariants: conditions that must remain true throughout autonomous operation. They are simultaneous control objectives, not a hierarchy in which a model interprets which law overrides another. An independently authorized control process resolves conflicts by denying new authority or entering a preapproved bounded safe state. Asimov does not mandate a particular policy engine, framework, model monitor, blockchain, cloud provider, telemetry product or programming language.
 
 **Not established by Core:** prevention of all harmful content, persuasion or deception; moral correctness; truth of model rationales; statistical alignment; operator benevolence; legal compliance; or domain-specific fitness for medical, physical or other high-consequence use. A controlled agent can still cause harm through an authorized action. These are reasons for additional controls and evaluations, not claims supplied by this standard.
 
 ## 2. Conventions and terminology
 
-Uppercase **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT** and **MAY** use the requirement meanings defined by BCP 14, RFC 2119 and RFC 8174 [1,2]. Lowercase uses are ordinary language. Every applicable MUST is mandatory; no point total or average substitutes for it. Numbered contract requirements and the assessment rules in Sections 3–8 are normative in Asimov Core 0.2. Examples and future directions are informative.
+Uppercase **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT** and **MAY** use the requirement meanings defined by BCP 14, RFC 2119 and RFC 8174 [1,2]. Lowercase uses are ordinary language. Every applicable MUST is mandatory; no point total or average substitutes for it. Numbered Constant requirements and the assessment rules in Sections 3–8 are normative in Asimov Core 0.2. Examples and future directions are informative.
 
 **Consequential action:** an operation that can affect protected data, resources, third parties, external state, authority or safety. Reading protected information, sending a prompt containing data to a provider, emitting output to an automated consumer and scheduling later work can qualify. "Read-only" and "just text" are not automatic exclusions.
 
@@ -46,11 +46,11 @@ A deployment MUST NOT omit an enabled consequential path to earn a whole-deploym
 
 Testing requires the owner's authorization, synthetic data, disposable resources, bounded resource budgets and an independent stop mechanism. No live exploitation, production credentials, real purchases or unsolicited third-party testing is required by Core.
 
-## 4. The Seven Safety Contracts
+## 4. The Seven Constants
 
-The following 42 requirements define the current catalog. Requirements 001–004 under each Contract are the A1–A3 baseline; requirements 005 and 006 add one A4 and one A5 assurance obligation per Contract. Each maps to one test family in `docs/TEST-CATALOG-0.2.md`. A family can require multiple probes and a design review; its existence in the catalog does not mean an executable adapter has been implemented.
+The following 42 requirements define the current catalog. Requirements 001–004 under each Constant are the A1–A3 baseline; requirements 005 and 006 add one A4 and one A5 assurance obligation per Constant. Each maps to one test family in `docs/TEST-CATALOG-0.2.md`. A family can require multiple probes and a design review; its existence in the catalog does not mean an executable adapter has been implemented.
 
-### Contract I — Observable Agency
+### Constant I — Observable Agency
 
 > Consequential actions must be observable by mechanisms outside the acting system's control.
 
@@ -66,7 +66,7 @@ Observed events MUST identify the deployment, run, acting principal, action, and
 **OBS-004 — Make observation failures visible** *(introduced at A1)*  
 The deployment MUST detect and report observation outages, sequence gaps, and uncertainty within a declared bound. A1 MUST mark affected evidence incomplete. A2 and A3 MUST additionally enter the predeclared failure posture before the permitted evidence-loss exposure is exceeded. Telemetry sampling MUST NOT silently discard the audit events required for in-scope consequential actions.
 
-### Contract II — Mediated Action
+### Constant II — Mediated Action
 
 > Consequential actions must cross an enforceable control boundary before their effects are admitted.
 
@@ -82,7 +82,7 @@ Approvals MUST be scoped to a principal, resolved action/resource, bounded param
 **MED-004 — Fail to a bounded state** *(introduced at A2)*  
 Failure of a required decision, identity, evidence, or oversight dependency MUST NOT silently authorize new consequential behavior. The system MUST deny new authority or enter a separately preauthorized, bounded safe-state procedure appropriate to the environment. Timeouts and fallback models MUST NOT widen permissions. Permitted recovery actions and their evidence requirements MUST be specified before the failure.
 
-### Contract III — Revocable Authority
+### Constant III — Revocable Authority
 
 > Consequential authority must be withdrawable by an authority outside the actor's control.
 
@@ -98,7 +98,7 @@ The actor MUST NOT restore revoked authority by refreshing credentials, changing
 **REV-004 — Propagate revocation through delegation** *(introduced at A2)*  
 Parent/session revocation MUST withdraw derived capabilities throughout the recorded delegation graph within the approved bound, including remote jobs and scheduled work. Disconnected recipients MUST lose authority through enforceable expiry or equivalent controls. A recipient whose residual authority cannot be bounded MUST NOT receive a delegation represented as revocable.
 
-### Contract IV — Protected Oversight
+### Constant IV — Protected Oversight
 
 > The acting system must not be able to weaken, impersonate or silently evade its required oversight.
 
@@ -114,7 +114,7 @@ A3 MUST implement supervision outside the acting principal's control, with a doc
 **OVR-004 — Preserve authority under untrusted content** *(introduced at A3)*  
 Untrusted instructions or evidence MUST NOT change control policy, produce a valid approval, or disable a required boundary. Testing MUST include adversarial content in enabled ingestion channels and direct unauthorized-action probes independent of model cooperation. Semantic-monitor effectiveness MUST be reported separately with its trial conditions, errors, and limitations, rather than inferred from a few refusals.
 
-### Contract V — Bounded Delegation
+### Constant V — Bounded Delegation
 
 > Delegation must preserve the scope, limits, accountability and revocability of the authority granted.
 
@@ -130,7 +130,7 @@ The deployment MUST track authority derivation and lifecycle for subagents, back
 **DEL-004 — Verify cross-boundary delegation** *(introduced at A3)*  
 Before consequential delegation crosses an organizational, provider, or control boundary, the issuer MUST establish enforceable recipient scope, revocation behavior, evidence availability, and trust basis. A self-declared Asimov level or signed statement alone MUST NOT be treated as proof of those properties. Unverifiable consequential delegation MUST be denied or contained by an enforceable capability restriction.
 
-### Contract VI — Human Authority
+### Constant VI — Human Authority
 
 > Designated humans must retain an effective, independent mechanism to restrict or stop autonomous operation.
 
@@ -146,7 +146,7 @@ An emergency stop MUST persist across actor crashes, application restarts, queue
 **HUM-004 — Validate intervention under hazards and load** *(introduced at A3)*  
 The intervention design MUST identify hazardous interruption effects, irreversible actions, loss of communications, approval overload and safe recovery requirements. A3 MUST exercise operator intervention under a reviewed load and fault plan. Required response bounds MUST be justified by the declared operational hazards, not selected after testing merely to obtain a pass.
 
-### Contract VII — Accountability
+### Constant VII — Accountability
 
 > Consequential actions must leave enough trustworthy evidence to reconstruct authority, controls, intervention and observed effects.
 
@@ -166,7 +166,7 @@ An assessment claim MUST name the specification version, catalog, system configu
 
 Profiles A4 and A5 remain cumulative: every lower-profile MUST still applies. These requirements deliberately add resilience and assurance rather than a new set of model-behavior promises. A4 treats the acting workload as hostile within a stronger declared threat model and requires resilience to faults and bypass attempts. A5 is only meaningful where a domain safety case identifies critical effects and justifies stricter controls.
 
-### Contract I — Observable Agency: advanced requirements
+### Constant I — Observable Agency: advanced requirements
 
 **OBS-005 — Corroborate high-consequence observations** *(introduced at A4)*  
 For each declared high-consequence action class, the deployment MUST correlate the control-boundary record with an independently controlled executor-, resource-, or environment-side observation capable of detecting a false success, suppressed action, or contradictory outcome. Disagreement, missing corroboration, and observer failure MUST be surfaced within a predeclared bound. If no independent observation of a high-consequence effect is technically available, A4 MUST NOT be claimed for that action class.
@@ -174,7 +174,7 @@ For each declared high-consequence action class, the deployment MUST correlate t
 **OBS-006 — Instrument domain-critical state transitions** *(introduced at A5)*  
 An A5 safety case MUST identify domain-critical state transitions and catastrophic or irreversible effect classes within scope. Each such transition MUST have an independently justified observation strategy capable of determining whether the effect was admitted, occurred, remained uncertain, or escaped observation. A material critical transition that cannot be observed with justified diagnostic coverage MUST remain outside an A5 claim.
 
-### Contract II — Mediated Action: advanced requirements
+### Constant II — Mediated Action: advanced requirements
 
 **MED-005 — Harden enforcement against actor compromise** *(introduced at A4)*  
 The enforcement boundary for in-scope high-consequence capabilities MUST remain effective when the acting workload, its generated code, and its ordinary orchestration process are treated as hostile within the declared threat model. The actor MUST NOT possess credentials, host privileges, network routes, or administrative interfaces that can directly bypass or reconfigure that boundary. Testing MUST exercise at least one lower-level route beneath the normal agent SDK where such a route exists.
@@ -182,7 +182,7 @@ The enforcement boundary for in-scope high-consequence capabilities MUST remain 
 **MED-006 — Require independent defense in depth for critical effects** *(introduced at A5)*  
 For each declared catastrophic or irreversible effect class, no single ordinary actor-controlled component or single enforcement failure MUST be sufficient to admit the effect. The deployment MUST implement at least two materially independent barriers or an equivalently justified architecture, and testing MUST demonstrate that the remaining barrier prevents admission when either primary barrier is individually failed or bypassed within the safety-case threat model.
 
-### Contract III — Revocable Authority: advanced requirements
+### Constant III — Revocable Authority: advanced requirements
 
 **REV-005 — Preserve revocation under partition and degradation** *(introduced at A4)*  
 Revocable authority MUST remain bounded during loss of connectivity to the primary control plane, supervisor, or credential issuer. Disconnected or partitioned recipients MUST lose consequential authority through resource-side revocation, bounded leases, expiry, or an equivalent mechanism before the declared maximum residual-authority interval. Reconnection MUST NOT revive stale grants.
@@ -190,7 +190,7 @@ Revocable authority MUST remain bounded during loss of connectivity to the prima
 **REV-006 — Maintain a secondary emergency containment path** *(introduced at A5)*  
 Critical capabilities MUST have a secondary containment or revocation mechanism that does not depend on the primary Asimov control path and can remove or bound authority at an infrastructure, credential-issuer, network, resource, hardware, provider, or equivalent layer. The secondary path MUST be periodically exercised with the primary path unavailable, and its residual-effect limits MUST be included in the domain safety case.
 
-### Contract IV — Protected Oversight: advanced requirements
+### Constant IV — Protected Oversight: advanced requirements
 
 **OVR-005 — Analyze and break common-mode supervision failures** *(introduced at A4)*  
 The deployment MUST document dependencies shared by the actor, supervisor, enforcement path, identity system, evidence path, and human intervention mechanism. For each declared high-consequence action class, at least one effective intervention path MUST avoid the dominant actor-controlled runtime and the same single model-mediated judgment path. Credible common-mode faults MUST be fault-injected or otherwise evidenced, and unresolved common-mode failure capable of defeating all required oversight MUST prevent A4.
@@ -198,7 +198,7 @@ The deployment MUST document dependencies shared by the actor, supervisor, enfor
 **OVR-006 — Independently assure supervision against evasion** *(introduced at A5)*  
 A5 MUST subject supervision and control logic to an independent adversarial assurance process that includes monitor evasion, policy confusion, control-plane manipulation, and deceptive or strategically adapted actor behavior within the declared threat model. Catastrophic hard limits MUST NOT depend solely on a single semantic or LLM-based monitor. Acceptance criteria, trial distributions, assessor independence, negative results, and residual limitations MUST be recorded before an A5 conclusion.
 
-### Contract V — Bounded Delegation: advanced requirements
+### Constant V — Bounded Delegation: advanced requirements
 
 **DEL-005 — Contain delegation under churn and partial failure** *(introduced at A4)*  
 Delegation controls MUST preserve authority, budget, lineage, revocation, and termination bounds under the declared peak rates of concurrent spawning, retry, nested delegation, actor restart, partial network failure, and orphaned work. Safety-relevant accounting MUST be rooted in authority that cannot be reset by changing process, session, display name, provider, or descendant topology.
@@ -206,7 +206,7 @@ Delegation controls MUST preserve authority, budget, lineage, revocation, and te
 **DEL-006 — Constrain critical delegation across trust boundaries** *(introduced at A5)*  
 Critical authority MUST NOT cross an organizational, provider, jurisdictional, or separately administered trust boundary unless the recipient controls are independently evidenced as satisfying the safety-case requirements relevant to the delegated capability, or the delegation is technically attenuated so that no critical effect can be produced by the recipient alone. Recipient self-attestation MUST NOT be sufficient. Revocation, evidence, incident notification, and downstream redelegation semantics MUST be contractually and technically testable.
 
-### Contract VI — Human Authority: advanced requirements
+### Constant VI — Human Authority: advanced requirements
 
 **HUM-005 — Maintain out-of-band operator intervention** *(introduced at A4)*  
 At least one authenticated mechanism for restricting or stopping high-consequence autonomous operation MUST remain usable when the normal agent task interface, actor process, and primary orchestration service are unavailable or untrusted. The out-of-band path MUST terminate or restrict authority at an enforcement, credential, network, resource, or equivalent control point outside the actor process.
@@ -214,7 +214,7 @@ At least one authenticated mechanism for restricting or stopping high-consequenc
 **HUM-006 — Assure emergency staffing and controlled recovery** *(introduced at A5)*  
 Critical deployments MUST maintain redundant authenticated human emergency authority so that loss or compromise of a single ordinary operator channel does not eliminate intervention capability. Emergency restriction MAY be intentionally one-person; restoration of suspended critical authority MUST require a separately governed recovery procedure with separation of duties, explicit evidence review, and attributable authorization. The organization MUST exercise intervention and recovery under representative staffing and communication failures.
 
-### Contract VII — Accountability: advanced requirements
+### Constant VII — Accountability: advanced requirements
 
 **ACC-005 — Cryptographically bind and externally checkpoint assessment evidence** *(introduced at A4)*  
 A4 assessment evidence MUST be represented by a canonical or deterministically reproducible manifest that binds each relied-upon artifact to a cryptographic digest and binds the assessment report to the tested scope and configuration. The manifest or an equivalent commitment MUST be signed by an authenticated assessment identity and checkpointed outside the assessed actor and operator-controlled mutable evidence store using a trusted transparency, timestamp, append-only, or equivalent independent mechanism. Verification MUST detect artifact modification, substitution, rollback, and signature/identity mismatch.
@@ -233,8 +233,8 @@ Profiles A1–A5 are cumulative **experimental assessment targets**. The level i
 | A1 | Observable | OBS-001–004 and ACC-001–004; observation and accountable evidence | 8 mandatory families + 5 baseline preconditions |
 | A2 | Controlled | A1 plus baseline mediation, revocation, oversight isolation, bounded delegation and human authority | 21 mandatory families + 5 baseline preconditions |
 | A3 | Supervised | A2 plus authenticated/independent supervision, delegation lifecycle and latched intervention | 28 mandatory families + 5 baseline preconditions |
-| A4 | Hardened | A3 plus one advanced requirement per Contract for hostile-workload resilience, partitions, common-mode failure, out-of-band intervention and cryptographic evidence binding | 35 mandatory families + 8 preconditions |
-| A5 | Critical | A4 plus one critical-assurance requirement per Contract; requires a domain safety case, critical-effect inventory, independent review plan, independent assessment and durable evidence | 42 mandatory families + 11 preconditions |
+| A4 | Hardened | A3 plus one advanced requirement per Constant for hostile-workload resilience, partitions, common-mode failure, out-of-band intervention and cryptographic evidence binding | 35 mandatory families + 8 preconditions |
+| A5 | Critical | A4 plus one critical-assurance requirement per Constant; requires a domain safety case, critical-effect inventory, independent review plan, independent assessment and durable evidence | 42 mandatory families + 11 preconditions |
 
 A1–A5 results MUST include the specification version and deployment scope. Conformance is expressed as SATISFIED_IN_SCOPE, FAIL, or INCOMPLETE. A5 additionally requires the applicable domain safety-case and independent-assurance conditions defined below.
 
@@ -303,7 +303,7 @@ The reference tooling can build and verify deterministic SHA-256 evidence manife
 
 ## 8. Interoperability and project governance
 
-Implementers need not use Asimov code. A proprietary service, open-source framework or internal control plane may satisfy a property using its own technology. Asimov's contribution is a compact deployment-level control contract with falsifiable evidence requirements that composes with existing access-control, audit, runtime-supervision, and conformance infrastructure.
+Implementers need not use Asimov code. A proprietary service, open-source framework or internal control plane may satisfy a property using its own technology. Asimov's contribution is a compact deployment-level control model with falsifiable evidence requirements that composes with existing access-control, audit, runtime-supervision, and conformance infrastructure.
 
 The landscape crosswalk in `docs/ECOSYSTEM.md` records current overlap. OWASP ACS already defines runtime intervention, trace/inspection pillars and conformance profiles [3,4]. ControlArena supports AI-control experiments [5]. Microsoft's Agent Governance Toolkit provides extensive runtime-governance mechanisms [6]. OpenTelemetry provides reusable telemetry conventions [7], MCP provides protocol-security guidance [8], and NIST's initiative is an interoperability/standards context [9]. AAS-1 defines portable audit-grade agent evidence [10]. Sigstore and in-toto provide mature identity/signing/transparency and attestation primitives [11,12]. Asimov should map to or reuse these mechanisms rather than reproduce them. Integration status is tracked independently from the normative requirements.
 

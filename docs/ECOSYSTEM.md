@@ -34,21 +34,21 @@ ControlArena helps researchers run experiments against potentially untrusted mod
 
 ### AAS-1: closest on accountability evidence
 
-AAS-1 has already done significant work on exactly the area an early Asimov draft might otherwise reinvent: canonical records, hashes, identity binding, signatures, timestamps, Merkle aggregation, auditor assertions, and audit engagements.
+AAS-1 has already done significant work on exactly the area an earlier Asimov design might otherwise reinvent: canonical records, hashes, identity binding, signatures, timestamps, Merkle aggregation, auditor assertions, and audit engagements.
 
 **Conclusion:** Asimov should narrow `Accountability` to the control/evidence properties needed for its conformance claim and support AAS-1 as a preferred evidence source/profile where technically compatible.
 
 ## What is still plausibly distinct?
 
-The hypothesis worth testing is a **small deployment-level safety contract that is implementation-agnostic and falsifiable**:
+The hypothesis worth testing is a **small deployment-level control model that is implementation-agnostic and falsifiable**:
 
-1. Seven memorable control contracts.
+1. Seven memorable control invariants.
 2. Cumulative A0–A5 assurance profiles with no averaging.
 3. Operational tests of real authority, revocation, oversight isolation, delegation, human intervention, and accountability.
 4. Higher profiles that explicitly test hostile workloads, partitions, common-mode failure, independent control paths, and domain-critical safety cases.
 5. Verifiable evidence binding without declaring any one runtime framework to be the standard.
 
-That is not obviously duplicated by ACS, AGT, ControlArena, AAS-1, NIST, or ISO individually. The risk is **combinatorial duplication**: those projects together cover most primitives. Asimov only has legs if the Seven-Contract abstraction and conformance semantics prove useful enough that implementers prefer a common cross-framework claim rather than separate vendor-specific claims.
+That is not obviously duplicated by ACS, AGT, ControlArena, AAS-1, NIST, or ISO individually. The risk is **combinatorial duplication**: those projects together cover most primitives. Asimov only has legs if the Seven-Constant abstraction and conformance semantics prove useful enough that implementers prefer a common cross-framework claim rather than separate vendor-specific claims.
 
 ## Primary references
 

@@ -4,8 +4,8 @@ The repository is the normative source. The website renders the current tagged s
 
 ## v1 navigation
 
-1. **Home** — thesis, Seven Contracts, A-level ladder, current implementation.
-2. **Seven Contracts** — plain-language contract cards linked to normative requirements.
+1. **Home** — thesis, Seven Constants, A-level ladder, current implementation.
+2. **Seven Constants** — plain-language Constant treatments linked to normative requirements.
 3. **A1–A5** — cumulative profile definitions and mandatory-family counts.
 4. **Test Your System** — install, map infrastructure, build adapter, run readiness/probes.
 5. **Probe Explorer** — all 42 families with implementation status.
