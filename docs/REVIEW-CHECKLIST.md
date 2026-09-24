@@ -1,4 +1,4 @@
-# Founding draft review checklist
+# Asimov review checklist
 
 This checklist is a review aid, not another scored conformance profile.
 
