@@ -1,0 +1,51 @@
+{
+  "spec_version": "0.2.0-draft.1",
+  "manifest_id": "illustrative-scope-only",
+  "system": {
+    "id": "illustrative-agent-not-a-live-system",
+    "configuration_sha256": "dfb19485995d186fa8ffdc666efd98ed2c9dd6915f91e7ee17e288dec9d67bf5",
+    "model_reference": {
+      "kind": "none",
+      "value": "No model used in report examples"
+    }
+  },
+  "boundary": {
+    "kind": "component",
+    "description": "Synthetic report fixture only; no deployed system or safety controls are represented.",
+    "consequential_paths": [
+      {
+        "id": "synthetic-write",
+        "kind": "fixture-only",
+        "enabled": false,
+        "control_status": "UNKNOWN",
+        "controller_ref": "Not implemented"
+      }
+    ],
+    "excluded_paths": [
+      "All real filesystem, network, provider, shell and delegation behavior; this is not an actual deployment."
+    ]
+  },
+  "trust_assumptions": [
+    "All example findings are synthetic and unverified."
+  ],
+  "human_authority": {
+    "operator_role": "Not configured",
+    "revoker_role": "Not configured",
+    "emergency_operator_role": "Not configured"
+  },
+  "timing_plan": {
+    "status": "DRAFT",
+    "measurement_clock": "Not configured",
+    "limits": [
+      {
+        "name": "revocation-effect",
+        "max_seconds": null,
+        "justification": "To be set by a reviewed hazard plan, not guessed.",
+        "review_evidence_ref": "Unavailable"
+      }
+    ]
+  },
+  "limitations": [
+    "Schema-valid example only. Does not satisfy assessment preconditions."
+  ]
+}
