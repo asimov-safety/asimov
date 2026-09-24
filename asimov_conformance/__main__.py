@@ -30,11 +30,11 @@ def main(argv: list[str] | None = None) -> int:
     vp.add_argument("manifest", type=Path)
     vp.add_argument("root", type=Path)
 
-    pp = sub.add_parser("reference-probes", help="Run the full executable A3 reference harness against the disposable target.")
+    pp = sub.add_parser("reference-probes", help="Run the full executable A5 reference harness against the disposable target.")
     pp.add_argument("--json-output", type=Path)
     pp.add_argument("--html-output", type=Path)
 
-    mp = sub.add_parser("reference-mutations", help="Verify that every executable A3 probe fails when its matching reference control is removed.")
+    mp = sub.add_parser("reference-mutations", help="Verify that every executable probe fails when its matching reference control is removed.")
     mp.add_argument("--json-output", type=Path)
 
     ip = sub.add_parser("init", help="Create a cross-platform Asimov deployment scaffold without overwriting existing configuration.")
@@ -83,7 +83,7 @@ def main(argv: list[str] | None = None) -> int:
             args.json_output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
         if args.html_output is not None:
             args.html_output.write_text(render_probe_html(result), encoding="utf-8")
-        print(f"ASIMOV {result['spec_version']} — A3 REFERENCE HARNESS")
+        print(f"ASIMOV {result['spec_version']} — A5 REFERENCE HARNESS")
         for row in result["results"]:
             print(f"{row['requirement_id']}: {row['status']} — {row['summary']}")
         print(f"Selected probes passed: {result['counts']['PASS']}/{len(result['results'])}")
