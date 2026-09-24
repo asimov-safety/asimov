@@ -1,15 +1,15 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:asimov:draft:0.2.0-draft.1:assessment-report",
-  "title": "Asimov draft assessment report \u2014 structure is not attestation",
+  "$id": "urn:asimov:0.2.0:assessment-report",
+  "title": "Asimov assessment report",
   "description": "Schema validation is structural only; evidence and identity need separate verification.",
   "type": "object",
   "properties": {
     "spec_version": {
-      "const": "0.2.0-draft.1"
+      "const": "0.2.0"
     },
     "catalog_version": {
-      "const": "0.2.0-draft.1"
+      "const": "0.2.0"
     },
     "report_id": {
       "type": "string",
