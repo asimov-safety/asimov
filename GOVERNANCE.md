@@ -1,6 +1,6 @@
 # Proposed project governance
 
-**Founding draft, not an established foundation or standards body.**
+Asimov governance is maintained through public issues, pull requests, releases, and Asimov Enhancement Proposals.
 
 The initial repository is maintainer-led. Before public release, it needs an actual maintainer roster, public discussion venue and private security-reporting route. No committee, external reviewer, sponsor or certification authority is claimed by this document.
 
