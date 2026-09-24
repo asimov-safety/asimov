@@ -18,7 +18,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## OBS-001 — Declare the real action surface
 
-**Contract:** I | **Introduced:** A1 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** I | **Introduced:** A1 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** ARCHITECTURE_REVIEW, DISCOVERY_PROBE
 
@@ -36,7 +36,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## OBS-002 — Observe actions outside the actor
 
-**Contract:** I | **Introduced:** A1 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** I | **Introduced:** A1 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** DETERMINISTIC_PROBE, RESOURCE_OBSERVATION
 
@@ -54,7 +54,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## OBS-003 — Bind identity and lineage
 
-**Contract:** I | **Introduced:** A1 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** I | **Introduced:** A1 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** IDENTITY_PROBE, DETERMINISTIC_PROBE
 
@@ -72,7 +72,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## OBS-004 — Make observation failures visible
 
-**Contract:** I | **Introduced:** A1 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** I | **Introduced:** A1 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** FAULT_INJECTION, RESOURCE_OBSERVATION
 
@@ -90,7 +90,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## MED-001 — Authorize before effects
 
-**Contract:** II | **Introduced:** A2 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** II | **Introduced:** A2 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** DETERMINISTIC_PROBE, RESOURCE_OBSERVATION
 
@@ -108,7 +108,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## MED-002 — Resist alternate-path bypass
 
-**Contract:** II | **Introduced:** A2 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** II | **Introduced:** A2 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** PRIVILEGE_REVIEW, BYPASS_PROBE
 
@@ -126,7 +126,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## MED-003 — Bind approvals to the executed action
 
-**Contract:** II | **Introduced:** A2 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** II | **Introduced:** A2 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** DETERMINISTIC_PROBE, CONCURRENCY_PROBE
 
@@ -144,7 +144,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## MED-004 — Fail to a bounded state
 
-**Contract:** II | **Introduced:** A2 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** II | **Introduced:** A2 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** FAULT_INJECTION, RECOVERY_PROBE
 
@@ -162,7 +162,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## REV-001 — Revoke outside the agent
 
-**Contract:** III | **Introduced:** A2 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** III | **Introduced:** A2 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** REVOCATION_PROBE, TIMING_MEASUREMENT
 
@@ -180,7 +180,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## REV-002 — Revoke queued and cached authority
 
-**Contract:** III | **Introduced:** A2 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** III | **Introduced:** A2 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** REVOCATION_PROBE, FAULT_INJECTION
 
@@ -198,7 +198,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## REV-003 — Prevent self-renewal after revocation
 
-**Contract:** III | **Introduced:** A2 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** III | **Introduced:** A2 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** REVOCATION_PROBE, RESTART_PROBE
 
@@ -216,7 +216,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## REV-004 — Propagate revocation through delegation
 
-**Contract:** III | **Introduced:** A2 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** III | **Introduced:** A2 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** DELEGATION_PROBE, REVOCATION_PROBE
 
@@ -234,7 +234,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## OVR-001 — Protect the control plane
 
-**Contract:** IV | **Introduced:** A2 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** IV | **Introduced:** A2 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** PRIVILEGE_REVIEW, TAMPER_PROBE
 
@@ -252,7 +252,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## OVR-002 — Authenticate supervision
 
-**Contract:** IV | **Introduced:** A3 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** IV | **Introduced:** A3 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** AUTHENTICATION_PROBE, REPLAY_PROBE
 
@@ -270,7 +270,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## OVR-003 — Make independent supervision testable
 
-**Contract:** IV | **Introduced:** A3 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** IV | **Introduced:** A3 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** ARCHITECTURE_REVIEW, FAULT_INJECTION
 
@@ -288,7 +288,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## OVR-004 — Preserve authority under untrusted content
 
-**Contract:** IV | **Introduced:** A3 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** IV | **Introduced:** A3 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** ADVERSARIAL_CAMPAIGN, BYPASS_PROBE
 
@@ -306,7 +306,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## DEL-001 — Attenuate delegated authority
 
-**Contract:** V | **Introduced:** A2 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** V | **Introduced:** A2 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** DELEGATION_PROBE, RESOURCE_OBSERVATION
 
@@ -324,7 +324,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## DEL-002 — Conserve aggregate resource limits
 
-**Contract:** V | **Introduced:** A2 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** V | **Introduced:** A2 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** CONCURRENCY_PROBE, BUDGET_PROBE
 
@@ -342,7 +342,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## DEL-003 — Track the whole delegated lifecycle
 
-**Contract:** V | **Introduced:** A3 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** V | **Introduced:** A3 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** DELEGATION_PROBE, LIFECYCLE_PROBE
 
@@ -360,7 +360,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## DEL-004 — Verify cross-boundary delegation
 
-**Contract:** V | **Introduced:** A3 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** V | **Introduced:** A3 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** TRUST_BOUNDARY_REVIEW, DELEGATION_PROBE
 
@@ -378,7 +378,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## HUM-001 — Keep an independent human stop path
 
-**Contract:** VI | **Introduced:** A2 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** VI | **Introduced:** A2 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** HUMAN_EXERCISE, TIMING_MEASUREMENT
 
@@ -396,7 +396,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## HUM-002 — Make human approval meaningful
 
-**Contract:** VI | **Introduced:** A2 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** VI | **Introduced:** A2 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** HUMAN_EXERCISE, APPROVAL_BINDING_PROBE
 
@@ -414,7 +414,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## HUM-003 — Latch stops across restart
 
-**Contract:** VI | **Introduced:** A3 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** VI | **Introduced:** A3 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** HUMAN_EXERCISE, RESTART_PROBE
 
@@ -432,7 +432,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## HUM-004 — Validate intervention under hazards and load
 
-**Contract:** VI | **Introduced:** A3 | **Automation:** REVIEW_REQUIRED | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** VI | **Introduced:** A3 | **Automation:** REVIEW_REQUIRED | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** HUMAN_EXERCISE, FAULT_INJECTION, LOAD_TEST
 
@@ -450,7 +450,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## ACC-001 — Make responsibility reconstructable
 
-**Contract:** VII | **Introduced:** A1 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** VII | **Introduced:** A1 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** EVIDENCE_REPLAY, REVIEW_EXERCISE
 
@@ -468,7 +468,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## ACC-002 — Detect evidence tampering within a stated trust model
 
-**Contract:** VII | **Introduced:** A1 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** VII | **Introduced:** A1 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** TAMPER_PROBE, CRYPTOGRAPHIC_VERIFICATION
 
@@ -486,7 +486,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## ACC-003 — Minimize and govern evidence access
 
-**Contract:** VII | **Introduced:** A1 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** VII | **Introduced:** A1 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** ACCESS_CONTROL_PROBE, DATA_HANDLING_REVIEW
 
@@ -504,7 +504,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## ACC-004 — Bind claims to evidence, scope and version
 
-**Contract:** VII | **Introduced:** A1 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** VII | **Introduced:** A1 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** REPORT_VALIDATION, CHANGE_IMPACT_REVIEW
 
@@ -522,7 +522,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## OBS-005 — Corroborate high-consequence observations
 
-**Contract:** I | **Introduced:** A4 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** I | **Introduced:** A4 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** ARCHITECTURE_REVIEW, DETERMINISTIC_PROBE, FAULT_INJECTION
 
@@ -540,7 +540,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## MED-005 — Harden enforcement against actor compromise
 
-**Contract:** II | **Introduced:** A4 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** II | **Introduced:** A4 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** PRIVILEGE_REVIEW, BYPASS_PROBE, ADVERSARIAL_CAMPAIGN
 
@@ -558,7 +558,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## REV-005 — Preserve revocation under partition and degradation
 
-**Contract:** III | **Introduced:** A4 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** III | **Introduced:** A4 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** FAULT_INJECTION, REVOCATION_PROBE, TIMING_MEASUREMENT
 
@@ -576,7 +576,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## OVR-005 — Analyze and break common-mode supervision failures
 
-**Contract:** IV | **Introduced:** A4 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** IV | **Introduced:** A4 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** COMMON_MODE_ANALYSIS, FAULT_INJECTION, ADVERSARIAL_CAMPAIGN
 
@@ -594,7 +594,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## DEL-005 — Contain delegation under churn and partial failure
 
-**Contract:** V | **Introduced:** A4 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** V | **Introduced:** A4 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** LOAD_TEST, FAULT_INJECTION, DELEGATION_PROBE
 
@@ -612,7 +612,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## HUM-005 — Maintain out-of-band operator intervention
 
-**Contract:** VI | **Introduced:** A4 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** VI | **Introduced:** A4 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** ARCHITECTURE_REVIEW, FAULT_INJECTION, HUMAN_EXERCISE
 
@@ -630,7 +630,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## ACC-005 — Cryptographically bind and externally checkpoint assessment evidence
 
-**Contract:** VII | **Introduced:** A4 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** VII | **Introduced:** A4 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** CRYPTOGRAPHIC_VERIFICATION, EVIDENCE_REVIEW
 
@@ -648,7 +648,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## OBS-006 — Instrument domain-critical state transitions
 
-**Contract:** I | **Introduced:** A5 | **Automation:** REVIEW_REQUIRED | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** I | **Introduced:** A5 | **Automation:** REVIEW_REQUIRED | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** DOMAIN_HAZARD_REVIEW, DETERMINISTIC_PROBE, FAULT_INJECTION
 
@@ -666,7 +666,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## MED-006 — Require independent defense in depth for critical effects
 
-**Contract:** II | **Introduced:** A5 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** II | **Introduced:** A5 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** SAFETY_CASE_REVIEW, FAULT_INJECTION, BYPASS_PROBE
 
@@ -684,7 +684,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## REV-006 — Maintain a secondary emergency containment path
 
-**Contract:** III | **Introduced:** A5 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** III | **Introduced:** A5 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** ARCHITECTURE_REVIEW, FAULT_INJECTION, REVOCATION_PROBE
 
@@ -702,7 +702,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## OVR-006 — Independently assure supervision against evasion
 
-**Contract:** IV | **Introduced:** A5 | **Automation:** REVIEW_REQUIRED | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** IV | **Introduced:** A5 | **Automation:** REVIEW_REQUIRED | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** INDEPENDENT_RED_TEAM, ADVERSARIAL_CAMPAIGN, STATISTICAL_EVALUATION
 
@@ -720,7 +720,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## DEL-006 — Constrain critical delegation across trust boundaries
 
-**Contract:** V | **Introduced:** A5 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** V | **Introduced:** A5 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** TRUST_BOUNDARY_REVIEW, DELEGATION_PROBE, FAULT_INJECTION
 
@@ -738,7 +738,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## HUM-006 — Assure emergency staffing and controlled recovery
 
-**Contract:** VI | **Introduced:** A5 | **Automation:** REVIEW_REQUIRED | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** VI | **Introduced:** A5 | **Automation:** REVIEW_REQUIRED | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** HUMAN_EXERCISE, FAULT_INJECTION, RECOVERY_REVIEW
 
@@ -756,7 +756,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## ACC-006 — Require independent assurance and durable evidence escrow
 
-**Contract:** VII | **Introduced:** A5 | **Automation:** REVIEW_REQUIRED | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** VII | **Introduced:** A5 | **Automation:** REVIEW_REQUIRED | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
 
 **Method classes:** INDEPENDENT_ASSESSMENT, CRYPTOGRAPHIC_VERIFICATION, EVIDENCE_REPLAY
 

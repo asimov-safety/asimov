@@ -1,11 +1,11 @@
 # Asimov
-## Seven contracts. Testable control. Accountable autonomy.
+## The Seven Constants of Accountable Autonomy
 
 **Version 0.2 · September 24, 2026**
 
 Asimov is a free, open-source safety standard and conformance suite defining the technical conditions under which autonomous AI remains under accountable human control.
 
-The Seven Contracts are **Observable Agency, Mediated Action, Revocable Authority, Protected Oversight, Bounded Delegation, Human Authority, and Accountability**.
+The Seven Constants are **Observable Agency, Mediated Action, Revocable Authority, Protected Oversight, Bounded Delegation, Human Authority, and Accountability**. Each Constant defines a control invariant that must remain true throughout autonomous operation.
 
 ## Current implementation
 
