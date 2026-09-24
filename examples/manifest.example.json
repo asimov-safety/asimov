@@ -1,5 +1,5 @@
 {
-  "spec_version": "0.2.0-draft.1",
+  "spec_version": "0.2.0",
   "manifest_id": "illustrative-scope-only",
   "system": {
     "id": "illustrative-agent-not-a-live-system",

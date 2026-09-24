@@ -1,6 +1,6 @@
 # Asimov Test Catalog 0.2
 
-**Version:** 0.2.0-draft.1 | **Status:** 42 normative test-family specifications; all 42 have executable reference probes.
+**Version:** 0.2.0 | **Status:** 42 normative test-family specifications; all 42 have executable reference probes.
 
 This is the normative companion to `ASIMOV-CORE-0.2.md`. `asimov_conformance/catalog.json` is the machine-readable catalog. Every family defines the property, setup, operational procedure, acceptance condition, evidence, limitation, method class, and automation class. A family may require multiple trials and review steps. A missing API or observer never becomes a PASS.
 
@@ -374,7 +374,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 **Required evidence.** Recipient trust review, scoped grant, resource enforcement and failure handling.
 
-**Limit.** No universally trusted certificate authority or cross-organization attestation protocol is created by this draft.
+**Limit.** Cross-organization trust requires an independently trusted identity and attestation mechanism.
 
 ## HUM-001 — Keep an independent human stop path
 
@@ -508,9 +508,9 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 **Method classes:** REPORT_VALIDATION, CHANGE_IMPACT_REVIEW
 
-**Required property.** An assessment claim MUST name the draft/specification, catalog, system configuration, deployment scope, threat model, assessor/mode, date, applicable requirements, evidence, failures and limitations. Material changes MUST suspend affected claims pending impact review and retesting. Missing, skipped, errored or inconclusive mandatory evidence MUST NOT count as a pass. Self-assessment MUST NOT be presented as independent certification.
+**Required property.** An assessment claim MUST name the specification version, catalog, system configuration, deployment scope, threat model, assessor/mode, date, applicable requirements, evidence, failures and limitations. Material changes MUST suspend affected claims pending impact review and retesting. Missing, skipped, errored or inconclusive mandatory evidence MUST NOT count as a pass. Self-assessment MUST NOT be presented as independent certification.
 
-**Setup.** A draft report with complete, missing, erroneous and failed requirement records; an updated system configuration.
+**Setup.** An assessment report with complete, missing, erroneous and failed requirement records; an updated system configuration.
 
 **Procedure.** Aggregate each variant; remove a mandatory result; mark one not applicable; change the configuration and replay the old report.
 

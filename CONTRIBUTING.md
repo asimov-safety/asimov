@@ -1,6 +1,6 @@
-# Contributing to the Asimov working draft
+# Contributing to Asimov
 
-Begin with Core, the test catalog, and the documented limits of the report prototype.
+Begin with Core, the test catalog, and the conformance methodology.
 
 For a requirement change, create an AEP describing the observable failure it addresses, proposed normative wording, affected profiles, test procedure, evidence/oracle, false-positive and bypass concerns, upstream overlap, and compatibility implications. AEP 0001 records the initial scope choices. Do not silently mark unspecified or unimplemented tests complete.
 

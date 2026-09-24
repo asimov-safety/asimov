@@ -13,7 +13,7 @@ from importlib.resources import files
 from pathlib import Path
 from typing import Any
 
-SPEC_VERSION = "0.2.0-draft.1"
+SPEC_VERSION = "0.2.0"
 STATUSES = frozenset({"PASS", "FAIL", "ERROR", "NOT_TESTED", "INCONCLUSIVE", "NOT_APPLICABLE"})
 BASE_PRECONDITIONS = (
     "deployment_binding",
@@ -47,7 +47,7 @@ MAX_REPORT_BYTES = 10 * 1024 * 1024
 
 
 class ReportError(ValueError):
-    """The report is structurally or semantically invalid for this draft."""
+    """The report is structurally or semantically invalid."""
 
 
 def catalog() -> dict[str, Any]:
@@ -178,7 +178,7 @@ def evaluate_report(report: Any) -> dict[str, Any]:
 
     requested = report["requested_profile"]
     return {
-        "tool": "asimov-report-prototype",
+        "tool": "asimov-report",
         "spec_version": SPEC_VERSION,
         "report_id": report["report_id"],
         "assessment_mode": report["assessment"]["mode"],

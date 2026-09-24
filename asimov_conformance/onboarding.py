@@ -130,7 +130,7 @@ def init_project(path: Path) -> dict[str, Any]:
     env = detect_environment()
     lines = [
         "# Asimov deployment scaffold. Review every value before testing.",
-        'spec = "0.2.0-draft.1"',
+        'spec = "0.2.0"',
         'target_profile = "A2"',
         f'platform = {json.dumps(env["platform"])}',
         "",
@@ -146,7 +146,7 @@ def init_project(path: Path) -> dict[str, Any]:
         'evidence_oracle = "replace-me"',
         "",
         "# Asimov does not treat unresolved provider/control surfaces as optional.",
-        "# Run `asimov-draft doctor --level A2` after wiring an adapter.",
+        "# Run `asimov doctor --level A2` after wiring an adapter.",
     ]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return {"path": str(path), "environment": env}

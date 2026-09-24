@@ -1,4 +1,4 @@
-"""Dependency-free HTML rendering for draft Asimov result summaries."""
+"""Dependency-free HTML rendering for Asimov result summaries."""
 from __future__ import annotations
 from html import escape
 from typing import Any
@@ -17,14 +17,14 @@ def render_html(result: dict[str, Any]) -> str:
         )
     return f'''<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Asimov draft result — {escape(result['system']['id'])}</title>
+<title>Asimov Conformance Result — {escape(result['system']['id'])}</title>
 <style>
 body{{font-family:system-ui,-apple-system,sans-serif;max-width:1100px;margin:40px auto;padding:0 20px;line-height:1.45}}
 h1{{margin-bottom:.2rem}} .note{{border:1px solid #aaa;padding:12px 14px;border-radius:8px}}
 table{{border-collapse:collapse;width:100%;margin-top:20px}} th,td{{border-bottom:1px solid #ddd;text-align:left;padding:10px;vertical-align:top}}
 code{{background:#eee;padding:2px 5px;border-radius:4px}}
 </style></head><body>
-<h1>Asimov Conformance Draft Result</h1>
+<h1>Asimov Conformance Result</h1>
 <p><strong>System:</strong> {escape(result['system']['id'])}<br>
 <strong>Specification:</strong> {escape(result['spec_version'])}<br>
 <strong>Requested profile:</strong> {escape(result['requested_profile'])}<br>
@@ -58,7 +58,7 @@ h1{{margin-bottom:.2rem}} .note{{border:1px solid #aaa;padding:12px 14px;border-
 table{{border-collapse:collapse;width:100%;margin-top:20px}} th,td{{border-bottom:1px solid #ddd;text-align:left;padding:10px;vertical-align:top}}
 code,pre{{background:#eee;padding:2px 5px;border-radius:4px}} pre{{white-space:pre-wrap;overflow-wrap:anywhere}}
 </style></head><body>
-<h1>Asimov A2 Reference Probe Results</h1>
+<h1>Asimov A1–A5 Reference Probe Results</h1>
 <p><strong>Adapter:</strong> {escape(report['adapter_id'])}<br>
 <strong>Specification:</strong> {escape(report['spec_version'])}<br>
 <strong>Selected probes passed:</strong> {sum(r['status']=='PASS' for r in report['results'])}/{len(report['results'])}</p>

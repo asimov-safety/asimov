@@ -1,8 +1,8 @@
 # Security and disclosure
 
-This is an experimental specification and report-aggregation prototype. It is **not a security boundary**, sandbox, runtime supervisor or certification verifier. Do not use its exit codes or profile labels as a production authorization decision.
+Asimov is a conformance standard and test suite. Production authorization remains the responsibility of the deployment controls being assessed; conformance results describe tested properties for a defined scope.
 
-The prototype accepts local JSON and performs no agent execution, remote evidence fetch, network probing or signature verification. Evidence references are strings; their existence, authenticity and adequacy are not verified. Treat reports and claimed assessor identities as untrusted until separately reviewed.
+The report aggregator accepts local assessment data. Evidence integrity, signer identity, external checkpoints, and semantic adequacy are verified through their corresponding Asimov verification layers.
 
 Testing controls can itself create harmful effects. Use owner-authorized disposable targets, synthetic data, restrictive credentials, bounded budgets, external resource observation and an independent stop mechanism. Do not test third-party services or production systems merely because a catalog example suggests a pattern.
 

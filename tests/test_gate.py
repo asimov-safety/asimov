@@ -117,7 +117,7 @@ class GateTests(unittest.TestCase):
             with contextlib.redirect_stdout(stream):
                 code=main(['report',str(ROOT/'examples/report-illustrative-complete.json'),'--html-output',str(out)])
             self.assertEqual(code,0); self.assertTrue(out.exists())
-            html=out.read_text(); self.assertIn('Asimov Conformance Draft Result',html); self.assertIn('A5',html)
+            html=out.read_text(); self.assertIn('Asimov Conformance Result',html); self.assertIn('A5',html)
             self.assertIn('No deployment probed',stream.getvalue())
 
     def test_cli_failure_exit(self):

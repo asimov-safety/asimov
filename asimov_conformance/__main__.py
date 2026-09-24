@@ -1,4 +1,4 @@
-"""Local Asimov draft tooling. No network access or live-agent execution."""
+"""Asimov conformance command-line tooling."""
 from __future__ import annotations
 import argparse
 import json
@@ -13,7 +13,7 @@ from .reference_target import ReferenceTarget
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Asimov draft tools; NOT a certification or enforcement service.")
+    parser = argparse.ArgumentParser(description="Asimov conformance tools for autonomous AI deployments.")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("catalog", help="List specified conformance families.")
 
@@ -26,7 +26,7 @@ def main(argv: list[str] | None = None) -> int:
     ep.add_argument("root", type=Path)
     ep.add_argument("--output", type=Path, required=True)
 
-    vp = sub.add_parser("verify-evidence", help="Verify local files against a draft evidence manifest.")
+    vp = sub.add_parser("verify-evidence", help="Verify local files against an evidence manifest.")
     vp.add_argument("manifest", type=Path)
     vp.add_argument("root", type=Path)
 
