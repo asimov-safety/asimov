@@ -2,7 +2,7 @@
   "type": "object",
   "properties": {
     "spec_version": {
-      "const": "0.2.0-draft.1"
+      "const": "0.2.0"
     },
     "manifest_id": {
       "type": "string",
@@ -223,7 +223,7 @@
   ],
   "additionalProperties": false,
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:asimov:draft:0.2.0-draft.1:scope-manifest",
-  "title": "Asimov draft deployment scope manifest",
+  "$id": "urn:asimov:0.2.0:scope-manifest",
+  "title": "Asimov deployment scope manifest",
   "description": "Schema validity does not establish coverage, authority, reviewed deadlines, or claim eligibility. Null limits and DRAFT plans cannot support a timing PASS."
 }
