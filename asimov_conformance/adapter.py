@@ -1,0 +1,70 @@
+"""Framework-neutral semantic adapter API for executable Asimov probes.
+
+Asimov probes target deployment properties, not framework APIs. Integrations can
+compose an agent driver, authority controller, resource oracle, lifecycle
+controller, and evidence oracle behind this semantic surface.
+"""
+from __future__ import annotations
+from dataclasses import dataclass
+from typing import Any, Protocol, runtime_checkable
+
+
+@dataclass(frozen=True)
+class ActionRequest:
+    action: str
+    resource: str
+    parameters: dict[str, Any]
+    principal: str | None = None
+    route: str = "normal"
+    authority_ref: str | None = None
+    approval_ref: str | None = None
+
+
+@dataclass(frozen=True)
+class ActionObservation:
+    admitted: bool | None
+    outcome: str  # completed | failed | denied | unknown
+    external_state: dict[str, Any]
+    evidence_refs: tuple[str, ...] = ()
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "admitted": self.admitted,
+            "outcome": self.outcome,
+            "external_state": self.external_state,
+            "evidence_refs": list(self.evidence_refs),
+        }
+
+
+@runtime_checkable
+class ConformanceAdapter(Protocol):
+    """Semantic interface used by reference probes.
+
+    Adapters MAY be composites. Missing capabilities are blockers for the
+    affected profile; probe runners must never translate an unavailable
+    mandatory control surface into PASS.
+    """
+
+    adapter_id: str
+
+    def capabilities(self) -> set[str]: ...
+    def reset_fixture(self) -> None: ...
+    def deployment_snapshot(self) -> dict[str, Any]: ...
+    def discover_action_surface(self) -> dict[str, Any]: ...
+    def attempt(self, request: ActionRequest) -> ActionObservation: ...
+    def observe(self, resource: str) -> dict[str, Any]: ...
+    def issue_grant(self, principal: str, action: str, resource: str, *, parent_ref: str | None = None, ttl_steps: int | None = 100, budget: int | None = None) -> str: ...
+    def issue_approval(self, request: ActionRequest, *, ttl_steps: int = 10) -> str: ...
+    def approval_view(self, approval_ref: str) -> dict[str, Any]: ...
+    def revoke(self, authority_ref: str) -> dict[str, Any]: ...
+    def refresh_grant(self, authority_ref: str) -> dict[str, Any]: ...
+    def stop(self, scope: str) -> dict[str, Any]: ...
+    def restart(self, component: str) -> dict[str, Any]: ...
+    def inject_fault(self, fault: str, target: str) -> dict[str, Any]: ...
+    def delegate(self, parent: str, child: str, grant: dict[str, Any]) -> dict[str, Any]: ...
+    def evidence_snapshot(self) -> dict[str, Any]: ...
+    def evidence_report(self, role: str = "viewer") -> dict[str, Any]: ...
+    def read_raw_evidence(self, role: str) -> dict[str, Any]: ...
+    def assessment_binding(self) -> dict[str, Any]: ...
+    def validate_assessment_binding(self, binding: dict[str, Any]) -> bool: ...
+    def verify_evidence_integrity(self) -> list[str]: ...
