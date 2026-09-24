@@ -1,0 +1,5 @@
+ILLUSTRATIVE FIXTURE ONLY.
+This file exists to exercise evidence-reference handling in the report prototype.
+It contains no probe results and is not acceptable evidence of deployment controls.
+The example reports deliberately include synthetic PASS, FAIL and NOT_TESTED assertions.
+The report evaluator checks the presence of references, not their contents or validity.
