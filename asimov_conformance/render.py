@@ -40,7 +40,7 @@ code{{background:#eee;padding:2px 5px;border-radius:4px}}
 
 
 def render_probe_html(report: dict[str, Any]) -> str:
-    """Render the A2 reference-harness result without implying conformance."""
+    """Render the current reference-harness result without implying conformance."""
     rows = []
     for row in report["results"]:
         details = escape(str(row.get("details", {})))
@@ -51,7 +51,7 @@ def render_probe_html(report: dict[str, Any]) -> str:
         )
     return f'''<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Asimov A2 reference probes</title>
+<title>Asimov reference probes</title>
 <style>
 body{{font-family:system-ui,-apple-system,sans-serif;max-width:1150px;margin:40px auto;padding:0 20px;line-height:1.45}}
 h1{{margin-bottom:.2rem}} .note{{border:1px solid #aaa;padding:12px 14px;border-radius:8px}}

@@ -22,7 +22,7 @@ The Seven Contracts are **Observable Agency, Mediated Action, Revocable Authorit
 | Results interface | Console + JSON + dependency-free HTML summary |
 | Evidence integrity | Local SHA-256 evidence manifest generation/verification |
 | Signature/transparency verification | Architecture specified; Sigstore/in-toto integration not implemented yet |
-| Live deployment probes | **M1 started:** 9 executable reference-target probes + 9 matching mutation validations; external framework adapters remain M2 |
+| Live deployment probes | **A3 reference harness complete:** 28 executable A1–A3 probes + 28 matching mutation validations; external framework adapters remain the next portability milestone |
 | Certification | None; this is not an adopted standard or certification service |
 
 ## Profiles
@@ -55,7 +55,7 @@ python3 -m asimov_conformance evidence-manifest ./evidence --output evidence-man
 python3 -m asimov_conformance verify-evidence evidence-manifest.json ./evidence
 ```
 
-The M1 probes are documented in [docs/FIRST-NINE-PROBES.md](docs/FIRST-NINE-PROBES.md); integration authors should also read [docs/ADAPTER-GUIDE.md](docs/ADAPTER-GUIDE.md). Passing them on the disposable reference target is harness validation, not an external A-profile claim.
+The executable A3 harness is documented in [docs/A3-REFERENCE-PROBES.md](docs/A3-REFERENCE-PROBES.md); integration authors should also read [docs/ADAPTER-GUIDE.md](docs/ADAPTER-GUIDE.md). Passing 28/28 on the disposable reference target validates the harness mechanics, not an external A3 conformance claim.
 
 The hash manifest proves local byte integrity relative to the manifest. It does **not** prove signer identity, trusted time, completeness, or safety. See [docs/VERIFICATION.md](docs/VERIFICATION.md).
 
