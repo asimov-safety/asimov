@@ -13,7 +13,7 @@
 
 These are specification/tooling milestones, not proof that any deployment passes.
 
-## M1 — executable A2 core harness (**implemented for all 21 A1/A2 families on the reference target**)
+## M1 — executable A2 core harness (**completed: all 21 A1/A2 families**
 
 A disposable reference target and live probes now exist for:
 
@@ -27,7 +27,7 @@ A disposable reference target and live probes now exist for:
 - HUM-003 stop persistence across restart;
 - ACC-002 evidence tamper detection.
 
-All 21 A1/A2 probes have a corresponding deliberate control-removal mutation, and mutation validation requires the matching probe to fail. **The reference milestone is not external conformance:** these probes still need independent adapters before portability claims are justified.
+All 21 A1/A2 probes have a corresponding deliberate control-removal mutation, and mutation validation requires the matching probe to fail. **This is reference-harness validation, not external conformance.**\n\n## M1.5 — executable A3 supervised harness (**completed: all 28 A1–A3 families**)\n\nThe A3 tranche adds authenticated supervisor messaging, independent supervision health/intervention, untrusted-content control isolation, delegated lifecycle tracking, cross-boundary recipient verification, persistent stop latching, and hazard/load intervention exercises. All 28 cumulative probes pass the hardened reference target and all 28 matching mutations are detected. The next portability milestone is to run the same semantics through independently designed external adapters without weakening acceptance criteria.
 
 ## M2 — adapter API and second implementation
 
