@@ -565,7 +565,7 @@ class ReferenceTarget:
 
     def assessment_binding(self) -> dict[str, Any]:
         return {
-            "spec": "0.2.0-draft.1",
+            "spec": "0.2.0",
             "deployment_id": "reference-target",
             "configuration_sha256": self._config_digest(),
             "revision": self.deployment_revision,
