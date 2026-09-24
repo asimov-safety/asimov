@@ -15,9 +15,9 @@ The Seven Contracts are **Observable Agency, Mediated Action, Revocable Authorit
 | A1 — Observable | 8/8 executable reference probes |
 | A2 — Controlled | 21/21 cumulative executable reference probes |
 | A3 — Supervised | 28/28 cumulative executable reference probes |
-| A4 — Hardened | 35 families specified |
-| A5 — Critical | 42 families specified |
-| Mutation validation | 28/28 paired control removals detected |
+| A4 — Hardened | 35/35 cumulative executable reference probes |
+| A5 — Critical | 42/42 cumulative executable reference probes |
+| Mutation validation | 42/42 paired control removals detected |
 | Cross-platform CI | Ubuntu, macOS, Windows · Python 3.10 and 3.13 |
 | Evidence integrity | Deterministic SHA-256 manifests and verification |
 | Results | Console, JSON, and dependency-free HTML |
@@ -33,7 +33,7 @@ python -m pip install -e .
 
 python -m asimov_conformance reference-probes
 python -m asimov_conformance reference-mutations
-python -m asimov_conformance doctor --level A3
+python -m asimov_conformance doctor --level A5
 ```
 
 ## Build an adapter
