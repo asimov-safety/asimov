@@ -32,6 +32,8 @@ def sha256_file(path: Path) -> str:
 
 
 def canonical_json_bytes(value: Any) -> bytes:
+    # This deterministic encoding is local to the draft prototype. Interchange
+    # profiles should use a published canonicalization standard such as JCS.
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
 
 
