@@ -26,8 +26,8 @@ body{font-family:system-ui,-apple-system,sans-serif;max-width:1000px;margin:48px
 <h2>Assurance profiles</h2>
 <table><tr><th>Profile</th><th>Meaning</th></tr><tr><td>A1</td><td>Observable</td></tr><tr><td>A2</td><td>Controlled</td></tr><tr><td>A3</td><td>Supervised</td></tr><tr><td>A4</td><td>Hardened</td></tr><tr><td>A5</td><td>Critical</td></tr></table><div class="box"><strong>Executable milestone:</strong> all 28 A1–A3 families now have reference probes and paired broken-control mutations. Missing mandatory observability/control surfaces block a profile rather than receiving partial credit.</div>
 <h2>Current implementation milestone</h2>
-<p>The repository defines 42 cumulative requirement families. Nine families now have executable reference-target probes plus mutation tests that deliberately remove the corresponding control and require the probe to fail.</p>
+<p>The repository defines 42 cumulative requirement families. All 28 A1–A3 families have executable reference-target probes plus paired mutation tests that deliberately remove the corresponding control and require the probe to fail.</p>
 <pre><code>python -m asimov_conformance reference-probes
 python -m asimov_conformance reference-mutations</code></pre>
 <p>Normative text, test methodology, evidence verification design, and implementation status live in the public repository. The project is a working draft, not an adopted certification scheme.</p>
-</body></html>
+<h2>Start testing</h2><p>New integration authors: <a href="https://github.com/asimov-safety/asimov/blob/main/docs/ADAPTER-QUICKSTART.md">build your first adapter</a>. The adapter translates native infrastructure into Asimov semantics; it must not manufacture missing controls.</p><p><a href="https://github.com/asimov-safety/asimov">Repository</a> · <a href="https://github.com/asimov-safety/asimov/blob/main/ASIMOV-CORE-0.2.md">Core specification</a> · <a href="https://github.com/asimov-safety/asimov/blob/main/docs/A3-REFERENCE-PROBES.md">A3 harness</a></p></body></html>

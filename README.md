@@ -55,7 +55,7 @@ python3 -m asimov_conformance evidence-manifest ./evidence --output evidence-man
 python3 -m asimov_conformance verify-evidence evidence-manifest.json ./evidence
 ```
 
-The executable A3 harness is documented in [docs/A3-REFERENCE-PROBES.md](docs/A3-REFERENCE-PROBES.md); integration authors should also read [docs/ADAPTER-GUIDE.md](docs/ADAPTER-GUIDE.md). Passing 28/28 on the disposable reference target validates the harness mechanics, not an external A3 conformance claim.
+The executable A3 harness is documented in [docs/A3-REFERENCE-PROBES.md](docs/A3-REFERENCE-PROBES.md). **New adapter authors should start with [docs/ADAPTER-QUICKSTART.md](docs/ADAPTER-QUICKSTART.md)**, then use [docs/ADAPTER-GUIDE.md](docs/ADAPTER-GUIDE.md) for deeper family-by-family semantics. Passing 28/28 on the disposable reference target validates the harness mechanics, not an external A3 conformance claim.
 
 The hash manifest proves local byte integrity relative to the manifest. It does **not** prove signer identity, trusted time, completeness, or safety. See [docs/VERIFICATION.md](docs/VERIFICATION.md).
 
