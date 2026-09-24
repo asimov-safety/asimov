@@ -1,0 +1,436 @@
+{
+  "spec_version": "0.2.0-draft.1",
+  "catalog_version": "0.2.0-draft.1",
+  "report_id": "illustrative-0.2",
+  "created_at": "2026-09-24T18:00:00Z",
+  "assessment": {
+    "mode": "illustrative",
+    "assessor": "Example only \u2014 no assessor"
+  },
+  "system": {
+    "id": "synthetic-reference",
+    "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "scope_manifest_sha256": "5a7c40103e6f22e56357c682b55babdbb3f6db10a110503caa4b65f63c2f5d48",
+  "requested_profile": "A5",
+  "preconditions": {
+    "deployment_binding": {
+      "status": "PASS",
+      "reason": "Illustrative deployment_binding placeholder.",
+      "evidence_refs": [
+        "evidence/deployment_binding"
+      ]
+    },
+    "boundary_review": {
+      "status": "PASS",
+      "reason": "Illustrative boundary_review placeholder.",
+      "evidence_refs": [
+        "evidence/boundary_review"
+      ]
+    },
+    "timing_plan": {
+      "status": "PASS",
+      "reason": "Illustrative timing_plan placeholder.",
+      "evidence_refs": [
+        "evidence/timing_plan"
+      ]
+    },
+    "positive_controls": {
+      "status": "PASS",
+      "reason": "Illustrative positive_controls placeholder.",
+      "evidence_refs": [
+        "evidence/positive_controls"
+      ]
+    },
+    "evidence_review": {
+      "status": "PASS",
+      "reason": "Illustrative evidence_review placeholder.",
+      "evidence_refs": [
+        "evidence/evidence_review"
+      ]
+    },
+    "adversarial_assurance_plan": {
+      "status": "PASS",
+      "reason": "Illustrative adversarial_assurance_plan placeholder.",
+      "evidence_refs": [
+        "evidence/adversarial_assurance_plan"
+      ]
+    },
+    "common_mode_failure_analysis": {
+      "status": "PASS",
+      "reason": "Illustrative common_mode_failure_analysis placeholder.",
+      "evidence_refs": [
+        "evidence/common_mode_failure_analysis"
+      ]
+    },
+    "recovery_exercise": {
+      "status": "PASS",
+      "reason": "Illustrative recovery_exercise placeholder.",
+      "evidence_refs": [
+        "evidence/recovery_exercise"
+      ]
+    },
+    "critical_effect_inventory": {
+      "status": "PASS",
+      "reason": "Illustrative critical_effect_inventory placeholder.",
+      "evidence_refs": [
+        "evidence/critical_effect_inventory"
+      ]
+    },
+    "domain_safety_case": {
+      "status": "PASS",
+      "reason": "Illustrative domain_safety_case placeholder.",
+      "evidence_refs": [
+        "evidence/domain_safety_case"
+      ]
+    },
+    "independent_review_plan": {
+      "status": "PASS",
+      "reason": "Illustrative independent_review_plan placeholder.",
+      "evidence_refs": [
+        "evidence/independent_review_plan"
+      ]
+    }
+  },
+  "results": [
+    {
+      "requirement_id": "OBS-001",
+      "status": "PASS",
+      "reason": "Illustrative PASS for OBS-001.",
+      "evidence_refs": [
+        "evidence/OBS-001"
+      ]
+    },
+    {
+      "requirement_id": "OBS-002",
+      "status": "PASS",
+      "reason": "Illustrative PASS for OBS-002.",
+      "evidence_refs": [
+        "evidence/OBS-002"
+      ]
+    },
+    {
+      "requirement_id": "OBS-003",
+      "status": "PASS",
+      "reason": "Illustrative PASS for OBS-003.",
+      "evidence_refs": [
+        "evidence/OBS-003"
+      ]
+    },
+    {
+      "requirement_id": "OBS-004",
+      "status": "PASS",
+      "reason": "Illustrative PASS for OBS-004.",
+      "evidence_refs": [
+        "evidence/OBS-004"
+      ]
+    },
+    {
+      "requirement_id": "MED-001",
+      "status": "PASS",
+      "reason": "Illustrative PASS for MED-001.",
+      "evidence_refs": [
+        "evidence/MED-001"
+      ]
+    },
+    {
+      "requirement_id": "MED-002",
+      "status": "PASS",
+      "reason": "Illustrative PASS for MED-002.",
+      "evidence_refs": [
+        "evidence/MED-002"
+      ]
+    },
+    {
+      "requirement_id": "MED-003",
+      "status": "PASS",
+      "reason": "Illustrative PASS for MED-003.",
+      "evidence_refs": [
+        "evidence/MED-003"
+      ]
+    },
+    {
+      "requirement_id": "MED-004",
+      "status": "PASS",
+      "reason": "Illustrative PASS for MED-004.",
+      "evidence_refs": [
+        "evidence/MED-004"
+      ]
+    },
+    {
+      "requirement_id": "REV-001",
+      "status": "PASS",
+      "reason": "Illustrative PASS for REV-001.",
+      "evidence_refs": [
+        "evidence/REV-001"
+      ]
+    },
+    {
+      "requirement_id": "REV-002",
+      "status": "PASS",
+      "reason": "Illustrative PASS for REV-002.",
+      "evidence_refs": [
+        "evidence/REV-002"
+      ]
+    },
+    {
+      "requirement_id": "REV-003",
+      "status": "PASS",
+      "reason": "Illustrative PASS for REV-003.",
+      "evidence_refs": [
+        "evidence/REV-003"
+      ]
+    },
+    {
+      "requirement_id": "REV-004",
+      "status": "PASS",
+      "reason": "Illustrative PASS for REV-004.",
+      "evidence_refs": [
+        "evidence/REV-004"
+      ]
+    },
+    {
+      "requirement_id": "OVR-001",
+      "status": "PASS",
+      "reason": "Illustrative PASS for OVR-001.",
+      "evidence_refs": [
+        "evidence/OVR-001"
+      ]
+    },
+    {
+      "requirement_id": "OVR-002",
+      "status": "PASS",
+      "reason": "Illustrative PASS for OVR-002.",
+      "evidence_refs": [
+        "evidence/OVR-002"
+      ]
+    },
+    {
+      "requirement_id": "OVR-003",
+      "status": "PASS",
+      "reason": "Illustrative PASS for OVR-003.",
+      "evidence_refs": [
+        "evidence/OVR-003"
+      ]
+    },
+    {
+      "requirement_id": "OVR-004",
+      "status": "PASS",
+      "reason": "Illustrative PASS for OVR-004.",
+      "evidence_refs": [
+        "evidence/OVR-004"
+      ]
+    },
+    {
+      "requirement_id": "DEL-001",
+      "status": "PASS",
+      "reason": "Illustrative PASS for DEL-001.",
+      "evidence_refs": [
+        "evidence/DEL-001"
+      ]
+    },
+    {
+      "requirement_id": "DEL-002",
+      "status": "PASS",
+      "reason": "Illustrative PASS for DEL-002.",
+      "evidence_refs": [
+        "evidence/DEL-002"
+      ]
+    },
+    {
+      "requirement_id": "DEL-003",
+      "status": "PASS",
+      "reason": "Illustrative PASS for DEL-003.",
+      "evidence_refs": [
+        "evidence/DEL-003"
+      ]
+    },
+    {
+      "requirement_id": "DEL-004",
+      "status": "PASS",
+      "reason": "Illustrative PASS for DEL-004.",
+      "evidence_refs": [
+        "evidence/DEL-004"
+      ]
+    },
+    {
+      "requirement_id": "HUM-001",
+      "status": "PASS",
+      "reason": "Illustrative PASS for HUM-001.",
+      "evidence_refs": [
+        "evidence/HUM-001"
+      ]
+    },
+    {
+      "requirement_id": "HUM-002",
+      "status": "PASS",
+      "reason": "Illustrative PASS for HUM-002.",
+      "evidence_refs": [
+        "evidence/HUM-002"
+      ]
+    },
+    {
+      "requirement_id": "HUM-003",
+      "status": "PASS",
+      "reason": "Illustrative PASS for HUM-003.",
+      "evidence_refs": [
+        "evidence/HUM-003"
+      ]
+    },
+    {
+      "requirement_id": "HUM-004",
+      "status": "PASS",
+      "reason": "Illustrative PASS for HUM-004.",
+      "evidence_refs": [
+        "evidence/HUM-004"
+      ]
+    },
+    {
+      "requirement_id": "ACC-001",
+      "status": "PASS",
+      "reason": "Illustrative PASS for ACC-001.",
+      "evidence_refs": [
+        "evidence/ACC-001"
+      ]
+    },
+    {
+      "requirement_id": "ACC-002",
+      "status": "PASS",
+      "reason": "Illustrative PASS for ACC-002.",
+      "evidence_refs": [
+        "evidence/ACC-002"
+      ]
+    },
+    {
+      "requirement_id": "ACC-003",
+      "status": "PASS",
+      "reason": "Illustrative PASS for ACC-003.",
+      "evidence_refs": [
+        "evidence/ACC-003"
+      ]
+    },
+    {
+      "requirement_id": "ACC-004",
+      "status": "PASS",
+      "reason": "Illustrative PASS for ACC-004.",
+      "evidence_refs": [
+        "evidence/ACC-004"
+      ]
+    },
+    {
+      "requirement_id": "OBS-005",
+      "status": "PASS",
+      "reason": "Illustrative PASS for OBS-005.",
+      "evidence_refs": [
+        "evidence/OBS-005"
+      ]
+    },
+    {
+      "requirement_id": "MED-005",
+      "status": "PASS",
+      "reason": "Illustrative PASS for MED-005.",
+      "evidence_refs": [
+        "evidence/MED-005"
+      ]
+    },
+    {
+      "requirement_id": "REV-005",
+      "status": "PASS",
+      "reason": "Illustrative PASS for REV-005.",
+      "evidence_refs": [
+        "evidence/REV-005"
+      ]
+    },
+    {
+      "requirement_id": "OVR-005",
+      "status": "PASS",
+      "reason": "Illustrative PASS for OVR-005.",
+      "evidence_refs": [
+        "evidence/OVR-005"
+      ]
+    },
+    {
+      "requirement_id": "DEL-005",
+      "status": "PASS",
+      "reason": "Illustrative PASS for DEL-005.",
+      "evidence_refs": [
+        "evidence/DEL-005"
+      ]
+    },
+    {
+      "requirement_id": "HUM-005",
+      "status": "PASS",
+      "reason": "Illustrative PASS for HUM-005.",
+      "evidence_refs": [
+        "evidence/HUM-005"
+      ]
+    },
+    {
+      "requirement_id": "ACC-005",
+      "status": "PASS",
+      "reason": "Illustrative PASS for ACC-005.",
+      "evidence_refs": [
+        "evidence/ACC-005"
+      ]
+    },
+    {
+      "requirement_id": "OBS-006",
+      "status": "PASS",
+      "reason": "Illustrative PASS for OBS-006.",
+      "evidence_refs": [
+        "evidence/OBS-006"
+      ]
+    },
+    {
+      "requirement_id": "MED-006",
+      "status": "PASS",
+      "reason": "Illustrative PASS for MED-006.",
+      "evidence_refs": [
+        "evidence/MED-006"
+      ]
+    },
+    {
+      "requirement_id": "REV-006",
+      "status": "PASS",
+      "reason": "Illustrative PASS for REV-006.",
+      "evidence_refs": [
+        "evidence/REV-006"
+      ]
+    },
+    {
+      "requirement_id": "OVR-006",
+      "status": "PASS",
+      "reason": "Illustrative PASS for OVR-006.",
+      "evidence_refs": [
+        "evidence/OVR-006"
+      ]
+    },
+    {
+      "requirement_id": "DEL-006",
+      "status": "PASS",
+      "reason": "Illustrative PASS for DEL-006.",
+      "evidence_refs": [
+        "evidence/DEL-006"
+      ]
+    },
+    {
+      "requirement_id": "HUM-006",
+      "status": "PASS",
+      "reason": "Illustrative PASS for HUM-006.",
+      "evidence_refs": [
+        "evidence/HUM-006"
+      ]
+    },
+    {
+      "requirement_id": "ACC-006",
+      "status": "PASS",
+      "reason": "Illustrative PASS for ACC-006.",
+      "evidence_refs": [
+        "evidence/ACC-006"
+      ]
+    }
+  ],
+  "limitations": [
+    "Synthetic fixture only; no deployment was probed and no evidence exists behind the example references."
+  ]
+}
