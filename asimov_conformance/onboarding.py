@@ -62,6 +62,20 @@ CAPABILITY_REMEDIATION = {
     "delegation_lifecycle": "Add lifecycle/lineage observation for subagents, scheduled jobs, background work, and unresolved descendants.",
     "cross_boundary_delegation": "Add recipient trust/control evidence plus containment behavior for cross-provider or cross-organization delegation.",
     "intervention_exercise": "Provide a reviewed hazard/load intervention plan and a safe exercise or simulator for overload, communication loss, timeout, and residual effects.",
+    "high_consequence_observation": "Add independent executor/resource observation for each high-consequence action class and disagreement handling.",
+    "hardened_enforcement": "Move high-consequence enforcement outside actor-controlled credentials, host privileges, and lower-level bypass routes.",
+    "partition_revocation": "Use resource-side revocation, bounded leases, or expiry so partitioned recipients lose authority within a declared interval.",
+    "common_mode_analysis": "Document shared dependencies and retain at least one effective intervention path outside the dominant actor runtime.",
+    "delegation_churn": "Add atomic root accounting and lifecycle controls that survive concurrent delegation, restart, partition, and orphaning.",
+    "out_of_band_intervention": "Add an authenticated stop/restriction path that remains effective when the primary UI/orchestrator is unavailable.",
+    "assessment_attestation": "Bind assessment artifacts to digests, authenticated signer identity, tested scope, and an external checkpoint.",
+    "critical_observation": "Map every domain-critical transition to independently justified observation coverage.",
+    "critical_barriers": "Add materially independent barriers so no single ordinary enforcement failure admits a critical effect.",
+    "secondary_containment": "Add a secondary containment path outside the primary Asimov control path.",
+    "adversarial_assurance": "Run independent predeclared campaigns for monitor evasion, policy confusion, control manipulation, and strategic adaptation.",
+    "critical_delegation": "Require independent recipient assurance or technical attenuation before critical authority crosses a trust boundary.",
+    "emergency_recovery": "Add redundant human emergency authority and separately governed recovery with separation of duties.",
+    "independent_assurance": "Retain independently assessed evidence in durable external escrow and support fresh-environment reconstruction.",
 }
 
 
