@@ -33,7 +33,7 @@ Invite review from AI-control research, security engineering, SRE, safety engine
 
 ## Adoption UX
 
-- `asimov-draft init` creates a cross-platform deployment scaffold.
-- `asimov-draft doctor --level A5` performs fail-closed readiness discovery.
+- `asimov init` creates a cross-platform deployment scaffold.
+- `asimov doctor --level A5` performs fail-closed readiness discovery.
 - Provider composition minimizes framework-specific code.
 - Missing mandatory observability/control surfaces are blockers, not partial credit.
