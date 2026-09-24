@@ -34,7 +34,7 @@ ControlArena helps researchers run experiments against potentially untrusted mod
 
 ### AAS-1: closest on accountability evidence
 
-AAS-1 has already done significant work on exactly the area an early Asimov draft might otherwise reinvent: canonical records, hashes, identity binding, signatures, timestamps, Merkle aggregation, auditor assertions, and audit engagements.
+AAS-1 has already done significant work on exactly the area an earlier Asimov design might otherwise reinvent: canonical records, hashes, identity binding, signatures, timestamps, Merkle aggregation, auditor assertions, and audit engagements.
 
 **Conclusion:** Asimov should narrow `Accountability` to the control/evidence properties needed for its conformance claim and support AAS-1 as a preferred evidence source/profile where technically compatible.
 
