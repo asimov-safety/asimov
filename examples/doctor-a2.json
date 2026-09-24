@@ -1,0 +1,138 @@
+{
+  "tool": "asimov-doctor",
+  "profile": "A2",
+  "adapter_id": "asimov.reference-target/0.2",
+  "platform": "Linux",
+  "ready": true,
+  "requirements": 21,
+  "blockers": 0,
+  "findings": [
+    {
+      "requirement_id": "OBS-001",
+      "state": "READY_TO_TEST",
+      "missing_capabilities": [],
+      "remediation": "No capability blocker detected; run the probe and review evidence."
+    },
+    {
+      "requirement_id": "OBS-002",
+      "state": "READY_TO_TEST",
+      "missing_capabilities": [],
+      "remediation": "No capability blocker detected; run the probe and review evidence."
+    },
+    {
+      "requirement_id": "OBS-003",
+      "state": "READY_TO_TEST",
+      "missing_capabilities": [],
+      "remediation": "No capability blocker detected; run the probe and review evidence."
+    },
+    {
+      "requirement_id": "OBS-004",
+      "state": "READY_TO_TEST",
+      "missing_capabilities": [],
+      "remediation": "No capability blocker detected; run the probe and review evidence."
+    },
+    {
+      "requirement_id": "MED-001",
+      "state": "READY_TO_TEST",
+      "missing_capabilities": [],
+      "remediation": "No capability blocker detected; run the probe and review evidence."
+    },
+    {
+      "requirement_id": "MED-002",
+      "state": "READY_TO_TEST",
+      "missing_capabilities": [],
+      "remediation": "No capability blocker detected; run the probe and review evidence."
+    },
+    {
+      "requirement_id": "MED-003",
+      "state": "READY_TO_TEST",
+      "missing_capabilities": [],
+      "remediation": "No capability blocker detected; run the probe and review evidence."
+    },
+    {
+      "requirement_id": "MED-004",
+      "state": "READY_TO_TEST",
+      "missing_capabilities": [],
+      "remediation": "No capability blocker detected; run the probe and review evidence."
+    },
+    {
+      "requirement_id": "REV-001",
+      "state": "READY_TO_TEST",
+      "missing_capabilities": [],
+      "remediation": "No capability blocker detected; run the probe and review evidence."
+    },
+    {
+      "requirement_id": "REV-002",
+      "state": "READY_TO_TEST",
+      "missing_capabilities": [],
+      "remediation": "No capability blocker detected; run the probe and review evidence."
+    },
+    {
+      "requirement_id": "REV-003",
+      "state": "READY_TO_TEST",
+      "missing_capabilities": [],
+      "remediation": "No capability blocker detected; run the probe and review evidence."
+    },
+    {
+      "requirement_id": "REV-004",
+      "state": "READY_TO_TEST",
+      "missing_capabilities": [],
+      "remediation": "No capability blocker detected; run the probe and review evidence."
+    },
+    {
+      "requirement_id": "OVR-001",
+      "state": "READY_TO_TEST",
+      "missing_capabilities": [],
+      "remediation": "No capability blocker detected; run the probe and review evidence."
+    },
+    {
+      "requirement_id": "DEL-001",
+      "state": "READY_TO_TEST",
+      "missing_capabilities": [],
+      "remediation": "No capability blocker detected; run the probe and review evidence."
+    },
+    {
+      "requirement_id": "DEL-002",
+      "state": "READY_TO_TEST",
+      "missing_capabilities": [],
+      "remediation": "No capability blocker detected; run the probe and review evidence."
+    },
+    {
+      "requirement_id": "HUM-001",
+      "state": "READY_TO_TEST",
+      "missing_capabilities": [],
+      "remediation": "No capability blocker detected; run the probe and review evidence."
+    },
+    {
+      "requirement_id": "HUM-002",
+      "state": "READY_TO_TEST",
+      "missing_capabilities": [],
+      "remediation": "No capability blocker detected; run the probe and review evidence."
+    },
+    {
+      "requirement_id": "ACC-001",
+      "state": "READY_TO_TEST",
+      "missing_capabilities": [],
+      "remediation": "No capability blocker detected; run the probe and review evidence."
+    },
+    {
+      "requirement_id": "ACC-002",
+      "state": "READY_TO_TEST",
+      "missing_capabilities": [],
+      "remediation": "No capability blocker detected; run the probe and review evidence."
+    },
+    {
+      "requirement_id": "ACC-003",
+      "state": "READY_TO_TEST",
+      "missing_capabilities": [],
+      "remediation": "No capability blocker detected; run the probe and review evidence."
+    },
+    {
+      "requirement_id": "ACC-004",
+      "state": "READY_TO_TEST",
+      "missing_capabilities": [],
+      "remediation": "No capability blocker detected; run the probe and review evidence."
+    }
+  ],
+  "rule": "Every mandatory requirement must be testable with an independent control/evidence surface. Coverage gaps block the profile; they are not averaged away."
+}
