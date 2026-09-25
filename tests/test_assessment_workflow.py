@@ -50,12 +50,20 @@ class AssessmentWorkflowTests(unittest.TestCase):
 
     def _complete_reviews(self, root: Path, *, independent: bool = True):
         plan = json.loads((root / "assessment-plan.json").read_text())
+        manual = root / "evidence" / "manual"
+        manual.mkdir(parents=True, exist_ok=True)
+        scope_path = root / "scope.json"
+        scope = json.loads(scope_path.read_text())
+        scope["scope_description"] = "Disposable reference target assessment."
+        scope["threat_model"] = "Reference actor is treated as untrusted relative to the reference controls."
+        scope_path.write_text(json.dumps(scope, indent=2) + "\n")
         for name in plan["required_preconditions"]:
             path = root / "reviews" / "preconditions" / f"{name}.json"
             record = json.loads(path.read_text())
             record["decision"] = "PASS"
             record["reviewed_at"] = "2026-09-24T22:00:00Z"
             record["rationale"] = f"Completed test review for {name}."
+            (manual / f"{name}.txt").write_text(f"evidence for {name}\n")
             record["evidence_refs"] = [f"manual/{name}.txt"]
             for item in record["checklist"]:
                 item["status"] = "PASS"
@@ -73,6 +81,7 @@ class AssessmentWorkflowTests(unittest.TestCase):
             record["decision"] = "PASS"
             record["reviewed_at"] = "2026-09-24T22:00:00Z"
             record["rationale"] = f"Completed test review for {rid}."
+            (manual / f"{rid}.txt").write_text(f"evidence for {rid}\n")
             record["evidence_refs"] = [f"manual/{rid}.txt"]
             for item in record["checklist"]:
                 item["status"] = "PASS"
