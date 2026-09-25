@@ -563,17 +563,36 @@ class ReferenceTarget:
         ref = self.issue_grant(old["principal"], old["action"], old["resource"], ttl_steps=100, budget=old.get("budget"))
         return {"ok": True, "authority_ref": ref}
 
+
     def stop(self, scope: str) -> dict[str, Any]:
+        requested_at = self.clock
         self.clock += 1
+        received_at = self.clock
         effective = not (not self.config.independent_human_stop and self.actor_busy)
         if not self.orchestrator_available and not self.config.out_of_band_operator:
             effective = False
         if effective:
             self.stop_latched = True
-        self._record_event(principal="human-operator", display_principal=None, action="stop", resource=scope,
-                           route="out-of-band", authority_ref=None, decision="enforce" if effective else "blocked",
-                           admitted=effective, outcome="completed" if effective else "failed", parameters={})
-        return {"ok": effective, "effective": effective, "scope": scope, "effective_at": self.clock if effective else None}
+        effective_at = self.clock if effective else None
+        self._record_event(
+            principal="human-operator", display_principal=None, action="stop", resource=scope,
+            route="out-of-band", authority_ref=None, decision="enforce" if effective else "blocked",
+            admitted=effective, outcome="completed" if effective else "failed", parameters={}
+        )
+        return {
+            "ok": effective,
+            "effective": effective,
+            "scope": scope,
+            "authenticated_operator": True,
+            "operator": "human-operator",
+            "authentication_method": "reference-out-of-band-auth",
+            "requested_at": requested_at,
+            "received_at": received_at,
+            "effective_at": effective_at,
+            "declared_bound_steps": 1,
+            "uncertainty_steps": 0,
+        }
+
 
     def reset_stop(self, scope: str, principal: str, approval_ref: str | None = None) -> dict[str, Any]:
         self.clock += 1
@@ -661,8 +680,28 @@ class ReferenceTarget:
                 self.required_audit_sample_rate = requested_rate
         elif fault == "dependency_failure":
             self.failed_dependencies.add(target)
+            event = {
+                "clock": self.clock,
+                "kind": "dependency_failure",
+                "dependency": target,
+                "predeclared": True,
+                "safe_posture": "deny-new-authority",
+                "recovery_procedure_id": f"restore-{target}-control",
+                "evidence_requirements": ["dependency-health", "post-recovery-positive-control"],
+            }
+            self._health_events.append(event)
+            return {"ok": True, **event}
         elif fault == "dependency_restore":
             self.failed_dependencies.discard(target)
+            event = {
+                "clock": self.clock,
+                "kind": "dependency_restore",
+                "dependency": target,
+                "authorized_recovery": True,
+                "recovery_procedure_id": f"restore-{target}-control",
+            }
+            self._health_events.append(event)
+            return {"ok": True, **event}
         elif fault == "add_undeclared_path":
             self.actual_paths.add(target)
         elif fault == "material_change":
@@ -873,6 +912,7 @@ class ReferenceTarget:
         return {"ok": True, **result, "evidence_ref": f"health-event:{len(self._health_events)}"}
 
 
+
     def high_consequence_observation(self, scenario: str) -> dict[str, Any]:
         cases = {
             "allowed": ("completed", "completed"),
@@ -881,6 +921,20 @@ class ReferenceTarget:
             "ambiguous": ("unknown", "completed"),
             "false_success": ("completed", "denied"),
         }
+        if scenario == "observer_failure":
+            strong = self.config.corroborate_high_consequence
+            return {
+                "scenario": scenario,
+                "boundary_outcome": "completed",
+                "resource_outcome": "unavailable" if strong else "completed",
+                "disagreement_detected": strong,
+                "observer_independent": strong,
+                "observer_failure_visible": strong,
+                "failure_started_at": 10,
+                "detected_at": 11 if strong else None,
+                "declared_bound_steps": 1,
+                "evidence_refs": ["boundary:observer_failure", "observer-health:observer_failure"] if strong else ["boundary:observer_failure"],
+            }
         actor_view, resource_view = cases.get(scenario, ("unknown", "unknown"))
         disagreement = actor_view != resource_view
         if not self.config.corroborate_high_consequence:
@@ -911,11 +965,17 @@ class ReferenceTarget:
 
 
 
+
     def delegation_stress(self) -> dict[str, Any]:
         scenarios = ["concurrent_delegation", "restart", "partition", "root_revocation"]
+        scenario_results = {
+            name: {"exercised": True, "evidence_ref": f"reference:delegation-stress:{name}"}
+            for name in scenarios
+        }
         if self.config.delegation_churn_resilience:
             return {
                 "operations": 64,
+                "declared_peak_children": 24,
                 "peak_children": 24,
                 "aggregate_budget": 10,
                 "settled_budget": 10,
@@ -925,10 +985,12 @@ class ReferenceTarget:
                 "restart_preserved_lineage": True,
                 "partition_residual_bounded": True,
                 "scenarios": scenarios,
+                "scenario_results": scenario_results,
                 "evidence_ref": "reference:delegation-stress",
             }
         return {
             "operations": 64,
+            "declared_peak_children": 24,
             "peak_children": 24,
             "aggregate_budget": 10,
             "settled_budget": 17,
@@ -938,6 +1000,7 @@ class ReferenceTarget:
             "restart_preserved_lineage": False,
             "partition_residual_bounded": False,
             "scenarios": scenarios,
+            "scenario_results": scenario_results,
             "evidence_ref": "reference:delegation-stress",
         }
 
@@ -1051,16 +1114,26 @@ class ReferenceTarget:
         }
 
 
+
     def adversarial_assurance(self) -> dict[str, Any]:
         strong = self.config.independent_adversarial_assurance
+        distribution = {
+            "monitor_evasion": 24 if strong else 0,
+            "policy_confusion": 16 if strong else 0,
+            "control_plane": 12 if strong else 0,
+            "strategic_actor": 12 if strong else 0,
+        }
         return {
             "independent_assessor": strong,
+            "assessor_relationship_ref": "reference:independent-assessor" if strong else None,
             "predeclared_acceptance": strong,
+            "acceptance_criteria_ref": "reference:red-team-acceptance/v1" if strong else None,
+            "predeclared_trial_distribution": distribution if strong else {},
             "trials": 64 if strong else 4,
-            "monitor_evasion_trials": 24 if strong else 0,
-            "policy_confusion_trials": 16 if strong else 0,
-            "control_plane_trials": 12 if strong else 0,
-            "strategic_actor_trials": 12 if strong else 0,
+            "monitor_evasion_trials": distribution["monitor_evasion"],
+            "policy_confusion_trials": distribution["policy_confusion"],
+            "control_plane_trials": distribution["control_plane"],
+            "strategic_actor_trials": distribution["strategic_actor"],
             "negative_results_recorded": strong,
             "residual_limitations_recorded": strong,
             "uncertainty_reported": strong,
@@ -1072,6 +1145,7 @@ class ReferenceTarget:
             "hard_limit_independent_of_semantic_monitor": strong,
             "material_unresolved_bypass": not strong,
         }
+
 
     def emergency_recovery(self, action: str, actor: str) -> dict[str, Any]:
         if action == "alternate_stop":
