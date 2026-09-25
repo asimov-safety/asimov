@@ -249,7 +249,40 @@ assessment/asimov-statement.json
 assessment/VERIFICATION-INSTRUCTIONS.md
 ```
 
-## 6. Evidence integrity is required from A1
+## 6. Publish the report for public verification
+
+For ordinary public/media use, the final assessment should travel as a single self-contained HTML report:
+
+```text
+report.html
+```
+
+`finalize-assessment` embeds an unsigned public verification capsule into the report automatically. This is enough to check that the substantive report content matches the published statement, but it does not authenticate the issuer. The separate `public-verification.json` is only an optional export.
+
+For authenticated public provenance, sign the exact statement and rebuild the sidecar:
+
+```bash
+cd assessment
+asimov sigstore-sign asimov-statement.json --bundle asimov.sigstore.json
+
+asimov public-record \
+  --statement asimov-statement.json \
+  --report report.html \
+  --bundle asimov.sigstore.json \
+  --certificate-identity '<EXPECTED_IDENTITY>' \
+  --certificate-oidc-issuer '<EXPECTED_OIDC_ISSUER>' \
+  --output public-verification.json
+```
+
+A public reader can then use the website's primary one-file verifier or:
+
+```bash
+asimov verify-report report.html
+```
+
+The public sidecar contains no private evidence directory.
+
+## 7. Evidence integrity is required from A1
 
 ACC-002 is introduced at A1.
 
@@ -264,7 +297,7 @@ The local manifest verifies byte consistency.
 
 **A manifest stored beside evidence that the actor can rewrite is not, by itself, an independent trust anchor.**
 
-## 7. Signing and external checkpointing are mandatory at A4
+## 8. Signing and external checkpointing are mandatory at A4
 
 ACC-005 requires:
 
@@ -299,7 +332,7 @@ asimov verify-package assessment.json \
 
 Signing proves who committed to the bound bytes and scope. It does **not** prove that the semantic evidence is true or complete.
 
-## 8. A5 additionally requires independent assurance and evidence escrow
+## 9. A5 additionally requires independent assurance and evidence escrow
 
 ACC-006 requires all of the following before an A5 conclusion can be complete:
 
@@ -314,7 +347,7 @@ ACC-006 requires all of the following before an A5 conclusion can be complete:
 
 A founder/operator reviewing their own deployment may produce useful self-assessment evidence but does not satisfy an independence-required A5 family.
 
-## 9. Browser Verify page
+## 10. Browser Verify page
 
 The public Verify page can locally check the non-network portions of the package.
 
@@ -335,7 +368,7 @@ Browser verification recomputes local hashes and artifact/scope binding.
 
 Full Sigstore verification must use the official verifier/service or `cosign verify-blob`.
 
-## 10. What a final outcome means
+## 11. What a final outcome means
 
 Asimov does not produce a weighted safety score.
 

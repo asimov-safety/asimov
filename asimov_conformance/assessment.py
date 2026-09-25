@@ -34,7 +34,11 @@ from .evidence import build_evidence_manifest
 from .gate import PROFILE_PRECONDITIONS, SPEC_VERSION, catalog, evaluate_report
 from .probes import run_reference_probes
 from .render import render_html, render_summary_html
-from .verification import build_verification_statement
+from .verification import (
+    build_public_verification_record,
+    build_verification_statement,
+    embed_public_verification_record,
+)
 
 
 WORKFLOW_VERSION = "1"
@@ -354,6 +358,7 @@ def verification_plan(profile: str) -> dict[str, Any]:
             "report.html",
             "summary.html",
             "asimov-statement.json",
+            "public-verification.json",
         ],
         "requirements": {
             "A1_to_A3": {
@@ -398,7 +403,11 @@ def verification_plan(profile: str) -> dict[str, Any]:
             },
         },
         "sigstore_commands": {
-            "sign": "asimov sigstore-sign asimov-statement.json --bundle asimov.sigstore.json",
+            "sign_public_report_example": (
+                "asimov sign-report report.html --statement asimov-statement.json "
+                "--provider google --identity you@example.com"
+            ),
+            "sign_low_level": "asimov sigstore-sign asimov-statement.json --bundle asimov.sigstore.json",
             "verify": (
                 "asimov verify-package assessment.json --evidence-manifest evidence-manifest.json "
                 "--evidence-root evidence --statement asimov-statement.json --report report.html "
@@ -991,6 +1000,12 @@ def finalize_assessment(workspace: Path) -> dict[str, Any]:
         [workspace / "report.html"],
     )
     _json_write(workspace / "asimov-statement.json", statement)
+    public_record = build_public_verification_record(
+        workspace / "asimov-statement.json",
+        workspace / "report.html",
+    )
+    _json_write(workspace / "public-verification.json", public_record)
+    embed_public_verification_record(workspace / "report.html", public_record)
     (workspace / "VERIFICATION-INSTRUCTIONS.md").write_text(
         _render_verification_instructions(plan["requested_profile"]), encoding="utf-8"
     )
@@ -1017,8 +1032,32 @@ def _render_verification_instructions(profile: str) -> str:
         "- `summary.html` — concise summary",
         "- `evidence-manifest.json` — deterministic evidence digest manifest",
         "- `asimov-statement.json` — in-toto-style artifact/scope binding statement",
+        "- `public-verification.json` — small public sidecar intended to travel with `report.html`",
         "",
-        "## 1. Verify the evidence bytes locally",
+        "## Public sharing — primary verification path",
+        "",
+        "The HTML report is self-contained for public verification. Its embedded verification capsule "
+        "contains the exact statement and no private evidence files. A reader can upload only `report.html` "
+        "to the public Verify page or run `asimov verify-report report.html`.",
+        "",
+        "The separate `public-verification.json` is still emitted as a portable/exportable copy of the same "
+        "verification record, but ordinary public verification does not require it.",
+        "",
+        "For authenticated public provenance, use the one-command signing wrapper:",
+        "",
+        "```bash",
+        "asimov sign-report report.html --statement asimov-statement.json --provider google --identity you@example.com",
+        "```",
+        "",
+        "Install Cosign first (for example `brew install cosign` on macOS/Homebrew). "
+        "When Cosign opens the authentication flow, authenticate as the exact identity named in `--identity`. "
+        "Asimov creates `asimov.sigstore.json` and refreshes the embedded capsule in `report.html`. "
+        "Public verification proves integrity/provenance/binding. It does not decide whether the evidence "
+        "or assessment conclusion is substantively correct.",
+        "",
+        "## Auditor / full-package verification",
+        "",
+        "### 1. Verify the evidence bytes locally",
         "",
         "```bash",
         "asimov verify-evidence evidence-manifest.json evidence",
@@ -1044,11 +1083,11 @@ def _render_verification_instructions(profile: str) -> str:
             "Recommended Sigstore/Cosign implementation:",
             "",
             "```bash",
-            "asimov sigstore-sign asimov-statement.json --bundle asimov.sigstore.json",
+            "asimov sign-report report.html --statement asimov-statement.json --provider google --identity you@example.com",
             "```",
             "",
-            "Record the exact OIDC signer identity and issuer shown by the signing flow. "
-            "A signature from the wrong identity does not satisfy the requirement.",
+            "Use the exact identity that will authenticate in the Cosign flow. "
+            "A signature from a different identity does not satisfy the declared signer expectation.",
             "",
             "Then verify:",
             "",
@@ -1092,9 +1131,9 @@ def _render_verification_instructions(profile: str) -> str:
             "",
         ]
     lines += [
-        "## Browser Verify page",
+        "## Auditor / full-package Verify page",
         "",
-        "Upload/select:",
+        "The public Verify page requires only `report.html`. Auditors may expand the advanced section and upload/select:",
         "",
         "- Assessment JSON → `assessment.json`",
         "- Evidence manifest JSON → `evidence-manifest.json`",

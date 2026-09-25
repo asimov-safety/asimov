@@ -82,6 +82,16 @@ An A5 run is cumulative and covers A1–A5. HYBRID and REVIEW_REQUIRED findings 
 - [Ecosystem Mapping](docs/ECOSYSTEM.md)
 - [Roadmap](ROADMAP.md)
 
+## Public report verification
+
+The primary public verification workflow uses a single self-contained file:
+
+```text
+report.html
+```
+
+`finalize-assessment` embeds a public verification capsule into the HTML report automatically. For authenticated public provenance, install Cosign once and run `asimov sign-report report.html --statement asimov-statement.json --provider google --identity you@example.com`. A separate `public-verification.json` remains an optional export. Full private evidence-package verification remains available for auditors.
+
 ## Report, sign, verify
 
 ```bash
@@ -98,9 +108,17 @@ asimov verification-statement assessment.json \
   --output asimov-statement.json
 
 asimov sigstore-sign asimov-statement.json --bundle asimov.sigstore.json
+
+asimov public-record \
+  --statement asimov-statement.json \
+  --report asimov-report.html \
+  --bundle asimov.sigstore.json \
+  --certificate-identity '<EXPECTED_IDENTITY>' \
+  --certificate-oidc-issuer '<EXPECTED_OIDC_ISSUER>' \
+  --output public-verification.json
 ```
 
-The styled report, assessment, and evidence manifest become cryptographically bound subjects of the signed verification statement. The public Verify page can check local integrity and binding directly in the browser.
+The styled report, assessment, and evidence manifest become cryptographically bound subjects of the signed verification statement. For public/media distribution, the self-contained HTML report is the intended verification artifact; the full evidence package is primarily for auditors and technical reviewers.
 
 ## Project
 

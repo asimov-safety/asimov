@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:asimov:0.2.0:public-verification",
+  "title": "Asimov public verification record",
+  "description": "Public verification record embedded inside an Asimov HTML report and optionally exported as JSON. It contains no private evidence directory.",
+  "type": "object",
+  "required": ["version", "report", "statement", "sigstore", "meaning"],
+  "properties": {
+    "version": {"const": "asimov-public-verification/0.2.0"},
+    "report": {
+      "type": "object",
+      "required": ["name", "sha256"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      },
+      "additionalProperties": false
+    },
+    "statement": {
+      "type": "object",
+      "required": ["sha256", "text"],
+      "properties": {
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "text": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "sigstore": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "required": ["bundle", "certificate_identity", "certificate_oidc_issuer"],
+          "properties": {
+            "bundle": {"type": "object"},
+            "certificate_identity": {"type": "string", "minLength": 1},
+            "certificate_oidc_issuer": {"type": "string", "minLength": 1}
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "meaning": {
+      "type": "object",
+      "required": ["local_report_match", "signed_provenance", "semantic_limit"],
+      "properties": {
+        "local_report_match": {"type": "string", "minLength": 1},
+        "signed_provenance": {"type": "string", "minLength": 1},
+        "semantic_limit": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

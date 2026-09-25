@@ -1,10 +1,142 @@
 # Asimov Verification
 
-Asimov verification is a chain, not a badge.
+Asimov verification is designed first for the artifact that will actually circulate: **the public report**.
 
-For a real external assessment, begin with [ASSESSMENT-WORKFLOW.md](ASSESSMENT-WORKFLOW.md). `finalize-assessment` generates the assessment, full report, evidence manifest, verification statement and an exact `VERIFICATION-INSTRUCTIONS.md` file for the requested profile.
+## Public verification — primary use case
 
-**Profile expectations are not implicit:** ACC-002 applies from A1 and requires trusted integrity state outside the actor's unauthorized mutation authority; A4/ACC-005 additionally requires authenticated signing plus an external transparency/timestamp/append-only (or equivalent independent) checkpoint; A5/ACC-006 additionally requires independent assessment, durable external retention/escrow, and successful reverification from a fresh environment.
+For ordinary public, media, customer, procurement, or policy use, distribute **one file**:
+
+```text
+report.html
+```
+
+The HTML report contains a non-visible Asimov public verification capsule. The capsule is excluded from the report-content digest so it can carry the statement/signature without creating a cryptographic self-reference.
+
+The embedded public verification record contains:
+
+- the report SHA-256 digest;
+- the **exact bytes** of the Asimov verification statement;
+- the assessment/report binding carried by that statement;
+- optionally, the Sigstore bundle plus expected signer identity and OIDC issuer.
+
+It does **not** contain the private evidence directory.
+
+A reader can verify locally:
+
+```bash
+asimov verify-report report.html
+```
+
+The separate `public-verification.json` file remains an optional export/compatibility artifact, not a requirement for ordinary public verification.
+
+The public Verify page exposes the same one-file workflow.
+
+### What public verification establishes
+
+If the report digest matches but no signature is present:
+
+- the report is byte-for-byte consistent with the supplied public verification record;
+- the statement binds the report to a specific report ID, system/configuration digest, scope digest, requested profile, reported outcome, assessment mode, assessor claim, and evidence-manifest commitment;
+- signer provenance is **not authenticated**.
+
+If Sigstore verification also succeeds:
+
+- the exact statement bytes were signed by the expected authenticated OIDC identity;
+- the signature/certificate chain verifies;
+- the Sigstore transparency material provides an external checkpoint for that signed commitment.
+
+### What public verification does not establish
+
+It does **not** prove that:
+
+- the underlying evidence is true or complete;
+- the assessor interpreted the evidence correctly;
+- every applicable Asimov requirement passed;
+- the deployment is absolutely safe.
+
+Those remain semantic assessment/review questions. The report must continue to display FAIL, NOT_TESTED, INCONCLUSIVE, self-assessment, and independence limitations honestly.
+
+## Signing a public report — recommended path
+
+`finalize-assessment` automatically embeds an **unsigned** public verification capsule into `report.html` and also writes `public-verification.json` as an optional export.
+
+That is sufficient for a local report/statement match, but it does not answer **“Who signed this?”**
+
+For a report intended for public distribution, install Sigstore's Cosign client once, then use Asimov's one-command wrapper.
+
+### 1. Install Cosign
+
+On macOS with Homebrew:
+
+```bash
+brew install cosign
+cosign version
+```
+
+For Linux, Windows, package managers, and verified binary installation, use Sigstore's official Cosign installation guide.
+
+### 2. Sign the report
+
+For a human signer using a Google account:
+
+```bash
+asimov sign-report report.html \
+  --statement asimov-statement.json \
+  --provider google \
+  --identity you@example.com
+```
+
+Before opening the identity flow, Asimov prints the exact signer identity and identity provider it expects. When Cosign asks you to authenticate, use that exact account.
+
+Asimov then:
+
+1. signs the exact `asimov-statement.json` bytes using Cosign/Sigstore;
+2. writes `asimov.sigstore.json`;
+3. embeds the Sigstore bundle, expected signer identity, and OIDC issuer into the report's verification capsule;
+4. leaves the substantive report-content digest unchanged.
+
+After that, the file to publish is simply:
+
+```text
+report.html
+```
+
+### Other identity providers
+
+`sign-report` supports:
+
+- `--provider google` → `https://accounts.google.com`
+- `--provider github` → `https://github.com/login/oauth`
+- `--provider microsoft` → `https://login.microsoftonline.com`
+- `--provider github-actions` → `https://token.actions.githubusercontent.com`
+- `--provider custom --oidc-issuer <URL>`
+
+The value supplied to `--identity` must be the exact identity you expect the Sigstore certificate to contain. If the actual signer does not match it, later verification fails rather than silently accepting a different signer.
+
+### Low-level signing
+
+The lower-level two-command path remains available for advanced use:
+
+```bash
+asimov sigstore-sign asimov-statement.json --bundle asimov.sigstore.json
+
+asimov public-record \
+  --statement asimov-statement.json \
+  --report report.html \
+  --bundle asimov.sigstore.json \
+  --certificate-identity '<EXPECTED_IDENTITY>' \
+  --certificate-oidc-issuer '<EXPECTED_OIDC_ISSUER>'
+```
+
+## Why Sigstore is used
+
+Sigstore/Cosign lets an assessor sign with a short-lived key whose certificate is tied to an authenticated OIDC identity, while preserving transparency/checkpoint material needed for later verification. Asimov therefore does not need to invent its own public-key infrastructure or ask every assessor to manage long-lived signing keys.
+
+The signed object is `asimov-statement.json`, not the report directly. The statement contains the report digest and the assessment/scope/configuration binding. Changing the report changes the digest; changing the statement invalidates the signature.
+
+## Auditor / full-package verification
+
+Auditors and technical reviewers with access to the complete evidence package can additionally verify:
 
 ```text
 evidence files
@@ -13,7 +145,7 @@ evidence files
 evidence-manifest.json
      |
      +---- assessment.json
-     +---- styled report / summary
+     +---- report.html
      |
      v
 asimov-statement.json
@@ -25,121 +157,62 @@ Sigstore bundle
 verification receipt
 ```
 
-## What is implemented
-
-### 1. Evidence integrity
+### Evidence integrity
 
 ```bash
-asimov evidence-manifest ./evidence --output evidence-manifest.json
 asimov verify-evidence evidence-manifest.json ./evidence
 ```
 
-The manifest deterministically binds file paths, sizes, and SHA-256 digests.
-
-### 2. Assessment/report binding
-
-```bash
-asimov verification-statement assessment.json \
-  --evidence-manifest evidence-manifest.json \
-  --report asimov-report.html \
-  --output asimov-statement.json
-```
-
-The statement uses the in-toto Statement v1 shape and an Asimov predicate. It binds:
-
-- the assessment JSON digest;
-- the evidence-manifest digest;
-- each supplied styled report digest;
-- system ID;
-- deployment configuration SHA-256;
-- scope-manifest SHA-256;
-- requested assurance profile;
-- assessment mode and report ID;
-- reported outcome.
-
-### 3. Identity-bound Sigstore signing
-
-Install Cosign, then:
-
-```bash
-asimov sigstore-sign asimov-statement.json --bundle asimov.sigstore.json
-```
-
-This invokes the standard `cosign sign-blob` workflow. Keyless signing associates the signature with an OIDC identity through Sigstore Fulcio and stores verification material in the Sigstore bundle.
-
-For CI/non-interactive confirmation:
-
-```bash
-asimov sigstore-sign asimov-statement.json \
-  --bundle asimov.sigstore.json --yes
-```
-
-### 4. Full package verification
+### Full package verification
 
 ```bash
 asimov verify-package assessment.json \
   --evidence-manifest evidence-manifest.json \
   --evidence-root ./evidence \
   --statement asimov-statement.json \
-  --report asimov-report.html \
+  --report report.html \
   --bundle asimov.sigstore.json \
-  --certificate-identity assessor@example.com \
-  --certificate-oidc-issuer https://accounts.google.com \
+  --certificate-identity '<EXPECTED_IDENTITY>' \
+  --certificate-oidc-issuer '<EXPECTED_OIDC_ISSUER>' \
   --json-output verification-receipt.json \
   --html-output verification-receipt.html
 ```
 
-The verifier reports these layers separately:
+The verifier reports separately:
 
 - evidence integrity;
 - artifact/report binding;
 - scope and configuration binding;
-- Sigstore signer identity and transparency proof;
-- semantic assurance review.
+- signer identity and transparency proof;
+- semantic assurance status.
 
-A successful Cosign bundle verification establishes the signature against the expected identity and issuer and verifies the Sigstore bundle's signed-time/transparency material. Semantic evidence review remains a separate assessment judgment.
+## Profile requirements
+
+**A1+ / ACC-002:** relied-upon evidence must resist unauthorized alteration under a declared trust model. A manifest stored only beside actor-writable evidence is not by itself an independent integrity anchor.
+
+**A4 / ACC-005:** authenticated signing plus an external transparency/timestamp/append-only or equivalent independent checkpoint is mandatory.
+
+**A5 / ACC-006:** independent assessment, durable evidence retention/escrow outside the assessed actor and ordinary mutable operator path, and successful reverification from a fresh environment are additionally mandatory.
 
 ## Browser verification
 
-The public **Verify** page performs the non-network parts locally in the browser:
+The public Verify page prioritizes **one-file HTML report verification**.
 
-- SHA-256 recomputation;
-- evidence-manifest self-digest;
-- optional evidence-directory comparison;
-- assessment/report subject digests;
-- in-toto-style statement binding;
-- scope/configuration binding.
+The complete package verifier remains available in a collapsed **Auditor / advanced verification** section.
 
-Files selected in this mode stay in the browser.
+Browser-side checks use local SHA-256 and do not upload the private evidence directory. Full Sigstore cryptographic verification uses the optional verifier service or the official Cosign verifier.
 
-Full Sigstore cryptographic verification uses the official Sigstore verifier. The site UI supports a verifier-service endpoint, and also generates the exact `cosign verify-blob` command when no service is configured.
+## Verifier service
 
-## Verification service
+The optional service in `services/verifier/` receives only:
 
-A small optional verifier service lives in `services/verifier/`. It accepts only the verification statement, Sigstore bundle, expected identity, and OIDC issuer; it does not need the private assessment evidence. It executes Cosign with strict file-size limits and no shell interpolation.
+- the public verification statement;
+- Sigstore bundle;
+- expected signer identity;
+- expected OIDC issuer.
 
-## A4 and A5
+It does **not** need the private assessment evidence.
 
-**ACC-005 / A4** requires cryptographic binding, authenticated signing, and an external checkpoint.
+## Core principle
 
-**ACC-006 / A5** additionally requires independent assessment and durable evidence retention/escrow that can be reverified from a fresh environment.
-
-## Sigstore interoperability
-
-Asimov uses standard Sigstore/Cosign blob signing rather than inventing a signature system:
-
-```bash
-cosign sign-blob asimov-statement.json --bundle asimov.sigstore.json
-
-cosign verify-blob asimov-statement.json \
-  --bundle asimov.sigstore.json \
-  --certificate-identity=assessor@example.com \
-  --certificate-oidc-issuer=https://accounts.google.com
-```
-
-Official documentation:
-
-- https://docs.sigstore.dev/quickstart/quickstart-cosign/
-- https://docs.sigstore.dev/cosign/signing/signing_with_blobs/
-- https://docs.sigstore.dev/cosign/verifying/verify/
-- https://docs.sigstore.dev/about/bundle/
+> A hash proves which bytes were committed. A signature can prove who committed to them. Neither proves that the underlying assessment judgment was correct.

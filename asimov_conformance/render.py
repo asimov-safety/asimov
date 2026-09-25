@@ -44,8 +44,9 @@ h3{font:400 22px/1.15 Baskerville,"Iowan Old Style",Georgia,serif;margin:0}
 .meta{display:grid;grid-template-columns:repeat(3,1fr);gap:25px}.meta>div{border-top:1px solid var(--line);padding-top:11px}.meta .value{margin-top:5px;word-break:break-word}
 .profile-table{width:100%;border-collapse:collapse}.profile-table td{border-top:1px solid var(--line);padding:12px 6px}.profile-table td:first-child{font:italic 20px Baskerville,Georgia,serif}.profile-table td:last-child{text-align:right}
 .finding-group{page-break-inside:avoid;margin:30px 0}.finding-head{display:grid;grid-template-columns:65px 1fr;gap:18px;align-items:baseline;margin-bottom:12px}
-.finding{display:grid;grid-template-columns:82px 92px 1fr;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
-.finding-id{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px}.finding-reason{color:var(--muted)}
+.finding{display:grid;grid-template-columns:82px 92px minmax(0,1fr);gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+.finding>div{min-width:0}.finding-id{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px;overflow-wrap:anywhere}.finding-reason{color:var(--muted)}
+.precondition{grid-template-columns:minmax(178px,1.15fr) 118px minmax(0,3fr);gap:22px}.precondition .status{text-align:left}
 .evidence{font-size:10px;color:var(--muted);margin-top:4px;word-break:break-all}
 .limits{padding-left:18px}.limits li{margin:8px 0}.hash{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:10px;word-break:break-all}
 .footer{display:flex;justify-content:space-between;border-top:1px solid var(--line);padding-top:15px;margin-top:45px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
@@ -125,7 +126,7 @@ def render_html(result: dict[str, Any]) -> str:
         )
 
     preconditions = "".join(
-        f'<div class="finding"><div class="finding-id">{escape(name)}</div><div class="status {escape(row["status"])}">{escape(row["status"])}</div><div><div class="finding-reason">{escape(row["reason"])}</div><div class="evidence">Evidence: {escape(", ".join(row.get("evidence_refs", [])) or "—")}</div></div></div>'
+        f'<div class="finding precondition"><div class="finding-id">{escape(name)}</div><div class="status {escape(row["status"])}">{escape(row["status"])}</div><div><div class="finding-reason">{escape(row["reason"])}</div><div class="evidence">Evidence: {escape(", ".join(row.get("evidence_refs", [])) or "—")}</div></div></div>'
         for name, row in result.get("preconditions", {}).items()
     )
     limitations = "".join(f"<li>{escape(x)}</li>" for x in result.get("limitations", [])) or "<li>None stated.</li>"
@@ -191,9 +192,15 @@ def render_html(result: dict[str, Any]) -> str:
 </section>
 
 <section class="page page-break">
-  <div class="eyebrow">Verification</div>
-  <h2>Bind the report to the evidence.</h2>
-  <p>This report is designed to be included as a subject in an Asimov verification statement and signed with an identity-bound Sigstore bundle. Verify the accompanying assessment package to establish evidence integrity, report binding, signer identity, and transparency-log proof.</p>
+  <div class="eyebrow">Public verification</div>
+  <h2>Verify the report people actually share.</h2>
+  <p>This HTML report is self-contained for public verification. Upload this one file to the Asimov Verify page to check that the substantive report content still matches the issued statement and to inspect the assessment identity, scope/configuration binding, requested profile, assessor claim, and reported outcome bound to it.</p>
+  <p><strong>Who signed this?</strong> If this report was signed with Sigstore, the Verify page can show the authenticated signer identity and the identity provider used to authenticate them, along with the external transparency checkpoint.</p>
+  <p><strong>What this does not prove:</strong> signer authentication does not by itself establish that the signer was an authorized or independent assessor, and cryptography does not decide whether the underlying evidence or assessment judgment is substantively correct.</p>
+  <div class="section">
+    <div class="label">Public verification</div><p>https://asimov-safety.github.io/verification.html</p>
+    <div class="label">Report ID</div><p>{escape(result["report_id"])}</p>
+  </div>
   <div class="section">
     <div class="label">Scope manifest SHA-256</div><p class="hash">{escape(result["scope_manifest_sha256"])}</p>
     <div class="label">Configuration SHA-256</div><p class="hash">{escape(result["system"]["configuration_sha256"])}</p>

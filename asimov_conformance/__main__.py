@@ -7,7 +7,16 @@ from pathlib import Path
 from .evidence import EvidenceError, build_evidence_manifest, verify_evidence_manifest
 from .gate import ReportError, catalog, evaluate_report, load_report
 from .render import render_html, render_probe_html, render_summary_html, render_verification_receipt
-from .verification import VerificationError, build_verification_statement, sigstore_sign, verify_package
+from .verification import (
+    VerificationError,
+    build_public_verification_record,
+    build_verification_statement,
+    embed_public_verification_record,
+    sigstore_sign,
+    sigstore_verify,
+    verify_package,
+    verify_public_report,
+)
 from .probes import run_initial_probes, run_mutation_validation
 from .onboarding import doctor, init_project
 from .reference_target import ReferenceTarget
@@ -85,11 +94,36 @@ def main(argv: list[str] | None = None) -> int:
     sp.add_argument("--report", type=Path, action="append", default=[])
     sp.add_argument("--output", type=Path, required=True)
 
+    sr = sub.add_parser("sign-report", help="Sign a finalized public HTML report with Sigstore and embed authenticated provenance into the report.")
+    sr.add_argument("report", type=Path)
+    sr.add_argument("--statement", type=Path, required=True)
+    sr.add_argument("--identity", required=True, help="Exact signer identity expected in the Sigstore certificate, such as an email or workload identity.")
+    sr.add_argument("--provider", choices=["google", "github", "microsoft", "github-actions", "custom"], default="google")
+    sr.add_argument("--oidc-issuer", help="Required only with --provider custom; otherwise Asimov supplies the standard issuer.")
+    sr.add_argument("--bundle", type=Path, help="Bundle output path; defaults to asimov.sigstore.json beside the report.")
+    sr.add_argument("--json-export", type=Path, help="Optional export of the embedded public verification record.")
+    sr.add_argument("--cosign-bin", default="cosign")
+    sr.add_argument("--yes", action="store_true", help="Pass --yes to Cosign for non-interactive confirmation.")
+
     ss = sub.add_parser("sigstore-sign", help="Sign an Asimov verification statement with Cosign/Sigstore.")
     ss.add_argument("statement", type=Path)
     ss.add_argument("--bundle", type=Path, required=True)
     ss.add_argument("--cosign-bin", default="cosign")
     ss.add_argument("--yes", action="store_true", help="Pass --yes to Cosign for non-interactive confirmation.")
+
+    pr = sub.add_parser("public-record", help="Embed/update public verification inside an HTML report and optionally export the JSON record.")
+    pr.add_argument("--statement", type=Path, required=True)
+    pr.add_argument("--report", type=Path, required=True)
+    pr.add_argument("--bundle", type=Path)
+    pr.add_argument("--certificate-identity")
+    pr.add_argument("--certificate-oidc-issuer")
+    pr.add_argument("--output", type=Path, help="Optional JSON export of the embedded public verification record.")
+
+    vr = sub.add_parser("verify-report", help="Verify a public HTML report using its embedded Asimov verification capsule; an optional sidecar may be supplied for compatibility.")
+    vr.add_argument("report", type=Path)
+    vr.add_argument("record", type=Path, nargs="?")
+    vr.add_argument("--cosign-bin", default="cosign")
+    vr.add_argument("--json-output", type=Path)
 
     pv = sub.add_parser("verify-package", help="Verify evidence, report binding, scope binding, and optionally a Sigstore identity/transparency bundle.")
     pv.add_argument("assessment", type=Path)
@@ -206,6 +240,59 @@ def main(argv: list[str] | None = None) -> int:
         state = result["reported_outcome"]
         return 0 if state == "REPORTED_PASS" else 1 if state == "REPORTED_FAIL" else 2
 
+    if args.command == "public-record":
+        try:
+            record = build_public_verification_record(
+                args.statement,
+                args.report,
+                bundle_path=args.bundle,
+                certificate_identity=args.certificate_identity,
+                certificate_oidc_issuer=args.certificate_oidc_issuer,
+            )
+            embed_public_verification_record(args.report, record)
+            if args.output is not None:
+                args.output.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+        except (VerificationError, OSError, ValueError) as exc:
+            print(f"PUBLIC VERIFICATION ERROR: {exc}", file=sys.stderr)
+            return 3
+        print(f"Public verification embedded in: {args.report}")
+        if args.output is not None:
+            print(f"Optional JSON export written: {args.output}")
+        print("The HTML report is now self-contained for public verification and contains no private assessment evidence.")
+        if record.get("sigstore") is None:
+            print("Provenance is not authenticated yet; add a Sigstore bundle for public signer verification.")
+        else:
+            print("Sigstore material embedded for public provenance verification.")
+        return 0
+
+    if args.command == "verify-report":
+        try:
+            result = verify_public_report(args.report, args.record, cosign_bin=args.cosign_bin)
+            if args.json_output is not None:
+                args.json_output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+        except (VerificationError, OSError, ValueError) as exc:
+            print(f"PUBLIC VERIFICATION ERROR: {exc}", file=sys.stderr)
+            return 3
+        print(f"ASIMOV PUBLIC VERIFY — {result['overall']}")
+        print(f"Report integrity: {result['report_integrity']['state']}")
+        binding = result["assessment_binding"]
+        print(f"Report ID: {binding.get('report_id')}")
+        print(f"System: {binding.get('system_id')}")
+        print(f"Assessor claim: {binding.get('assessor')}")
+        print(f"Requested profile: {binding.get('requested_profile')}")
+        print(f"Reported outcome: {binding.get('reported_outcome')}")
+        signer = result["provenance"].get("signer_identity")
+        signer_state = result["provenance"]["state"]
+        if signer_state == "VERIFIED":
+            print(f"Who signed this? {signer} — AUTHENTICATED")
+            print(f"Identity provider: {result['provenance'].get('oidc_issuer')}")
+        elif signer:
+            print(f"Who signed this? {signer} — {signer_state}")
+        else:
+            print("Who signed this? No authenticated signer attached")
+        print("Signer authentication does not by itself establish assessor independence or semantic correctness.")
+        return 1 if result["overall"] == "FAILED" else 0
+
     if args.command == "verification-statement":
         try:
             statement = build_verification_statement(
@@ -219,6 +306,66 @@ def main(argv: list[str] | None = None) -> int:
             return 3
         print(f"Created verification statement: {args.output}")
         print(f"Subjects: {len(statement['subject'])}")
+        return 0
+
+    if args.command == "sign-report":
+        issuers = {
+            "google": "https://accounts.google.com",
+            "github": "https://github.com/login/oauth",
+            "microsoft": "https://login.microsoftonline.com",
+            "github-actions": "https://token.actions.githubusercontent.com",
+        }
+        issuer = args.oidc_issuer if args.provider == "custom" else issuers[args.provider]
+        if args.provider == "custom" and not issuer:
+            print("SIGN REPORT ERROR: --oidc-issuer is required with --provider custom", file=sys.stderr)
+            return 3
+        bundle = args.bundle or (args.report.parent / "asimov.sigstore.json")
+        print("ASIMOV PUBLIC REPORT SIGNING")
+        print(f"Who should sign this? {args.identity}")
+        print(f"Identity provider: {args.provider} ({issuer})")
+        print("When Cosign opens an authentication flow, authenticate as the exact identity above.")
+        try:
+            code = sigstore_sign(
+                args.statement,
+                bundle,
+                cosign_bin=args.cosign_bin,
+                yes=args.yes,
+            )
+            if code != 0:
+                print(f"SIGSTORE SIGNING FAILED (exit {code})", file=sys.stderr)
+                return 1
+            verified, detail = sigstore_verify(
+                args.statement,
+                bundle,
+                certificate_identity=args.identity,
+                certificate_oidc_issuer=issuer,
+                cosign_bin=args.cosign_bin,
+            )
+            if not verified:
+                print("SIGN REPORT ERROR: the new Sigstore signature did not verify against the declared signer identity/issuer.", file=sys.stderr)
+                if detail:
+                    print(detail, file=sys.stderr)
+                return 1
+            print("Sigstore signer verification: VERIFIED")
+            record = build_public_verification_record(
+                args.statement,
+                args.report,
+                bundle_path=bundle,
+                certificate_identity=args.identity,
+                certificate_oidc_issuer=issuer,
+            )
+            embed_public_verification_record(args.report, record)
+            if args.json_export is not None:
+                args.json_export.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+        except (VerificationError, OSError, ValueError) as exc:
+            print(f"SIGN REPORT ERROR: {exc}", file=sys.stderr)
+            return 3
+        print(f"Signed report ready: {args.report}")
+        print(f"Sigstore bundle: {bundle}")
+        print(f"Authenticated signer expected: {args.identity}")
+        print(f"OIDC issuer: {issuer}")
+        print("Public verification now requires only the HTML report.")
+        print("Anyone can check it with: asimov verify-report " + str(args.report))
         return 0
 
     if args.command == "sigstore-sign":

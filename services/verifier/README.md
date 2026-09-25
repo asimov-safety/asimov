@@ -1,6 +1,8 @@
 # Asimov verifier service
 
-Optional backend for the website's full Sigstore verification button.
+Optional backend for the website's Sigstore verification step.
+
+The public-first Verify page checks a self-contained HTML report locally. The browser extracts the report's embedded Asimov verification capsule. When that capsule contains Sigstore material, the browser sends only the embedded statement/bundle plus expected signer identity/issuer to this service for cryptographic verification. The private assessment evidence is never required.
 
 The browser performs SHA-256 and statement/scope binding locally. This service handles only the Sigstore cryptographic verification step using the official Cosign verifier.
 
