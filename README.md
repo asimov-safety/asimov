@@ -109,9 +109,17 @@ asimov verification-statement assessment.json \
   --output asimov-statement.json
 
 asimov sigstore-sign asimov-statement.json --bundle asimov.sigstore.json
+
+asimov public-record \
+  --statement asimov-statement.json \
+  --report asimov-report.html \
+  --bundle asimov.sigstore.json \
+  --certificate-identity '<EXPECTED_IDENTITY>' \
+  --certificate-oidc-issuer '<EXPECTED_OIDC_ISSUER>' \
+  --output public-verification.json
 ```
 
-The styled report, assessment, and evidence manifest become cryptographically bound subjects of the signed verification statement. The public Verify page can check local integrity and binding directly in the browser.
+The styled report, assessment, and evidence manifest become cryptographically bound subjects of the signed verification statement. For public/media distribution, the report plus `public-verification.json` is the intended verification pair; the full evidence package is primarily for auditors and technical reviewers.
 
 ## Project
 
