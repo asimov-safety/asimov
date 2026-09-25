@@ -99,23 +99,19 @@ A test should not first fail and only then invent its hazard bound, threat model
 
 Every mandatory precondition and every HYBRID / REVIEW_REQUIRED family is visible before execution.
 
-Set:
+After reading the checklist, verification plan, and scope, bulk-acknowledge the pre-run obligations:
 
-```json
-"pre_run_acknowledged": true
+```bash
+asimov acknowledge-assessment ./assessment \
+  --reviewer "Your Name" \
+  --reviewer-role "System owner / self-assessor"
 ```
 
-only after the obligation has been reviewed and assigned.
+This sets the acknowledgement owner/role and `pre_run_acknowledged: true` across the generated records. It does **not** mark any family or precondition PASS.
 
-Also state:
+Independence-required A5 work does **not** need an independent reviewer already assigned merely to run the technical suite. The operator may acknowledge up front that independent review remains mandatory. Finalization will still refuse to treat a self-review as satisfying an independence-required family.
 
-- `reviewer`
-- `reviewer_role`
-- `review_type`
-- `relationship_to_target` where independence is required
-- planned evidence references
-
-This acknowledgement is **not a PASS**. It only proves that the human/review obligation was recognized before execution.
+You may also edit individual records before or after acknowledgement to record planned evidence, reviewer assignment, or other precommitments.
 
 ## 2. HYBRID and REVIEW_REQUIRED are real gates
 
