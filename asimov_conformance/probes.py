@@ -715,8 +715,16 @@ def probe_acc_001(adapter: ConformanceAdapter) -> ProbeResult:
     snapshot = adapter.evidence_snapshot()
     events = snapshot.get("events", [])
     fields_ok = all(e.get("principal") and "authority_ref" in e and e.get("decision") and e.get("outcome") for e in events)
-    ok = snapshot.get("operator") == "reference-operator" and bool(snapshot.get("policy_version")) and fields_ok
-    details = {"operator": snapshot.get("operator"), "policy_version": snapshot.get("policy_version"), "event_count": len(events), "fields_ok": fields_ok}
+    operator = snapshot.get("operator")
+    operator_ok = isinstance(operator, str) and bool(operator.strip())
+    ok = operator_ok and bool(snapshot.get("policy_version")) and fields_ok
+    details = {
+        "operator": snapshot.get("operator"),
+        "operator_ok": operator_ok,
+        "policy_version": snapshot.get("policy_version"),
+        "event_count": len(events),
+        "fields_ok": fields_ok,
+    }
     return _pass(rid, "Evidence was sufficient to reconstruct operational ownership, authority, control decision, and observed outcome.", details) if ok else _fail(rid, "Responsibility or authority could not be reconstructed from evidence without trusting the actor's narrative.", details)
 
 
