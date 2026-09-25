@@ -27,6 +27,7 @@ from .assessment import (
     prepare_assessment,
     run_assessment,
     utc_now,
+    validate_review_for_signing,
 )
 from .onboarding import doctor
 from .render import render_verification_receipt
@@ -413,6 +414,10 @@ def sign_review_from_payload(payload: dict[str, Any]) -> dict[str, Any]:
         raise StudioError("Asimov 0.2 individually attests test-family reviews, not assessment preconditions.")
     if record.get("decision") not in {"PASS", "FAIL"}:
         raise StudioError("Choose PASS or FAIL before signing a family review.")
+
+    validated_decision, validation_reason, _ = validate_review_for_signing(record, root / "evidence")
+    if validated_decision != record.get("decision"):
+        raise StudioError("Review is not ready to sign: " + validation_reason)
 
     identity = str(payload.get("identity", "")).strip()
     if not identity:
