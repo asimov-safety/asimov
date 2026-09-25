@@ -619,21 +619,82 @@ def _record_path(workspace: Path, item_type: str, item_id: str) -> Path:
     return workspace / "reviews" / plural / f"{item_id}.json"
 
 
-def _validate_pre_run_record(record: dict[str, Any], *, independence_required: bool = False) -> list[str]:
+def _validate_pre_run_record(record: dict[str, Any]) -> list[str]:
+    """Validate acknowledgement only, not final reviewer sufficiency.
+
+    Independence is a finalization requirement. An operator may acknowledge up
+    front that an independent reviewer will be required later without already
+    having that reviewer assigned. This keeps the technical suite runnable while
+    preserving fail-closed final results.
+    """
     errors = []
     item = record.get("item_id", "?")
     if record.get("pre_run_acknowledged") is not True:
         errors.append(f"{item}: pre_run_acknowledged must be true")
     if not str(record.get("reviewer", "")).strip():
-        errors.append(f"{item}: reviewer must be named before execution")
+        errors.append(f"{item}: acknowledgement owner must be named before execution")
     if not str(record.get("reviewer_role", "")).strip():
-        errors.append(f"{item}: reviewer_role must be stated before execution")
-    if independence_required:
-        if record.get("review_type") != "independent_assessment":
-            errors.append(f"{item}: independent_assessment review_type is required")
-        if not str(record.get("relationship_to_target", "")).strip():
-            errors.append(f"{item}: relationship_to_target must be stated for independent review")
+        errors.append(f"{item}: reviewer_role/acknowledgement role must be stated before execution")
     return errors
+
+
+def acknowledge_assessment(
+    workspace: Path,
+    *,
+    reviewer: str,
+    reviewer_role: str,
+) -> dict[str, Any]:
+    """Bulk-acknowledge every generated pre-run human/review obligation.
+
+    This intentionally does not set PASS/FAIL decisions, mark checklist items
+    complete, or convert self-review into independent review.
+    """
+    if not reviewer or not reviewer.strip():
+        raise AssessmentWorkflowError("reviewer must be a nonblank name/identity")
+    if not reviewer_role or not reviewer_role.strip():
+        raise AssessmentWorkflowError("reviewer_role must be a nonblank role")
+
+    plan = _load_workspace_plan(workspace)
+    updated = []
+
+    for name in plan["required_preconditions"]:
+        path = _record_path(workspace, "precondition", name)
+        if not path.exists():
+            raise AssessmentWorkflowError(f"missing precondition record: {path}")
+        record = _json_read(path)
+        record["pre_run_acknowledged"] = True
+        record["reviewer"] = reviewer.strip()
+        record["reviewer_role"] = reviewer_role.strip()
+        record["pre_run_acknowledged_at"] = utc_now()
+        _json_write(path, record)
+        updated.append(f"PRE:{name}")
+
+    for rid in plan["human_review_requirements"]:
+        path = _record_path(workspace, "requirement", rid)
+        if not path.exists():
+            raise AssessmentWorkflowError(f"missing requirement review record: {path}")
+        record = _json_read(path)
+        record["pre_run_acknowledged"] = True
+        record["reviewer"] = reviewer.strip()
+        record["reviewer_role"] = reviewer_role.strip()
+        record["pre_run_acknowledged_at"] = utc_now()
+        if record.get("independence_required") is True:
+            record["pre_run_note"] = (
+                "Independent review is acknowledged as a final requirement. "
+                "This pre-run acknowledgement does not satisfy independence."
+            )
+        _json_write(path, record)
+        updated.append(rid)
+
+    return {
+        "updated": updated,
+        "count": len(updated),
+        "independent_review_requirements": plan.get("independent_review_requirements", []),
+        "warning": (
+            "Pre-run acknowledgement only. Final human decisions, checklist evidence, "
+            "and independent review where required remain pending."
+        ),
+    }
 
 
 def pre_run_status(workspace: Path) -> dict[str, Any]:
@@ -645,15 +706,12 @@ def pre_run_status(workspace: Path) -> dict[str, Any]:
             errors.append(f"missing precondition record: {path}")
             continue
         errors += _validate_pre_run_record(_json_read(path))
-    independent = set(plan.get("independent_review_requirements", []))
     for rid in plan["human_review_requirements"]:
         path = _record_path(workspace, "requirement", rid)
         if not path.exists():
             errors.append(f"missing requirement review record: {path}")
             continue
-        errors += _validate_pre_run_record(
-            _json_read(path), independence_required=rid in independent
-        )
+        errors += _validate_pre_run_record(_json_read(path))
     return {"ready": not errors, "errors": errors}
 
 
