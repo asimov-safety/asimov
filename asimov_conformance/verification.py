@@ -591,11 +591,11 @@ def verify_review_attestations(
     *,
     cosign_bin: str = "cosign",
 ) -> dict[str, Any]:
-    review_root = evidence_root / "reviews"
+    review_root = evidence_root / "reviews" / "requirements"
     if not review_root.is_dir():
         return {"state": "NOT_APPLICABLE", "reviews": []}
     paths = sorted(
-        p for p in review_root.glob("*/*.json")
+        p for p in review_root.glob("*.json")
         if not p.name.endswith(".sigstore.json")
     )
     if not paths:
