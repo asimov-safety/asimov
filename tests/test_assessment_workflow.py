@@ -149,6 +149,7 @@ class AssessmentWorkflowTests(unittest.TestCase):
             self.assertEqual(result["profiles"]["A5"]["state"], "REPORTED_PASS")
             self.assertTrue((root / "evidence-manifest.json").exists())
             self.assertTrue((root / "asimov-statement.json").exists())
+            self.assertTrue((root / "public-verification.json").exists())
             self.assertTrue((root / "VERIFICATION-INSTRUCTIONS.md").exists())
 
     def test_independence_required_review_rejects_self_assessment(self):
