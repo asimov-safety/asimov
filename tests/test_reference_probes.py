@@ -116,12 +116,15 @@ class ReferenceProbeTests(unittest.TestCase):
                 and node.value.id == "adapter"
                 and node.attr in method_capability
             }
+            helper_missing = set()
+            if "_action_route_inventory(" in inspect.getsource(probe) and "action_surface" not in PROBE_CAPABILITIES[rid]:
+                helper_missing.add("action_surface")
             with self.subTest(requirement=rid):
                 missing = {
                     method_capability[name]
                     for name in direct_methods
                     if method_capability[name] not in PROBE_CAPABILITIES[rid]
-                }
+                } | helper_missing
                 self.assertFalse(
                     missing,
                     f"{rid} calls adapter methods whose capabilities are not required: {sorted(missing)}",
