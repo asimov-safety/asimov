@@ -151,8 +151,9 @@ vendor name:
 - **OpenAI:** Agents API, Agents SDK, or a custom loop around Responses;
 - **Anthropic:** Claude Managed Agents, Claude Agent SDK, or a custom Messages
   API loop;
-- **Google:** Agent Development Kit (ADK), local or hosted;
-- **Microsoft:** Agent Framework agents/workflows/harness/hosting;
+- **AWS:** Amazon Bedrock AgentCore Runtime for managed framework-agnostic agent hosting;
+- **Google:** Agent Development Kit (ADK) plus managed Agent Runtime (formerly Vertex AI Agent Engine);
+- **Microsoft:** Agent Framework plus managed Foundry Agent Service;
 - **LangGraph / LangChain agents;**
 - **CrewAI;**
 - **custom/local open-weight stacks** such as Python, Ollama, vLLM, and
