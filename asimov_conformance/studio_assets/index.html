@@ -113,7 +113,7 @@
         <label class="field span-2">
           <span>Workspace folder</span>
           <input id="workspace-path" type="text" value="./asimov-assessment" autocomplete="off">
-          <small>A local folder. Existing Asimov workspaces can be reopened here.</small>
+          <small>Studio creates this local folder for a new assessment, or reopens an existing Asimov workspace. Nothing here is uploaded.</small>
         </label>
         <div class="field-actions">
           <button class="button secondary" id="open-workspace">Open workspace</button>
@@ -126,18 +126,28 @@
         <label class="field span-2">
           <span>Adapter</span>
           <input id="adapter" type="text" placeholder="./my_adapter.py:MyAdapter" autocomplete="off">
-          <small>Path or Python module plus class name. Studio does not store adapter settings in the assessment.</small>
+          <small>Usually filled automatically by Adapter Assistant. Format: <code>path/to/adapter.py:ClassName</code> or <code>package.module:ClassName</code>.</small>
         </label>
         <label class="field span-2">
-          <span>Adapter settings <em>session only</em></span>
-          <textarea id="adapter-kwargs" rows="3" spellcheck="false">{}</textarea>
-          <small>JSON object passed to your adapter. Keep secrets here only for the current Studio session.</small>
+          <span>Adapter runtime settings <em>optional · session only</em></span>
+          <textarea id="adapter-kwargs" rows="2" spellcheck="false" aria-describedby="adapter-kwargs-help adapter-kwargs-status">{}</textarea>
+          <small id="adapter-kwargs-help"><strong>Most users should leave this as <code>{}</code>.</strong> Only add values if your adapter's README asks for them. Use JSON such as <code>{"region":"us-east-1","test_tenant":"asimov-test"}</code>. Do not paste API keys, passwords, or long-lived secrets here; use environment variables or your provider's normal credential mechanism.</small>
+          <small id="adapter-kwargs-status" class="input-status ok">Valid JSON object · nothing required by default.</small>
         </label>
+        <div id="generated-adapter-note" class="callout span-2 hidden">
+          <strong>Starter adapter created.</strong>
+          <p id="generated-adapter-text"></p>
+        </div>
         <label class="field">
           <span>Assurance level</span>
           <select id="level">
-            <option>A1</option><option>A2</option><option>A3</option><option>A4</option><option selected>A5</option>
+            <option value="A1">A1 — Observable</option>
+            <option value="A2">A2 — Controlled</option>
+            <option value="A3">A3 — Supervised</option>
+            <option value="A4">A4 — Hardened</option>
+            <option value="A5" selected>A5 — Critical</option>
           </select>
+          <small>Profiles are cumulative. Choose the assurance level this deployment actually needs; higher is not automatically better.</small>
         </label>
         <label class="field">
           <span>Assessment type</span>
@@ -145,6 +155,7 @@
             <option value="self_assessment">Self-assessment</option>
             <option value="independent_assessment">Independent assessment</option>
           </select>
+          <small>Independent assessment records the assessor relationship. A5 still requires the specific third-party reviews defined by the catalog.</small>
         </label>
         <label class="field span-2">
           <span>Assessor</span>
@@ -183,7 +194,7 @@
           <textarea id="exclusions" rows="4" placeholder="One exclusion per line. Keep exclusions narrow and defensible."></textarea>
         </label>
       </div>
-      <div class="button-row"><button class="button" id="save-scope">Save scope</button></div>
+      <div class="button-row"><button class="button" id="save-scope" disabled>Save scope</button></div>
     </section>
 
     <section class="panel" id="readiness">
@@ -216,8 +227,8 @@
         </label>
       </div>
       <div class="button-row">
-        <button class="button secondary" id="acknowledge">Acknowledge obligations</button>
-        <button class="button" id="run-assessment">Run technical assessment</button>
+        <button class="button secondary" id="acknowledge" disabled>Acknowledge obligations</button>
+        <button class="button" id="run-assessment" disabled>Run technical assessment</button>
       </div>
       <div id="technical-summary" class="metric-strip"></div>
     </section>
@@ -246,7 +257,7 @@
         <div class="finish-card">
           <span class="step-number">01</span>
           <h3>Finalize assessment</h3>
-          <p>Merges technical and human results fail-closed, builds the evidence manifest, and renders the report.</p>
+          <p>Merges technical and human results fail-closed, builds the evidence manifest, and renders the report. Finalized does not mean cryptographically verified yet.</p>
           <button class="button" id="finalize">Finalize</button>
         </div>
         <div class="finish-card">
@@ -321,6 +332,7 @@
         <label class="field span-2">
           <span>Evidence references</span>
           <textarea id="review-evidence" rows="3" placeholder="One evidence reference per line"></textarea>
+          <small>Use paths relative to the workspace's <code>evidence/</code> folder (for example <code>manual/OBS-001.txt</code>) or an explicitly external immutable reference. PASS reviews cannot cite missing local evidence.</small>
         </label>
         <label class="field span-2">
           <span>Rationale</span>
