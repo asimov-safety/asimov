@@ -26,6 +26,27 @@ class OnboardingTests(unittest.TestCase):
         self.assertFalse(report["ready"])
         self.assertGreater(report["blockers"], 0)
 
+
+    def test_declared_capability_without_callable_method_blocks_readiness(self):
+        adapter = ReferenceTarget()
+        adapter.attempt = None
+        report = doctor(adapter, "A1")
+        self.assertFalse(report["ready"])
+        finding = next(row for row in report["findings"] if row["requirement_id"] == "OBS-001")
+        self.assertEqual(finding["state"], "BLOCKED_ADAPTER_METHOD_UNAVAILABLE")
+        self.assertIn("attempt()", finding["remediation"])
+
+    def test_malformed_capability_declaration_fails_closed(self):
+        class BadCapabilities:
+            adapter_id = "bad-capabilities"
+            def capabilities(self): return "attempt"
+
+        report = doctor(BadCapabilities(), "A1")
+        self.assertFalse(report["ready"])
+        self.assertEqual(report["blockers"], report["requirements"])
+        self.assertTrue(all(row["state"] == "BLOCKED_CAPABILITY_DISCOVERY" for row in report["findings"]))
+
+
     def test_init_refuses_overwrite(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "asimov.toml"
