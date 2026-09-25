@@ -189,6 +189,20 @@
     const reviews = (state && state.reviews) || [];
     const broken = !!(state && state.status_error);
     const usable = prepared && !broken;
+
+    if (prepared) {
+      if (plan.adapter_spec) set("adapter", plan.adapter_spec);
+      set("level", plan.requested_profile || "A5");
+      set("mode", plan.assessment_mode || "self_assessment");
+      set("assessor", plan.assessor || "");
+      set("subject-org", plan.subject_organization || "");
+      set("assessor-org", plan.assessor_organization || "");
+      set("scope-description", scope.scope_description || "");
+      set("threat-model", scope.threat_model || "");
+      set("exclusions", (scope.exclusions || []).join("\n"));
+      if (!val("ack-reviewer")) set("ack-reviewer", plan.assessor || "");
+    }
+
     const readinessCurrent = lastReadiness && readinessKey === currentReadinessKey();
 
     $("state-pill").textContent = broken ? "Workspace error" : prepared ? ((plan.requested_profile || "") + " · " + pretty(plan.state || "prepared")) : "No workspace";
@@ -207,24 +221,12 @@
     else if (readinessCurrent) $("run-status").textContent = "Readiness blockers";
     else $("run-status").textContent = "Readiness not checked";
 
+    $("prepare").disabled = prepared;
     $("save-scope").disabled = !usable;
     $("acknowledge").disabled = !usable;
     $("run-assessment").disabled = !usable || status.pre_run_ready !== true;
     $("check-readiness").disabled = !val("adapter").trim();
     ["level", "mode", "assessor", "subject-org", "assessor-org"].forEach(id => { $(id).disabled = prepared; });
-
-    if (prepared) {
-      if (!val("adapter")) set("adapter", plan.adapter_spec || "");
-      set("level", plan.requested_profile || "A5");
-      set("mode", plan.assessment_mode || "self_assessment");
-      set("assessor", plan.assessor || "");
-      set("subject-org", plan.subject_organization || "");
-      set("assessor-org", plan.assessor_organization || "");
-      set("scope-description", scope.scope_description || "");
-      set("threat-model", scope.threat_model || "");
-      set("exclusions", (scope.exclusions || []).join("\n"));
-      if (!val("ack-reviewer")) set("ack-reviewer", plan.assessor || "");
-    }
 
     renderReviews(reviews);
     renderTechnical();
