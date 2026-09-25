@@ -11,6 +11,14 @@ from .verification import VerificationError, build_verification_statement, sigst
 from .probes import run_initial_probes, run_mutation_validation
 from .onboarding import doctor, init_project
 from .reference_target import ReferenceTarget
+from .assessment import (
+    AssessmentWorkflowError,
+    assessment_status,
+    finalize_assessment,
+    load_adapter,
+    prepare_assessment,
+    run_assessment,
+)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -46,6 +54,25 @@ def main(argv: list[str] | None = None) -> int:
     dp.add_argument("--level", choices=["A1", "A2", "A3", "A4", "A5"], default="A2")
     dp.add_argument("--json-output", type=Path)
 
+    pa = sub.add_parser("prepare-assessment", help="Prepare a generic external assessment workspace, human-review plan, and verification plan before probes run.")
+    pa.add_argument("--adapter", required=True, help="Adapter as path/to/file.py:Class or package.module:Class")
+    pa.add_argument("--adapter-kwargs", default="{}", help="JSON object passed to the adapter constructor")
+    pa.add_argument("--level", choices=["A1", "A2", "A3", "A4", "A5"], default="A5")
+    pa.add_argument("--assessor", required=True)
+    pa.add_argument("--mode", choices=["self_assessment", "independent_assessment"], default="self_assessment")
+    pa.add_argument("--output", type=Path, required=True)
+
+    ra = sub.add_parser("run-assessment", help="Run cumulative technical probes after the prepared human/review obligations have been acknowledged.")
+    ra.add_argument("workspace", type=Path)
+    ra.add_argument("--adapter", required=True, help="Adapter as path/to/file.py:Class or package.module:Class")
+    ra.add_argument("--adapter-kwargs", default="{}", help="JSON object passed to the adapter constructor")
+
+    fa = sub.add_parser("finalize-assessment", help="Merge technical and human/review evidence fail-closed and build the full report/verification package.")
+    fa.add_argument("workspace", type=Path)
+
+    ast = sub.add_parser("assessment-status", help="Show pre-run and final human/review work still pending in an assessment workspace.")
+    ast.add_argument("workspace", type=Path)
+
     sp = sub.add_parser("verification-statement", help="Bind an assessment, evidence manifest, and rendered reports into a signed-subject statement.")
     sp.add_argument("assessment", type=Path)
     sp.add_argument("--evidence-manifest", type=Path, required=True)
@@ -73,6 +100,86 @@ def main(argv: list[str] | None = None) -> int:
 
     args = parser.parse_args(argv)
 
+    if args.command in {"prepare-assessment", "run-assessment"}:
+        try:
+            adapter_kwargs = json.loads(args.adapter_kwargs)
+            if not isinstance(adapter_kwargs, dict):
+                raise ValueError("--adapter-kwargs must decode to a JSON object")
+            adapter = load_adapter(args.adapter, adapter_kwargs)
+            try:
+                if args.command == "prepare-assessment":
+                    plan = prepare_assessment(
+                        adapter,
+                        args.level,
+                        args.output,
+                        assessor=args.assessor,
+                        mode=args.mode,
+                        adapter_spec=args.adapter,
+                    )
+                    print(f"ASIMOV ASSESSMENT PREPARED — {plan['requested_profile']}")
+                    print(f"System: {plan['system_id']} | Adapter: {plan['adapter_id']}")
+                    print(f"Technical families: {len(plan['requirements'])}")
+                    print(f"Human/review families: {len(plan['human_review_requirements'])}")
+                    print(f"Mandatory preconditions: {len(plan['required_preconditions'])}")
+                    print(f"Independent-review families: {len(plan['independent_review_requirements'])}")
+                    print(f"Workspace: {args.output}")
+                    print("NEXT: read REVIEW-CHECKLIST.md and verification-plan.json, complete scope/reviewer assignment, then set each required pre_run_acknowledged=true.")
+                    return 0
+                result = run_assessment(adapter, args.workspace)
+                print(f"ASIMOV TECHNICAL ASSESSMENT — {result['scope']}")
+                for row in result["results"]:
+                    print(f"{row['requirement_id']}: {row['status']} — {row['summary']}")
+                print(f"Counts: {json.dumps(result['counts'], sort_keys=True)}")
+                status = assessment_status(args.workspace)
+                print(f"Pending human/review decisions: {len(status['pending_requirement_reviews'])}")
+                print(f"Pending preconditions: {len(status['pending_preconditions'])}")
+                print("NEXT: complete the generated review records, then run finalize-assessment.")
+                return 0
+            finally:
+                close = getattr(adapter, "close", None)
+                if callable(close):
+                    close()
+        except (AssessmentWorkflowError, OSError, ValueError, ImportError) as exc:
+            print(f"ASSESSMENT ERROR: {exc}", file=sys.stderr)
+            return 3
+
+    if args.command == "assessment-status":
+        try:
+            status = assessment_status(args.workspace)
+        except (AssessmentWorkflowError, OSError, ValueError) as exc:
+            print(f"ASSESSMENT ERROR: {exc}", file=sys.stderr)
+            return 3
+        print(f"ASIMOV ASSESSMENT STATUS — {status['state']} — {status['requested_profile']}")
+        print(f"Pre-run ready: {status['pre_run_ready']}")
+        for err in status["pre_run_errors"][:30]:
+            print(f"  PRE-RUN: {err}")
+        print(f"Pending requirement reviews: {len(status['pending_requirement_reviews'])}")
+        for rid in status["pending_requirement_reviews"]:
+            print(f"  REVIEW: {rid}")
+        print(f"Pending preconditions: {len(status['pending_preconditions'])}")
+        for name in status["pending_preconditions"]:
+            print(f"  PRECONDITION: {name}")
+        if status.get("reported_outcome"):
+            print(f"Reported outcome: {status['reported_outcome']}")
+        return 0 if status["pre_run_ready"] and not status["pending_requirement_reviews"] and not status["pending_preconditions"] else 2
+
+    if args.command == "finalize-assessment":
+        try:
+            result = finalize_assessment(args.workspace)
+        except (AssessmentWorkflowError, ReportError, VerificationError, OSError, ValueError) as exc:
+            print(f"ASSESSMENT ERROR: {exc}", file=sys.stderr)
+            return 3
+        print(f"ASIMOV ASSESSMENT FINALIZED — {result['system']['id']}")
+        for level in ("A1", "A2", "A3", "A4", "A5"):
+            p = result["profiles"][level]
+            print(f"{level}: {p['state']} ({p['mandatory_families']} families + {p['mandatory_preconditions']} preconditions)")
+        print(f"Requested {result['requested_profile']}: {result['reported_outcome']}")
+        print(f"Full report: {args.workspace / 'report.html'}")
+        print(f"Summary: {args.workspace / 'summary.html'}")
+        print(f"Verification instructions: {args.workspace / 'VERIFICATION-INSTRUCTIONS.md'}")
+        print("IMPORTANT: finalization builds the package but does not invent signer identity, an external checkpoint, independent review, or A5 evidence escrow. Follow VERIFICATION-INSTRUCTIONS.md.")
+        state = result["reported_outcome"]
+        return 0 if state == "REPORTED_PASS" else 1 if state == "REPORTED_FAIL" else 2
 
     if args.command == "verification-statement":
         try:
