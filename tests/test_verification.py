@@ -13,6 +13,7 @@ from asimov_conformance.verification import (
     build_verification_statement,
     embed_public_verification_record,
     verify_package,
+    extract_public_verification_record,
     verify_public_report,
     verify_statement_binding,
 )
@@ -194,6 +195,43 @@ class VerificationTests(unittest.TestCase):
             ]), 0)
             receipt = json.loads(receipt_path.read_text())
             self.assertEqual(receipt["overall"], "LOCAL_MATCH_ONLY")
+
+    def test_sign_report_cli_embeds_authenticated_signer_metadata(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            evidence = root / "evidence"; evidence.mkdir()
+            (evidence / "event.json").write_text("{}", encoding="utf-8")
+            manifest_path = root / "evidence-manifest.json"
+            manifest_path.write_text(json.dumps(build_evidence_manifest(evidence), indent=2) + "\n", encoding="utf-8")
+            assessment_path = root / "assessment.json"
+            assessment_path.write_text(json.dumps(_assessment("9" * 64), indent=2) + "\n", encoding="utf-8")
+            report_path = root / "report.html"
+            report_path.write_text("<html><body><h1>signed report</h1></body></html>", encoding="utf-8")
+            statement_path = root / "asimov-statement.json"
+            statement_path.write_text(
+                json.dumps(build_verification_statement(assessment_path, manifest_path, [report_path]), indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            def fake_sign(statement, bundle, **kwargs):
+                bundle.write_text("{}", encoding="utf-8")
+                return 0
+
+            with patch("asimov_conformance.__main__.sigstore_sign", side_effect=fake_sign):
+                code = main([
+                    "sign-report", str(report_path),
+                    "--statement", str(statement_path),
+                    "--provider", "google",
+                    "--identity", "test@example.com",
+                ])
+            self.assertEqual(code, 0)
+            embedded = extract_public_verification_record(report_path)
+            self.assertEqual(embedded["sigstore"]["certificate_identity"], "test@example.com")
+            self.assertEqual(
+                embedded["sigstore"]["certificate_oidc_issuer"],
+                "https://accounts.google.com",
+            )
+            self.assertTrue((root / "asimov.sigstore.json").exists())
 
     def test_cli_statement_and_local_verification_receipt(self):
         with tempfile.TemporaryDirectory() as tmp:
