@@ -15,6 +15,8 @@ Asimov does not require an Asimov runtime. An implementation connects six native
 
 A seventh surface—**verification**—binds the assessment, evidence, and report after testing.
 
+Reviewer assignment is deliberately **not** an adapter surface. The adapter exposes technical controls and evidence; the assessment layer assigns HUMAN, ROLE_SEPARATED, or THIRD_PARTY reviewers and records their signed judgments. Do not hide reviewer independence logic inside framework glue.
+
 ---
 
 ## The universal implementation sequence
