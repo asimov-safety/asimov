@@ -5,6 +5,7 @@ import json
 import sys
 from pathlib import Path
 from .evidence import EvidenceError, build_evidence_manifest, verify_evidence_manifest
+from .adapter_assistant import AdapterAssistantError, adapter_catalog, generate_adapter
 from .gate import ReportError, catalog, evaluate_report, load_report
 from .render import render_html, render_probe_html, render_summary_html, render_verification_receipt
 from .verification import (
@@ -66,6 +67,20 @@ def main(argv: list[str] | None = None) -> int:
     dp = sub.add_parser("doctor", help="Fail-closed readiness check for required probe/control surfaces.")
     dp.add_argument("--level", choices=["A1", "A2", "A3", "A4", "A5"], default="A2")
     dp.add_argument("--json-output", type=Path)
+
+    ac = sub.add_parser("adapter-catalog", help="List current provider/runtime options for building an Asimov adapter.")
+    ac.add_argument("--json-output", type=Path)
+
+    ag = sub.add_parser("adapter-scaffold", help="Generate a fail-closed starter adapter for a selected stack.")
+    ag.add_argument("--runtime", required=True)
+    ag.add_argument("--hosting")
+    ag.add_argument("--authority")
+    ag.add_argument("--resource", action="append", default=[])
+    ag.add_argument("--evidence", action="append", default=[])
+    ag.add_argument("--integration", action="append", default=[])
+    ag.add_argument("--class-name", default="AsimovAdapter")
+    ag.add_argument("--adapter-id", default="generated-adapter")
+    ag.add_argument("--output", type=Path, required=True)
 
     studio = sub.add_parser("studio", aliases=["ui"], help="Launch Asimov Studio, the local browser interface.")
     studio.add_argument("--workspace", type=Path, help="Optional assessment workspace to open on launch.")
@@ -164,6 +179,38 @@ def main(argv: list[str] | None = None) -> int:
     pv.add_argument("--html-output", type=Path)
 
     args = parser.parse_args(argv)
+
+    if args.command == "adapter-catalog":
+        data = adapter_catalog()
+        if args.json_output is not None:
+            args.json_output.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+        print(f"ASIMOV ADAPTER CATALOG — checked {data['checked_at']}")
+        for row in data["runtime_options"]:
+            print(f"  {row['id']:<28} {row['name']} [{row['ownership']}]")
+        return 0
+
+    if args.command == "adapter-scaffold":
+        try:
+            result = generate_adapter(
+                args.output,
+                runtime=args.runtime,
+                hosting=args.hosting,
+                authority=args.authority,
+                resources=args.resource,
+                evidence=args.evidence,
+                integrations=args.integration,
+                class_name=args.class_name,
+                adapter_id=args.adapter_id,
+            )
+        except (AdapterAssistantError, OSError, ValueError) as exc:
+            print(f"ADAPTER ASSISTANT ERROR: {exc}", file=sys.stderr)
+            return 3
+        print("ASIMOV ADAPTER STARTER CREATED")
+        print(f"Adapter: {result['adapter_path']}")
+        print(f"Studio/CLI spec: {result['adapter_spec']}")
+        print(f"Guide: {result['readme_path']}")
+        print("Capabilities claimed: 0 (intentional; wire real controls, then run doctor)")
+        return 0
 
     if args.command in {"studio", "ui"}:
         if args.port < 0 or args.port > 65535:
