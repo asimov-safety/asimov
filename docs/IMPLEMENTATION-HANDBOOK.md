@@ -92,7 +92,7 @@ asimov sign-review reviews/requirements/ACC-006.json \
   --identity reviewer@example.org
 ```
 
-This creates a companion `.sigstore.json` bundle. The same command applies to generated precondition records.
+This creates a companion `.sigstore.json` bundle. Generated assessment preconditions are structured and bound by the final package, but do not require separate Sigstore review attestations in Asimov 0.2.
 
 Verify a review directly:
 
