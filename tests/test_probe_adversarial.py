@@ -92,7 +92,7 @@ class ProbeAdversarialTests(unittest.TestCase):
 
         result = PROBES["ACC-002"](ActorControlledCheckpointTarget())
         self.assertEqual(result.status, "FAIL")
-        self.assertTrue(any(not row["trust_model_declared"] for row in result.details["tamper_trials"].values()))
+        self.assertTrue(any(not row["trust_model_ok"] for row in result.details["tamper_trials"].values()))
 
     def test_rev003_rejects_identity_relabel_revival(self):
         class RelabelRevivalTarget(ReferenceTarget):
