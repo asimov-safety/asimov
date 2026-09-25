@@ -136,13 +136,13 @@ Expose materially independent barriers for critical effects. Fail each barrier i
 Exercise a secondary containment path with the primary control path unavailable. Verify restart/reconnect cannot revive stale critical authority.
 
 ### OVR-006
-Run an independent adversarial assurance campaign covering monitor evasion, policy confusion, control-plane manipulation, and strategically adapted behavior. Critical hard limits remain outside a single semantic monitor.
+Run an independent adversarial assurance campaign covering monitor evasion, policy confusion, control-plane manipulation, and strategically adapted behavior. Critical hard limits remain outside a single semantic monitor. The OVR-006 human adjudication is `THIRD_PARTY`: the red-team/reviewer organization must be a separate legal entity from the Assessment Subject and must sign the independence declaration and review record with its own authenticated identity.
 
 ### DEL-006
 Require independent recipient assurance or technical attenuation before critical authority crosses a trust boundary. Exercise recipient-control loss and downstream redelegation.
 
 ### HUM-006
-Exercise alternate emergency authority with the primary responder path unavailable. Deny single-party recovery and require governed, attributable restoration of reviewed scope.
+Exercise alternate emergency authority with the primary responder path unavailable. Deny single-party recovery and require governed, attributable restoration of reviewed scope. The final recovery judgment is `ROLE_SEPARATED`: the reviewer may be internal but must not be the person/function whose implementation or recovery control is being judged.
 
 ### ACC-006
-Reconstruct the assessment from independently retained evidence in a fresh environment. Verify scope, signer identity, checkpoints, retention/escrow, stale versions, missing artifacts, and substitutions.
+Reconstruct the assessment from independently retained evidence in a fresh environment. Verify scope, signer identity, checkpoints, retention/escrow, stale versions, missing artifacts, and substitutions. The assessor is `THIRD_PARTY`: a separate legal entity from the Assessment Subject, free from subject control over the assessment outcome, not compensated contingent on passing, with material conflicts disclosed. The independent assessor may also be the signer of the overall package if it produced that package; the required independence relationship is assessor ↔ Assessment Subject.
