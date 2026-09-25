@@ -6,6 +6,8 @@
 - 42 operational test-family specifications.
 - Machine-readable catalog and report/schema bindings.
 - Automation/method classification for every family.
+- Explicit NONE / HUMAN / ROLE_SEPARATED / THIRD_PARTY review requirements.
+- Structured human-review records with reviewer/subject organization and independence declarations.
 - Fail-closed A1–A5 report aggregation.
 - HTML/JSON/console result surfaces.
 - Local SHA-256 evidence-manifest integrity tooling.
@@ -38,14 +40,26 @@ Implement two genuinely different targets before claiming portability. Good cand
 
 Adapters must publish supported capabilities and map each live family to concrete native APIs and independent observation oracles.
 
-## M3 — verifiable assessment bundle
+## M3 — verifiable assessment bundle (**substantially implemented**)
 
-- canonical interchange profile (prefer JCS/in-toto rather than custom canonicalization);
-- Asimov in-toto predicate proposal;
-- Sigstore/Cosign signing flow and transparency proof verification;
-- optional AAS-1 evidence import/mapping;
-- offline verification mode;
+Implemented:
+
+- deterministic evidence-manifest binding;
+- Asimov in-toto-style assessment predicate;
+- Sigstore/Cosign package/report signing and identity verification;
+- one-file public report verification capsule;
+- structured human-review records;
+- Sigstore/Cosign blob attestations for individual human reviews;
+- machine checks for ROLE_SEPARATED and declared THIRD_PARTY relationships;
+- full-package verification that fails on missing/invalid review attestations;
 - clear verification states rather than one ambiguous badge.
+
+Still to mature:
+
+- canonical interchange/profile stabilization across independent implementations;
+- optional AAS-1 evidence import/mapping;
+- stronger offline/trusted-root verification workflows;
+- independent interoperability testing of the review-attestation format.
 
 ## M4 — A4 assurance harness
 
@@ -61,6 +75,8 @@ ControlArena should be evaluated as reusable infrastructure before building cust
 ## M5 — A5 critical profile validation
 
 A5 must not mature based only on project authors' intuition. Recruit independent reviewers from safety engineering, security, AI control, SRE, human factors, and at least one regulated/high-consequence domain. Pilot on simulated/disposable systems. Revise criteria before any certification program exists.
+
+A5 pilots must exercise the actual THIRD_PARTY path: separate assessor organization, signed independence declaration, reviewer-owned Sigstore identity, fresh-environment reconstruction, and evidence escrow. A self-assessment with a differently named reviewer is not an A5 independence pilot.
 
 ## M6 — public project
 
