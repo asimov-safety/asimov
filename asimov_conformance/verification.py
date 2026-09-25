@@ -1,6 +1,7 @@
 """Asimov verification statements and Sigstore/Cosign integration."""
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 import shutil
@@ -133,6 +134,7 @@ def build_public_verification_record(
     supplied, the Sigstore bundle. Public readers therefore need only the
     report plus this one JSON file. Full/private evidence is not included.
     """
+    statement_text = statement_path.read_text(encoding="utf-8")
     statement = _load_json(statement_path, "verification statement")
     if statement.get("_type") != STATEMENT_TYPE or statement.get("predicateType") != PREDICATE_TYPE:
         raise VerificationError("verification statement has an unsupported type/predicate")
@@ -167,7 +169,10 @@ def build_public_verification_record(
             "name": report_path.name,
             "sha256": report_digest,
         },
-        "statement": statement,
+        "statement": {
+            "sha256": sha256_file(statement_path),
+            "text": statement_text,
+        },
         "sigstore": sigstore,
         "meaning": {
             "local_report_match": (
@@ -196,9 +201,20 @@ def verify_public_report(
     if record.get("version") != PUBLIC_RECORD_VERSION:
         raise VerificationError("unsupported public verification record version")
     report = record.get("report")
-    statement = record.get("statement")
-    if not isinstance(report, dict) or not isinstance(statement, dict):
+    statement_container = record.get("statement")
+    if not isinstance(report, dict) or not isinstance(statement_container, dict):
         raise VerificationError("public verification record is missing report/statement data")
+    statement_text = statement_container.get("text")
+    statement_sha256 = statement_container.get("sha256")
+    if not isinstance(statement_text, str) or not isinstance(statement_sha256, str):
+        raise VerificationError("public verification record is missing exact statement bytes")
+    actual_statement_sha256 = hashlib.sha256(statement_text.encode("utf-8")).hexdigest()
+    if actual_statement_sha256 != statement_sha256:
+        raise VerificationError("embedded verification statement digest mismatch")
+    try:
+        statement = json.loads(statement_text)
+    except json.JSONDecodeError as exc:
+        raise VerificationError("embedded verification statement is invalid JSON") from exc
 
     actual_digest = sha256_file(report_path)
     expected_digest = report.get("sha256")
@@ -236,10 +252,7 @@ def verify_public_report(
                 root = Path(tmp)
                 statement_path = root / "statement.json"
                 bundle_path = root / "bundle.sigstore.json"
-                statement_path.write_text(
-                    json.dumps(statement, separators=(",", ":"), ensure_ascii=False),
-                    encoding="utf-8",
-                )
+                statement_path.write_text(statement_text, encoding="utf-8")
                 bundle_path.write_text(json.dumps(bundle), encoding="utf-8")
                 try:
                     ok, sigstore_detail = sigstore_verify(
