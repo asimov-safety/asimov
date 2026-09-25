@@ -35,6 +35,11 @@ def _load_json(path: Path, label: str) -> dict[str, Any]:
     return value
 
 
+def _normalize_report_text(text: str) -> str:
+    """Canonicalize report line endings for cross-platform public digests."""
+    return text.replace("\r\n", "\n").replace("\r", "\n")
+
+
 def _strip_public_capsule(text: str) -> str:
     pattern = re.compile(
         re.escape(PUBLIC_CAPSULE_START) + r".*?" + re.escape(PUBLIC_CAPSULE_END),
@@ -58,7 +63,7 @@ def public_report_sha256(path: Path) -> str:
         text = path.read_text(encoding="utf-8")
     except (OSError, UnicodeError) as exc:
         raise VerificationError(f"cannot read public HTML report: {exc}") from exc
-    unsigned = _strip_public_capsule(text)
+    unsigned = _strip_public_capsule(_normalize_report_text(text))
     return hashlib.sha256(unsigned.encode("utf-8")).hexdigest()
 
 
@@ -225,8 +230,14 @@ def build_public_verification_record(
     supplied, the Sigstore bundle. Public readers therefore need only the
     report plus this one JSON file. Full/private evidence is not included.
     """
-    statement_text = statement_path.read_text(encoding="utf-8")
-    statement = _load_json(statement_path, "verification statement")
+    try:
+        statement_bytes = statement_path.read_bytes()
+        statement_text = statement_bytes.decode("utf-8")
+        statement = json.loads(statement_text)
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise VerificationError(f"cannot read verification statement: {exc}") from exc
+    if not isinstance(statement, dict):
+        raise VerificationError("verification statement must be a JSON object")
     if statement.get("_type") != STATEMENT_TYPE or statement.get("predicateType") != PREDICATE_TYPE:
         raise VerificationError("verification statement has an unsupported type/predicate")
 
@@ -261,7 +272,7 @@ def build_public_verification_record(
             "sha256": report_digest,
         },
         "statement": {
-            "sha256": sha256_file(statement_path),
+            "sha256": hashlib.sha256(statement_bytes).hexdigest(),
             "text": statement_text,
         },
         "sigstore": sigstore,
@@ -347,7 +358,7 @@ def verify_public_report(
                 root = Path(tmp)
                 statement_path = root / "statement.json"
                 bundle_path = root / "bundle.sigstore.json"
-                statement_path.write_text(statement_text, encoding="utf-8")
+                statement_path.write_bytes(statement_text.encode("utf-8"))
                 bundle_path.write_text(json.dumps(bundle), encoding="utf-8")
                 try:
                     ok, sigstore_detail = sigstore_verify(
