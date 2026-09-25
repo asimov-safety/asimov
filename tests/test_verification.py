@@ -162,7 +162,7 @@ class VerificationTests(unittest.TestCase):
             manifest_path.write_text(json.dumps(build_evidence_manifest(evidence), indent=2) + "\n", encoding="utf-8")
             assessment_path = root / "assessment.json"
             assessment_path.write_text(json.dumps(_assessment("f" * 64), indent=2) + "\n", encoding="utf-8")
-            report_path = root / "report.html"; report_path.write_text("public report", encoding="utf-8")
+            report_path = root / "report.html"; report_path.write_text("<html><body><h1>public report</h1></body></html>", encoding="utf-8")
             statement_path = root / "asimov-statement.json"
             statement_path.write_text(
                 json.dumps(build_verification_statement(assessment_path, manifest_path, [report_path]), indent=2) + "\n",
