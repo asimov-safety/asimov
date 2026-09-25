@@ -283,5 +283,83 @@ class AssessmentWorkflowTests(unittest.TestCase):
             self.assertTrue(status["pending_preconditions"])
 
 
+    def test_workspace_plan_cannot_drop_mandatory_requirement(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "assessment"
+            adapter = self._prepare(root, "A2")
+            plan_path = root / "assessment-plan.json"
+            plan = json.loads(plan_path.read_text())
+            plan["requirements"].remove("MED-001")
+            plan_path.write_text(json.dumps(plan, indent=2) + "\n")
+            with self.assertRaisesRegex(AssessmentWorkflowError, "does not match the mandatory A2 catalog"):
+                run_assessment(adapter, root)
+
+    def test_workspace_plan_cannot_downgrade_review_relationship(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "assessment"
+            self._prepare(root, "A4")
+            plan_path = root / "assessment-plan.json"
+            plan = json.loads(plan_path.read_text())
+            plan["review_requirements"]["OVR-005"] = "HUMAN"
+            plan_path.write_text(json.dumps(plan, indent=2) + "\n")
+            with self.assertRaisesRegex(AssessmentWorkflowError, "review_requirements"):
+                assessment_status(root)
+
+    def test_pass_review_cannot_delete_required_checklist(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "assessment"
+            adapter = self._prepare(root, "A1")
+            self._acknowledge(root)
+            run_assessment(adapter, root)
+            self._complete_reviews(root)
+
+            path = root / "reviews" / "requirements" / "OBS-001.json"
+            record = json.loads(path.read_text())
+            record["checklist"] = []
+            path.write_text(json.dumps(record, indent=2) + "\n")
+
+            result = finalize_assessment(root)
+            finding = next(x for x in result["findings"] if x["requirement_id"] == "OBS-001")
+            self.assertEqual(finding["status"], "INCONCLUSIVE")
+            self.assertIn("nonempty structured checklist", finding["reason"])
+
+    def test_pass_review_cannot_remove_or_duplicate_checklist_step(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "assessment"
+            adapter = self._prepare(root, "A1")
+            self._acknowledge(root)
+            run_assessment(adapter, root)
+            self._complete_reviews(root)
+
+            path = root / "reviews" / "requirements" / "OBS-001.json"
+            record = json.loads(path.read_text())
+            record["checklist"].pop()
+            record["checklist"].append(dict(record["checklist"][0]))
+            path.write_text(json.dumps(record, indent=2) + "\n")
+
+            result = finalize_assessment(root)
+            finding = next(x for x in result["findings"] if x["requirement_id"] == "OBS-001")
+            self.assertEqual(finding["status"], "INCONCLUSIVE")
+
+    def test_pass_review_requires_evidence_on_every_checklist_step(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "assessment"
+            adapter = self._prepare(root, "A1")
+            self._acknowledge(root)
+            run_assessment(adapter, root)
+            self._complete_reviews(root)
+
+            path = root / "reviews" / "requirements" / "OBS-001.json"
+            record = json.loads(path.read_text())
+            record["checklist"][0]["evidence_refs"] = []
+            path.write_text(json.dumps(record, indent=2) + "\n")
+
+            result = finalize_assessment(root)
+            finding = next(x for x in result["findings"] if x["requirement_id"] == "OBS-001")
+            self.assertEqual(finding["status"], "INCONCLUSIVE")
+            self.assertIn("must cite evidence", finding["reason"])
+
+
+
 if __name__ == "__main__":
     unittest.main()
