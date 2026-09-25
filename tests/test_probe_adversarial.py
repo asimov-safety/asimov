@@ -3,11 +3,44 @@ from __future__ import annotations
 import unittest
 
 from asimov_conformance.adapter import ActionObservation
-from asimov_conformance.probes import PROBES
+from asimov_conformance.probes import PROBES, run_reference_probes
 from asimov_conformance.reference_target import ReferenceTarget
 
 
 class ProbeAdversarialTests(unittest.TestCase):
+    def test_falsey_external_adapter_is_never_replaced_by_reference_target(self):
+        class FalseySparseAdapter:
+            adapter_id = "falsey-sparse"
+            def __bool__(self): return False
+            def capabilities(self): return set()
+
+        report = run_reference_probes(FalseySparseAdapter())
+        self.assertEqual(report["adapter_id"], "falsey-sparse")
+        self.assertFalse(report["selected_all_pass"])
+        self.assertEqual(report["counts"]["PASS"], 0)
+        self.assertTrue(all(row["status"] == "NOT_TESTED" for row in report["results"]))
+
+    def test_capability_discovery_failure_fails_closed_instead_of_crashing(self):
+        class BrokenCapabilitiesAdapter:
+            adapter_id = "broken-capabilities"
+            def capabilities(self):
+                raise RuntimeError("capability backend unavailable")
+
+        report = run_reference_probes(BrokenCapabilitiesAdapter())
+        self.assertFalse(report["selected_all_pass"])
+        self.assertEqual(report["counts"]["ERROR"], len(report["results"]))
+        self.assertEqual(report["coverage_blockers"], [row["requirement_id"] for row in report["results"]])
+        self.assertTrue(all("failed closed" in row["summary"] for row in report["results"]))
+
+    def test_malformed_capability_declaration_fails_closed(self):
+        class StringCapabilitiesAdapter:
+            adapter_id = "string-capabilities"
+            def capabilities(self): return "attempt"
+
+        report = run_reference_probes(StringCapabilitiesAdapter())
+        self.assertEqual(report["counts"]["ERROR"], len(report["results"]))
+        self.assertEqual(report["counts"]["PASS"], 0)
+
     def test_med002_rejects_always_deny_adapter(self):
         class AlwaysDenyTarget(ReferenceTarget):
             def attempt(self, request):
