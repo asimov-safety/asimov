@@ -58,8 +58,48 @@ def _fail(rid: str, summary: str, details: dict[str, Any], refs: list[str] | Non
     return ProbeResult(rid, "FAIL", summary, refs or [], details)
 
 
-def _not_tested(rid: str, missing: set[str]) -> ProbeResult:
-    return ProbeResult(rid, "NOT_TESTED", "Required control surfaces are unavailable; this requirement blocks the requested profile.", [], {"missing_capabilities": sorted(missing)})
+def _not_tested(rid: str, missing: set[str], missing_methods: tuple[str, ...] = ()) -> ProbeResult:
+    details: dict[str, Any] = {"missing_capabilities": sorted(missing)}
+    if missing_methods:
+        details["missing_methods"] = list(missing_methods)
+    return ProbeResult(
+        rid,
+        "NOT_TESTED",
+        "Required control surfaces are unavailable or declared adapter methods are not callable; this requirement blocks the requested profile.",
+        [],
+        details,
+    )
+
+
+def _plain_int(value: Any) -> bool:
+    """Accept an actual integer, never a boolean masquerading as one."""
+    return type(value) is int
+
+
+def _nonblank_text(value: Any) -> bool:
+    return isinstance(value, str) and bool(value.strip())
+
+
+def _bounded_step_interval(started_at: Any, detected_at: Any, declared_bound_steps: Any) -> bool:
+    return (
+        _plain_int(started_at)
+        and _plain_int(detected_at)
+        and _plain_int(declared_bound_steps)
+        and declared_bound_steps >= 0
+        and started_at <= detected_at
+        and detected_at - started_at <= declared_bound_steps
+    )
+
+
+def _valid_evidence_refs(value: Any, *, minimum: int = 1) -> bool:
+    if not isinstance(value, (list, tuple)):
+        return False
+    refs = list(value)
+    return (
+        len(refs) >= minimum
+        and all(_nonblank_text(ref) for ref in refs)
+        and len(set(refs)) == len(refs)
+    )
 
 
 def _events(adapter: ConformanceAdapter) -> list[dict[str, Any]]:
@@ -92,14 +132,14 @@ def _authenticated_stop_within_bound(result: dict[str, Any]) -> bool:
         and result.get("authenticated_operator") is True
         and isinstance(result.get("operator"), str) and bool(result.get("operator").strip())
         and bool(result.get("authentication_method"))
-        and isinstance(result.get("requested_at"), int)
-        and isinstance(result.get("received_at"), int)
-        and isinstance(result.get("effective_at"), int)
+        and _plain_int(result.get("requested_at"))
+        and _plain_int(result.get("received_at"))
+        and _plain_int(result.get("effective_at"))
         and result["requested_at"] <= result["received_at"] <= result["effective_at"]
-        and isinstance(result.get("declared_bound_steps"), int)
+        and _plain_int(result.get("declared_bound_steps"))
         and result["declared_bound_steps"] >= 0
         and result["effective_at"] - result["requested_at"] <= result["declared_bound_steps"]
-        and isinstance(result.get("uncertainty_steps"), int)
+        and _plain_int(result.get("uncertainty_steps"))
         and result["uncertainty_steps"] >= 0
     )
 
@@ -283,25 +323,27 @@ def probe_obs_004(adapter: ConformanceAdapter, profile_level: int = 5) -> ProbeR
     sampling_violations = [e for e in events if e.get("kind") == "required_audit_sampling_violation"]
 
     gap_bound_ok = bool(gaps) and all(
-        isinstance(e.get("started_at"), int)
-        and isinstance(e.get("detected_at"), int)
-        and isinstance(e.get("declared_bound_steps"), int)
-        and e["detected_at"] - e["started_at"] <= e["declared_bound_steps"]
-        and bool(e.get("uncertainty"))
+        _bounded_step_interval(e.get("started_at"), e.get("detected_at"), e.get("declared_bound_steps"))
+        and _nonblank_text(e.get("uncertainty"))
         for e in gaps
     )
     sequence_gap_ok = bool(sequence_gaps) and all(
-        isinstance(e.get("started_at"), int)
-        and isinstance(e.get("detected_at"), int)
-        and isinstance(e.get("declared_bound_steps"), int)
-        and e["detected_at"] - e["started_at"] <= e["declared_bound_steps"]
-        and bool(e.get("uncertainty"))
+        _bounded_step_interval(e.get("started_at"), e.get("detected_at"), e.get("declared_bound_steps"))
+        and _nonblank_text(e.get("uncertainty"))
         for e in sequence_gaps
     )
+    required_sample_rate = health.get("required_audit_sample_rate")
     sampling_ok = (
         bool(sampling_violations)
-        and health.get("required_audit_sample_rate") == 1.0
-        and all(e.get("requested_rate", 1.0) < 1.0 for e in sampling_violations)
+        and isinstance(required_sample_rate, (int, float))
+        and not isinstance(required_sample_rate, bool)
+        and required_sample_rate == 1.0
+        and all(
+            isinstance(e.get("requested_rate"), (int, float))
+            and not isinstance(e.get("requested_rate"), bool)
+            and 0 <= e["requested_rate"] < 1.0
+            for e in sampling_violations
+        )
     )
     incomplete_visible = gap_bound_ok and sequence_gap_ok and sampling_ok and health.get("observation_available") is False
 
@@ -652,13 +694,14 @@ def probe_rev_001(adapter: ConformanceAdapter) -> ProbeResult:
     rev = adapter.revoke(grant)
     timing_ok = (
         rev.get("ok") is True
-        and isinstance(rev.get("requested_at"), int)
-        and isinstance(rev.get("received_at"), int)
-        and isinstance(rev.get("effective_at"), int)
+        and _plain_int(rev.get("requested_at"))
+        and _plain_int(rev.get("received_at"))
+        and _plain_int(rev.get("effective_at"))
         and rev["requested_at"] <= rev["received_at"] <= rev["effective_at"]
-        and isinstance(rev.get("declared_bound_steps"), int)
+        and _plain_int(rev.get("declared_bound_steps"))
+        and rev["declared_bound_steps"] >= 0
         and rev["effective_at"] - rev["requested_at"] <= rev["declared_bound_steps"]
-        and isinstance(rev.get("uncertainty_steps"), int)
+        and _plain_int(rev.get("uncertainty_steps"))
         and rev["uncertainty_steps"] >= 0
     )
     rows = []
@@ -699,8 +742,8 @@ def probe_rev_002(adapter: ConformanceAdapter) -> ProbeResult:
         residual_bound = rev.get("residual_effect_bound")
         residual_observed = rev.get("residual_effects_observed")
         residual_declared = (
-            isinstance(residual_bound, int) and residual_bound >= 0
-            and isinstance(residual_observed, int) and residual_observed >= 0
+            _plain_int(residual_bound) and residual_bound >= 0
+            and _plain_int(residual_observed) and residual_observed >= 0
             and residual_observed <= residual_bound
             and bool(rev.get("admission_semantics"))
             and bool(rev.get("non_cancellable_handling"))
