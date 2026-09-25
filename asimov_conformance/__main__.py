@@ -22,6 +22,7 @@ from .verification import (
 from .probes import run_initial_probes, run_mutation_validation
 from .onboarding import doctor, init_project
 from .reference_target import ReferenceTarget
+from .studio import launch_studio
 from .assessment import (
     AssessmentWorkflowError,
     acknowledge_assessment,
@@ -65,6 +66,11 @@ def main(argv: list[str] | None = None) -> int:
     dp = sub.add_parser("doctor", help="Fail-closed readiness check for required probe/control surfaces.")
     dp.add_argument("--level", choices=["A1", "A2", "A3", "A4", "A5"], default="A2")
     dp.add_argument("--json-output", type=Path)
+
+    studio = sub.add_parser("studio", aliases=["ui"], help="Launch Asimov Studio, the local browser interface.")
+    studio.add_argument("--workspace", type=Path, help="Optional assessment workspace to open on launch.")
+    studio.add_argument("--port", type=int, default=0, help="Local port; 0 chooses an available port automatically.")
+    studio.add_argument("--no-browser", action="store_true", help="Print the local Studio URL without opening a browser.")
 
     pa = sub.add_parser("prepare-assessment", help="Prepare a generic external assessment workspace, human-review plan, and verification plan before probes run.")
     pa.add_argument("--adapter", required=True, help="Adapter as path/to/file.py:Class or package.module:Class")
@@ -158,6 +164,21 @@ def main(argv: list[str] | None = None) -> int:
     pv.add_argument("--html-output", type=Path)
 
     args = parser.parse_args(argv)
+
+    if args.command in {"studio", "ui"}:
+        if args.port < 0 or args.port > 65535:
+            print("STUDIO ERROR: --port must be between 0 and 65535", file=sys.stderr)
+            return 3
+        try:
+            launch_studio(
+                port=args.port,
+                workspace=args.workspace,
+                open_browser=not args.no_browser,
+            )
+        except (OSError, ValueError) as exc:
+            print(f"STUDIO ERROR: {exc}", file=sys.stderr)
+            return 3
+        return 0
 
     if args.command in {"prepare-assessment", "run-assessment"}:
         try:
