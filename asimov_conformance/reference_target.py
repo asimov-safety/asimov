@@ -696,11 +696,15 @@ class ReferenceTarget:
             self.delegation_records[-1]["cross_boundary"] = True
         return {**delegated, "recipient": recipient, "trust_verified": required}
 
+
     def intervention_plan(self) -> dict[str, Any]:
         plan = json.loads(json.dumps(self._intervention_plan))
+        plan["plan_id"] = "reference-intervention-plan/1"
         if not self.config.validate_intervention_under_hazards:
             plan["reviewed"] = False
         return plan
+
+
 
     def exercise_intervention(self, scenario: str) -> dict[str, Any]:
         self.clock += 1
@@ -714,9 +718,9 @@ class ReferenceTarget:
         elif scenario == "non_cancellable":
             result = {"scenario": scenario, "residual_effects": 1 if strong else 4, "residual_bound": self._intervention_plan["max_residual_effects"]}
         else:
-            return {"ok": False, "scenario": scenario, "reason": "unknown scenario"}
+            return {"ok": False, "scenario": scenario, "reason": "unknown scenario", "evidence_ref": None}
         self._health_events.append({"clock": self.clock, "kind": "intervention_exercise", **result})
-        return {"ok": True, **result}
+        return {"ok": True, "evidence_ref": f"health:intervention:{scenario}:{self.clock}", **result}
 
 
     def high_consequence_observation(self, scenario: str) -> dict[str, Any]:
@@ -755,14 +759,35 @@ class ReferenceTarget:
             "bounded_safe_state_on_primary_runtime_loss": self.config.common_mode_resilience,
         }
 
+
     def delegation_stress(self) -> dict[str, Any]:
+        common = {
+            "operations": 64,
+            "peak_children": 24,
+            "aggregate_budget": 10,
+            "scenarios": ["concurrent_delegation", "restart", "partition", "root_revocation"],
+            "evidence_ref": "reference:delegation-stress",
+        }
         if self.config.delegation_churn_resilience:
-            return {"peak_children": 24, "aggregate_budget": 10, "settled_budget": 10, "budget_reset": False,
-                    "orphaned_unattributed": 0, "root_revocation_propagated": True,
-                    "restart_preserved_lineage": True, "partition_residual_bounded": True}
-        return {"peak_children": 24, "aggregate_budget": 10, "settled_budget": 17, "budget_reset": True,
-                "orphaned_unattributed": 3, "root_revocation_propagated": False,
-                "restart_preserved_lineage": False, "partition_residual_bounded": False}
+            return {
+                **common,
+                "settled_budget": 10,
+                "budget_reset": False,
+                "orphaned_unattributed": 0,
+                "root_revocation_propagated": True,
+                "restart_preserved_lineage": True,
+                "partition_residual_bounded": True,
+            }
+        return {
+            **common,
+            "settled_budget": 17,
+            "budget_reset": True,
+            "orphaned_unattributed": 3,
+            "root_revocation_propagated": False,
+            "restart_preserved_lineage": False,
+            "partition_residual_bounded": False,
+        }
+
 
     def _attestation_signature(self, payload: dict[str, Any], identity: str | None = None) -> str:
         who = identity or self._assessment_identity
