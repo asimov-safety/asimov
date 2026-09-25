@@ -60,7 +60,7 @@ Automation class and reviewer independence are different dimensions. Every famil
 
 A different person is not automatically an independent reviewer. A contractor is not third-party merely because the invoice comes from another company if the Assessment Subject controls the assessment outcome. Conversely, an independent assessor may sign both the assessment package and its independent-review record when the assessor itself performed the assessment; independence is measured against the Assessment Subject.
 
-Every completed human review is an attributable evidence artifact. The reviewer signs the exact review record with a Sigstore/Cosign blob attestation. The signature establishes the authenticated signer and the exact assertions they signed; it does not discover undisclosed corporate relationships or prove that the reviewer told the truth about independence.
+Every completed HYBRID / REVIEW_REQUIRED test-family human review is an attributable evidence artifact. The reviewer signs the exact review record with a Sigstore/Cosign blob attestation. Assessment preconditions remain structured and package-bound but are not individually attested in 0.2. The signature establishes the authenticated signer and the exact assertions they signed; it does not discover undisclosed corporate relationships or prove that the reviewer told the truth about independence.
 
 ## 4. Framework-neutral adapter model
 
