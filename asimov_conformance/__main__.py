@@ -13,6 +13,7 @@ from .onboarding import doctor, init_project
 from .reference_target import ReferenceTarget
 from .assessment import (
     AssessmentWorkflowError,
+    acknowledge_assessment,
     assessment_status,
     finalize_assessment,
     load_adapter,
@@ -61,6 +62,11 @@ def main(argv: list[str] | None = None) -> int:
     pa.add_argument("--assessor", required=True)
     pa.add_argument("--mode", choices=["self_assessment", "independent_assessment"], default="self_assessment")
     pa.add_argument("--output", type=Path, required=True)
+
+    aa = sub.add_parser("acknowledge-assessment", help="Bulk-acknowledge generated pre-run human/review obligations without marking them PASS.")
+    aa.add_argument("workspace", type=Path)
+    aa.add_argument("--reviewer", required=True)
+    aa.add_argument("--reviewer-role", required=True)
 
     ra = sub.add_parser("run-assessment", help="Run cumulative technical probes after the prepared human/review obligations have been acknowledged.")
     ra.add_argument("workspace", type=Path)
@@ -123,7 +129,7 @@ def main(argv: list[str] | None = None) -> int:
                     print(f"Mandatory preconditions: {len(plan['required_preconditions'])}")
                     print(f"Independent-review families: {len(plan['independent_review_requirements'])}")
                     print(f"Workspace: {args.output}")
-                    print("NEXT: read REVIEW-CHECKLIST.md and verification-plan.json, complete scope/reviewer assignment, then set each required pre_run_acknowledged=true.")
+                    print("NEXT: read REVIEW-CHECKLIST.md and verification-plan.json, review/edit scope.json, then run acknowledge-assessment. Independent review may remain unassigned until final review; the technical suite can still run.")
                     return 0
                 result = run_assessment(adapter, args.workspace)
                 print(f"ASIMOV TECHNICAL ASSESSMENT — {result['scope']}")
@@ -143,6 +149,25 @@ def main(argv: list[str] | None = None) -> int:
             print(f"ASSESSMENT ERROR: {exc}", file=sys.stderr)
             return 3
 
+    if args.command == "acknowledge-assessment":
+        try:
+            result = acknowledge_assessment(
+                args.workspace,
+                reviewer=args.reviewer,
+                reviewer_role=args.reviewer_role,
+            )
+        except (AssessmentWorkflowError, OSError, ValueError) as exc:
+            print(f"ASSESSMENT ERROR: {exc}", file=sys.stderr)
+            return 3
+        print(f"ASIMOV PRE-RUN ACKNOWLEDGEMENT — {result['count']} obligations acknowledged")
+        print(result["warning"])
+        if result["independent_review_requirements"]:
+            print("Independent final review still required for:")
+            for rid in result["independent_review_requirements"]:
+                print(f"  {rid}")
+        print("NEXT: run assessment-status, then run-assessment when Pre-run ready is True.")
+        return 0
+
     if args.command == "assessment-status":
         try:
             status = assessment_status(args.workspace)
@@ -151,7 +176,7 @@ def main(argv: list[str] | None = None) -> int:
             return 3
         print(f"ASIMOV ASSESSMENT STATUS — {status['state']} — {status['requested_profile']}")
         print(f"Pre-run ready: {status['pre_run_ready']}")
-        for err in status["pre_run_errors"][:30]:
+        for err in status["pre_run_errors"]:
             print(f"  PRE-RUN: {err}")
         print(f"Pending requirement reviews: {len(status['pending_requirement_reviews'])}")
         for rid in status["pending_requirement_reviews"]:
