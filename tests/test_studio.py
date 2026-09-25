@@ -21,6 +21,7 @@ from asimov_conformance.studio import (
     run_from_payload,
     save_review,
     save_scope,
+    sign_review_from_payload,
     workspace_state,
 )
 
@@ -165,12 +166,6 @@ class StudioTests(unittest.TestCase):
                     for check in record["checklist"]:
                         check["status"] = "PASS"
                         check["evidence_refs"] = [f"manual/{item_id}.txt"]
-                    if item_type == "requirement":
-                        record["signing_identity"] = {
-                            "type": "sigstore",
-                            "expected_subject": "studio@example.com",
-                            "expected_issuer": "https://accounts.google.com",
-                        }
                     save_review({
                         "workspace": str(root),
                         "item_type": item_type,
@@ -178,9 +173,22 @@ class StudioTests(unittest.TestCase):
                         "record": record,
                     })
                     if item_type == "requirement":
-                        (root / "reviews" / "requirements" / f"{item_id}.sigstore.json").write_text(
-                            "{}\n", encoding="utf-8"
-                        )
+                        def fake_attest(subject, predicate, bundle, **kwargs):
+                            bundle.write_text("{}\n", encoding="utf-8")
+                            return 0
+
+                        with patch("asimov_conformance.studio.sigstore_attest_blob", side_effect=fake_attest), \
+                             patch(
+                                 "asimov_conformance.studio.verify_review_attestation",
+                                 return_value={"state": "VERIFIED", "item_id": item_id},
+                             ):
+                            sign_review_from_payload({
+                                "workspace": str(root),
+                                "item_type": "requirement",
+                                "item_id": item_id,
+                                "identity": "studio@example.com",
+                                "provider": "google",
+                            })
 
             final_state = finalize_from_payload({"workspace": str(root)})
             self.assertTrue(final_state["finalized"])
