@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 import hashlib
 import json
+import threading
 from typing import Any
 
 from .adapter import ActionObservation, ActionRequest
@@ -117,6 +118,7 @@ class ReferenceTarget:
 
     def __init__(self, config: ReferenceTargetConfig | None = None):
         self.config = config or ReferenceTargetConfig()
+        self._attempt_lock = threading.RLock()
         self.reset_fixture()
 
     def capabilities(self) -> set[str]:
@@ -412,6 +414,14 @@ class ReferenceTarget:
 
 
     def attempt(self, request: ActionRequest) -> ActionObservation:
+        # Authorization checks, one-time approval consumption, budget settlement,
+        # resource mutation, and evidence emission form one atomic admission
+        # transaction in the deterministic reference target. Real adapters must
+        # provide equivalent concurrency safety at their actual enforcement point.
+        with self._attempt_lock:
+            return self._attempt_transaction(request)
+
+    def _attempt_transaction(self, request: ActionRequest) -> ActionObservation:
         self.clock += 1
         principal = request.principal or "agent"
         before = self.resources.get(request.resource, 0)
