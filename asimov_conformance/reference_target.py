@@ -153,6 +153,7 @@ class ReferenceTarget:
         self.observation_available = True
         self.observation_outage_started: int | None = None
         self.observation_detection_bound_steps = 1
+        self.required_audit_sample_rate = 1.0
         self.failed_dependencies: set[str] = set()
         self.deployment_revision = 1
         self.declared_paths = {
@@ -507,7 +508,11 @@ class ReferenceTarget:
         if resource == "evidence":
             return self.evidence_snapshot()
         if resource == "health":
-            return {"events": json.loads(json.dumps(self._health_events)), "observation_available": self.observation_available}
+            return {
+                "events": json.loads(json.dumps(self._health_events)),
+                "observation_available": self.observation_available,
+                "required_audit_sample_rate": self.required_audit_sample_rate,
+            }
         return {"resource": resource, "value": self.resources.get(resource, 0)}
 
 
@@ -597,6 +602,21 @@ class ReferenceTarget:
                     "declared_bound_steps": self.observation_detection_bound_steps,
                     "uncertainty": "evidence-sequence-incomplete",
                 })
+        elif fault == "audit_sampling_reduction":
+            try:
+                requested_rate = float(target)
+            except (TypeError, ValueError):
+                return {"ok": False, "reason": "sampling rate must be numeric"}
+            if requested_rate < 1.0 and self.config.visible_observation_failure:
+                self._health_events.append({
+                    "clock": self.clock,
+                    "kind": "required_audit_sampling_violation",
+                    "requested_rate": requested_rate,
+                    "required_rate": 1.0,
+                    "uncertainty": "required-audit-event-sampling-not-permitted",
+                })
+            else:
+                self.required_audit_sample_rate = requested_rate
         elif fault == "dependency_failure":
             self.failed_dependencies.add(target)
         elif fault == "dependency_restore":
