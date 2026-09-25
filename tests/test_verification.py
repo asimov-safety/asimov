@@ -11,6 +11,7 @@ from asimov_conformance.__main__ import main
 from asimov_conformance.verification import (
     build_public_verification_record,
     build_verification_statement,
+    embed_public_verification_record,
     verify_package,
     verify_public_report,
     verify_statement_binding,
@@ -133,7 +134,21 @@ class VerificationTests(unittest.TestCase):
             self.assertEqual(verified["report_integrity"]["state"], "VERIFIED")
             self.assertEqual(verified["provenance"]["state"], "UNSIGNED")
 
-            report_path.write_text("<h1>tampered public report</h1>", encoding="utf-8")
+            embed_public_verification_record(report_path, record)
+            embedded = verify_public_report(report_path)
+            self.assertEqual(embedded["overall"], "LOCAL_MATCH_ONLY")
+            self.assertEqual(embedded["report_integrity"]["state"], "VERIFIED")
+
+            # Changing only the verification capsule does not alter the report-content digest.
+            capsule_record = json.loads(record_path.read_text())
+            capsule_record["meaning"]["semantic_limit"] = "Updated explanatory text."
+            embed_public_verification_record(report_path, capsule_record)
+            still_bound = verify_public_report(report_path)
+            self.assertEqual(still_bound["report_integrity"]["state"], "VERIFIED")
+
+            # Changing substantive report content must break the bound report digest.
+            report_text = report_path.read_text(encoding="utf-8")
+            report_path.write_text(report_text.replace("<h1>public report</h1>", "<h1>tampered public report</h1>"), encoding="utf-8")
             tampered = verify_public_report(report_path, record_path)
             self.assertEqual(tampered["overall"], "FAILED")
             self.assertEqual(tampered["report_integrity"]["state"], "FAILED")
@@ -162,7 +177,7 @@ class VerificationTests(unittest.TestCase):
             ]), 0)
             receipt_path = root / "public-receipt.json"
             self.assertEqual(main([
-                "verify-report", str(report_path), str(record_path),
+                "verify-report", str(report_path),
                 "--json-output", str(receipt_path),
             ]), 0)
             receipt = json.loads(receipt_path.read_text())
