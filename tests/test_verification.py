@@ -196,6 +196,39 @@ class VerificationTests(unittest.TestCase):
             receipt = json.loads(receipt_path.read_text())
             self.assertEqual(receipt["overall"], "LOCAL_MATCH_ONLY")
 
+    def test_public_verification_is_cross_platform_newline_stable(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            evidence = root / "evidence"; evidence.mkdir()
+            (evidence / "event.json").write_text("{}", encoding="utf-8")
+            manifest_path = root / "evidence-manifest.json"
+            manifest_path.write_text(json.dumps(build_evidence_manifest(evidence), indent=2) + "\n", encoding="utf-8")
+            assessment_path = root / "assessment.json"
+            assessment_path.write_text(json.dumps(_assessment("8" * 64), indent=2) + "\n", encoding="utf-8")
+
+            # Simulate a Windows-authored HTML report with CRLF line endings.
+            report_path = root / "report.html"
+            report_path.write_bytes(b"<html>\r\n<body>\r\n<h1>public report</h1>\r\n</body>\r\n</html>\r\n")
+
+            statement_obj = build_verification_statement(assessment_path, manifest_path, [report_path])
+            statement_text = json.dumps(statement_obj, indent=2) + "\n"
+            statement_path = root / "asimov-statement.json"
+            # Simulate the exact bytes Cosign would sign on Windows.
+            statement_path.write_bytes(statement_text.replace("\n", "\r\n").encode("utf-8"))
+
+            record = build_public_verification_record(statement_path, report_path)
+            record_path = root / "public-verification.json"
+            record_path.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+
+            verified = verify_public_report(report_path, record_path)
+            self.assertEqual(verified["overall"], "LOCAL_MATCH_ONLY")
+            self.assertEqual(verified["report_integrity"]["state"], "VERIFIED")
+
+            embed_public_verification_record(report_path, record)
+            embedded = verify_public_report(report_path)
+            self.assertEqual(embedded["overall"], "LOCAL_MATCH_ONLY")
+            self.assertEqual(embedded["report_integrity"]["state"], "VERIFIED")
+
     def test_sign_report_cli_embeds_authenticated_signer_metadata(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
