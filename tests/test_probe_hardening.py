@@ -173,6 +173,7 @@ class ProbeHardeningTests(unittest.TestCase):
         for rid in dynamic_route_probes:
             with self.subTest(requirement=rid):
                 self.assertIn("action_surface", PROBE_CAPABILITIES[rid])
+                self.assertIn("alternate_routes", PROBE_CAPABILITIES[rid])
 
     def test_every_literal_probe_route_is_in_reference_action_inventory(self):
         import asimov_conformance.probes as probes_module
