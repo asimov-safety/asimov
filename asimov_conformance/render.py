@@ -258,6 +258,6 @@ def render_probe_html(report: dict[str, Any]) -> str:
             f"<td><details><summary>details</summary><pre>{details}</pre></details></td></tr>"
         )
     return f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Asimov Reference Harness</title></head><body>
-<h1>Asimov A1–A5 Reference Harness</h1>
+<h1>Asimov A1-A5 Reference Harness</h1>
 <p>Adapter: {escape(report['adapter_id'])} · Specification: {escape(report['spec_version'])} · Passed: {sum(r['status']=='PASS' for r in report['results'])}/{len(report['results'])}</p>
 <table><thead><tr><th>Requirement</th><th>Status</th><th>Finding</th><th>Detail</th></tr></thead><tbody>{''.join(rows)}</tbody></table></body></html>'''
