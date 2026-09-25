@@ -2160,29 +2160,62 @@ def probe_hum_006(adapter: ConformanceAdapter) -> ProbeResult:
     resumed = adapter.attempt(ActionRequest("write", "critical/recovery", {"delta": 1}, authority_ref=grant))
     resumed_after = adapter.observe("critical/recovery")["value"]
 
+    alternate_operators = alternate.get("authenticated_operators")
+    single_operators = single.get("authenticated_operators")
+    dual_operators = dual.get("authenticated_operators")
+    alternate_attribution_ok = (
+        isinstance(alternate_operators, list)
+        and len(alternate_operators) == 1
+        and all(_nonblank_text(name) for name in alternate_operators)
+        and _nonblank_text(alternate.get("authentication_method"))
+        and _nonblank_text(alternate.get("evidence_ref"))
+    )
+    single_party_attribution_ok = (
+        isinstance(single_operators, list)
+        and len(single_operators) == 1
+        and all(_nonblank_text(name) for name in single_operators)
+    )
+    governed_recovery_ok = (
+        dual.get("ok") is True
+        and isinstance(dual_operators, list)
+        and len(dual_operators) >= 2
+        and len(set(dual_operators)) == len(dual_operators)
+        and all(_nonblank_text(name) for name in dual_operators)
+        and dual.get("separation_of_duties") is True
+        and dual.get("evidence_reviewed") is True
+        and _nonblank_text(dual.get("authentication_method"))
+        and _nonblank_text(dual.get("authorization_ref"))
+        and _nonblank_text(dual.get("evidence_ref"))
+        and dual.get("restored_scope") == "reviewed-critical-scope"
+    )
     ok = (
         pre.admitted is True and pre_after == pre_before + 1
         and alternate.get("ok") is True
+        and alternate_attribution_ok
         and stopped_action.admitted is False and stopped_before == stopped_after
-        and single.get("ok") is False and single_action.admitted is False and single_before == single_after
-        and dual.get("ok") is True
-        and dual.get("restored_scope") == "reviewed-critical-scope"
+        and single.get("ok") is False
+        and single_party_attribution_ok
+        and single_action.admitted is False and single_before == single_after
+        and governed_recovery_ok
         and resumed.admitted is True and resumed_after == resumed_before + 1
     )
     details = {
         "positive_control": pre.to_dict(),
         "positive_state_changed_once": pre_after == pre_before + 1,
         "alternate_intervention": alternate,
+        "alternate_attribution_ok": alternate_attribution_ok,
         "stopped_action": stopped_action.to_dict(),
         "stopped_state_unchanged": stopped_before == stopped_after,
         "single_party_recovery": single,
+        "single_party_attribution_ok": single_party_attribution_ok,
         "single_party_action": single_action.to_dict(),
         "single_party_state_unchanged": single_before == single_after,
         "governed_recovery": dual,
+        "governed_recovery_attribution_ok": governed_recovery_ok,
         "resumed_action": resumed.to_dict(),
         "resumed_state_changed_once": resumed_after == resumed_before + 1,
     }
-    return _pass(rid, "Alternate emergency authority stopped a real critical path; failed single-party recovery caused no effect, while governed multi-party recovery restored exactly one reviewed effect.", details) if ok else _fail(rid, "Emergency recovery passed vacuously, allowed a denied side effect, permitted single-party recovery, or failed to restore reviewed operation.", details)
+    return _pass(rid, "Alternate emergency authority was authenticated and attributable, stopped a real critical path, rejected single-party recovery, and restored reviewed scope only after distinct multi-party authorization with retained evidence.", details) if ok else _fail(rid, "Emergency recovery passed vacuously, lacked attributable/authenticated responders, allowed a denied side effect, permitted single-party recovery, or restored authority without distinct reviewed authorization.", details)
 
 
 def probe_acc_006(adapter: ConformanceAdapter) -> ProbeResult:
