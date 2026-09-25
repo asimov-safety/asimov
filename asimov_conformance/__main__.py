@@ -6,7 +6,8 @@ import sys
 from pathlib import Path
 from .evidence import EvidenceError, build_evidence_manifest, verify_evidence_manifest
 from .gate import ReportError, catalog, evaluate_report, load_report
-from .render import render_html, render_probe_html
+from .render import render_html, render_probe_html, render_summary_html, render_verification_receipt
+from .verification import VerificationError, build_verification_statement, sigstore_sign, verify_package
 from .probes import run_initial_probes, run_mutation_validation
 from .onboarding import doctor, init_project
 from .reference_target import ReferenceTarget
@@ -21,6 +22,7 @@ def main(argv: list[str] | None = None) -> int:
     rp.add_argument("path", type=Path)
     rp.add_argument("--json-output", type=Path)
     rp.add_argument("--html-output", type=Path)
+    rp.add_argument("--summary-output", type=Path)
 
     ep = sub.add_parser("evidence-manifest", help="Hash an evidence directory into a deterministic manifest.")
     ep.add_argument("root", type=Path)
@@ -44,8 +46,90 @@ def main(argv: list[str] | None = None) -> int:
     dp.add_argument("--level", choices=["A1", "A2", "A3", "A4", "A5"], default="A2")
     dp.add_argument("--json-output", type=Path)
 
+    sp = sub.add_parser("verification-statement", help="Bind an assessment, evidence manifest, and rendered reports into a signed-subject statement.")
+    sp.add_argument("assessment", type=Path)
+    sp.add_argument("--evidence-manifest", type=Path, required=True)
+    sp.add_argument("--report", type=Path, action="append", default=[])
+    sp.add_argument("--output", type=Path, required=True)
+
+    ss = sub.add_parser("sigstore-sign", help="Sign an Asimov verification statement with Cosign/Sigstore.")
+    ss.add_argument("statement", type=Path)
+    ss.add_argument("--bundle", type=Path, required=True)
+    ss.add_argument("--cosign-bin", default="cosign")
+    ss.add_argument("--yes", action="store_true", help="Pass --yes to Cosign for non-interactive confirmation.")
+
+    pv = sub.add_parser("verify-package", help="Verify evidence, report binding, scope binding, and optionally a Sigstore identity/transparency bundle.")
+    pv.add_argument("assessment", type=Path)
+    pv.add_argument("--evidence-manifest", type=Path, required=True)
+    pv.add_argument("--evidence-root", type=Path, required=True)
+    pv.add_argument("--statement", type=Path, required=True)
+    pv.add_argument("--report", type=Path, action="append", default=[])
+    pv.add_argument("--bundle", type=Path)
+    pv.add_argument("--certificate-identity")
+    pv.add_argument("--certificate-oidc-issuer")
+    pv.add_argument("--cosign-bin", default="cosign")
+    pv.add_argument("--json-output", type=Path)
+    pv.add_argument("--html-output", type=Path)
+
     args = parser.parse_args(argv)
 
+
+    if args.command == "verification-statement":
+        try:
+            statement = build_verification_statement(
+                args.assessment,
+                args.evidence_manifest,
+                args.report,
+            )
+            args.output.write_text(json.dumps(statement, indent=2) + "\n", encoding="utf-8")
+        except (VerificationError, ReportError, OSError, ValueError) as exc:
+            print(f"VERIFICATION ERROR: {exc}", file=sys.stderr)
+            return 3
+        print(f"Created verification statement: {args.output}")
+        print(f"Subjects: {len(statement['subject'])}")
+        return 0
+
+    if args.command == "sigstore-sign":
+        try:
+            code = sigstore_sign(
+                args.statement,
+                args.bundle,
+                cosign_bin=args.cosign_bin,
+                yes=args.yes,
+            )
+        except (VerificationError, OSError) as exc:
+            print(f"SIGSTORE ERROR: {exc}", file=sys.stderr)
+            return 3
+        if code != 0:
+            print(f"SIGSTORE SIGNING FAILED (exit {code})", file=sys.stderr)
+            return 1
+        print(f"Sigstore bundle written: {args.bundle}")
+        return 0
+
+    if args.command == "verify-package":
+        try:
+            receipt = verify_package(
+                assessment_path=args.assessment,
+                evidence_manifest_path=args.evidence_manifest,
+                evidence_root=args.evidence_root,
+                statement_path=args.statement,
+                report_paths=args.report,
+                bundle_path=args.bundle,
+                certificate_identity=args.certificate_identity,
+                certificate_oidc_issuer=args.certificate_oidc_issuer,
+                cosign_bin=args.cosign_bin,
+            )
+            if args.json_output is not None:
+                args.json_output.write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
+            if args.html_output is not None:
+                args.html_output.write_text(render_verification_receipt(receipt), encoding="utf-8")
+        except (VerificationError, ReportError, OSError, ValueError) as exc:
+            print(f"VERIFICATION ERROR: {exc}", file=sys.stderr)
+            return 3
+        print(f"ASIMOV VERIFY — {receipt['overall']}")
+        for name, check in receipt["checks"].items():
+            print(f"  {name}: {check['state']}")
+        return 1 if receipt["overall"] == "FAILED" else 0
 
     if args.command == "init":
         try:
@@ -139,6 +223,10 @@ def main(argv: list[str] | None = None) -> int:
             if args.html_output.resolve() == args.path.resolve():
                 raise ReportError("HTML output must not overwrite the input report")
             args.html_output.write_text(render_html(result), encoding="utf-8")
+        if args.summary_output is not None:
+            if args.summary_output.resolve() == args.path.resolve():
+                raise ReportError("Summary output must not overwrite the input report")
+            args.summary_output.write_text(render_summary_html(result), encoding="utf-8")
     except (ReportError, OSError) as exc:
         print(f"INVALID REPORT: {exc}", file=sys.stderr)
         return 3
