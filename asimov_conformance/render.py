@@ -113,13 +113,20 @@ def render_html(result: dict[str, Any]) -> str:
         findings_html = ""
         for item in items:
             rid = item["requirement_id"]
-            title = cat.get(rid, {}).get("title", rid)
+            row = cat.get(rid, {})
+            title = row.get("title", rid)
+            review_requirement = row.get("review_requirement", "NONE")
             refs = ", ".join(item.get("evidence_refs", [])) or "—"
+            review_note = (
+                ""
+                if review_requirement == "NONE"
+                else f'<div class="evidence">Human review: {escape(review_requirement.replace("_", " "))} · signed family review required</div>'
+            )
             findings_html += (
                 f'<div class="finding"><div class="finding-id">{escape(rid)}</div>'
                 f'<div class="status {escape(item["status"])}">{escape(item["status"])}</div>'
                 f'<div><strong>{escape(title)}</strong><div class="finding-reason">{escape(item["reason"])}</div>'
-                f'<div class="evidence">Evidence: {escape(refs)}</div></div></div>'
+                f'{review_note}<div class="evidence">Evidence: {escape(refs)}</div></div></div>'
             )
         groups.append(
             f'<section class="finding-group"><div class="finding-head"><div class="roman">{roman}</div><h3>{escape(name)}</h3></div>{findings_html}</section>'
@@ -133,6 +140,8 @@ def render_html(result: dict[str, Any]) -> str:
     achieved = f'{highest} · {PROFILE_NAMES[highest]}' if highest else "No assurance profile satisfied"
     created = result.get("created_at", "—")
     assessor = result.get("assessor", "—")
+    subject_organization = result.get("subject_organization") or "—"
+    assessor_organization = result.get("assessor_organization") or "—"
     mode = result.get("assessment_mode", "—").replace("_", " ").title()
 
     return _head(f'Asimov Assessment — {result["system"]["id"]}') + f'''
@@ -162,11 +171,13 @@ def render_html(result: dict[str, Any]) -> str:
     <div class="eyebrow">Assessment identity</div>
     <div class="meta">
       <div><div class="label">Assessor</div><div class="value">{escape(assessor)}</div></div>
+      <div><div class="label">Assessment subject</div><div class="value">{escape(subject_organization)}</div></div>
+      <div><div class="label">Assessor organization</div><div class="value">{escape(assessor_organization)}</div></div>
       <div><div class="label">Created</div><div class="value">{escape(created)}</div></div>
       <div><div class="label">Mode</div><div class="value">{escape(mode)}</div></div>
+      <div><div class="label">Specification</div><div class="value">Asimov Core {escape(result["spec_version"])}</div></div>
       <div><div class="label">Configuration SHA-256</div><div class="value hash">{escape(result["system"]["configuration_sha256"])}</div></div>
       <div><div class="label">Scope manifest SHA-256</div><div class="value hash">{escape(result["scope_manifest_sha256"])}</div></div>
-      <div><div class="label">Specification</div><div class="value">Asimov Core {escape(result["spec_version"])}</div></div>
     </div>
   </div>
 
@@ -236,14 +247,26 @@ def render_verification_receipt(receipt: dict[str, Any]) -> str:
     labels = {
         "evidence_integrity": "Evidence integrity",
         "artifact_and_scope_binding": "Artifact & scope binding",
-        "sigstore_identity_and_transparency": "Identity & transparency",
+        "sigstore_identity_and_transparency": "Package identity & transparency",
+        "review_attestations": "Human review attestations",
         "semantic_assurance": "Semantic assurance",
     }
     rows = ""
     for key, label in labels.items():
         check = checks.get(key, {})
         state = str(check.get("state", "NOT_CHECKED"))
-        detail = check.get("detail") or "; ".join(check.get("errors", [])) or "—"
+        if key == "review_attestations":
+            review_rows = check.get("reviews", [])
+            relied = [r for r in review_rows if r.get("state") != "NOT_REQUIRED"]
+            failed = [str(r.get("item_id", "?")) for r in relied if r.get("state") != "VERIFIED"]
+            detail = (
+                f"{sum(r.get('state') == 'VERIFIED' for r in relied)}/{len(relied)} relied-upon family review attestations verified"
+                + (f"; failed: {', '.join(failed)}" if failed else "")
+                if relied
+                else "No individually attested family review was relied upon."
+            )
+        else:
+            detail = check.get("detail") or "; ".join(check.get("errors", [])) or "—"
         rows += f'<div class="receipt-check"><div>{escape(label)}</div><div class="status {escape(state)}">{escape(state)}</div><div class="finding-reason">{escape(str(detail))}</div></div>'
     return _head(f'Asimov Verification — {receipt.get("report_id","") }') + f'''
 <div class="report summary"><section class="page">
