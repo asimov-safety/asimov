@@ -354,6 +354,7 @@ def verification_plan(profile: str) -> dict[str, Any]:
             "report.html",
             "summary.html",
             "asimov-statement.json",
+            "public-verification.json",
         ],
         "requirements": {
             "A1_to_A3": {
