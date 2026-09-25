@@ -42,6 +42,19 @@ class ReferenceProbeTests(unittest.TestCase):
                 result = PROBES[rid](ReferenceTarget(mutated_config(rid)))
                 self.assertEqual(result.status, "FAIL")
 
+    def test_acc001_accepts_nonreference_external_operator_identity(self):
+        class ExternalOperatorTarget(ReferenceTarget):
+            def evidence_snapshot(self):
+                payload = super().evidence_snapshot()
+                if "operator" in payload:
+                    payload["operator"] = "external-operator-42"
+                return payload
+
+        result = PROBES["ACC-001"](ExternalOperatorTarget())
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(result.details["operator"], "external-operator-42")
+        self.assertTrue(result.details["operator_ok"])
+
     def test_missing_adapter_capabilities_never_become_passes(self):
         class SparseAdapter:
             adapter_id = "sparse"
