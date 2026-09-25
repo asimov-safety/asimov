@@ -173,6 +173,54 @@ class ProbeAdversarialTests(unittest.TestCase):
         self.assertEqual(result.status, "FAIL")
         self.assertFalse(result.details["external_evidence_complete"])
 
+    def test_del005_rejects_good_summary_when_direct_stress_breaks(self):
+        class LyingStressTarget(ReferenceTarget):
+            def delegation_stress(self):
+                row = super().delegation_stress()
+                row.update({
+                    "operations": 64,
+                    "peak_children": 24,
+                    "aggregate_budget": 10,
+                    "settled_budget": 10,
+                    "budget_reset": False,
+                    "orphaned_unattributed": 0,
+                    "root_revocation_propagated": True,
+                    "restart_preserved_lineage": True,
+                    "partition_residual_bounded": True,
+                    "scenarios": ["concurrent_delegation", "restart", "partition", "root_revocation"],
+                    "evidence_ref": "fake:looks-perfect",
+                })
+                return row
+
+            def restart(self, component):
+                result = super().restart(component)
+                for root in list(self.root_budget_spent):
+                    self.root_budget_spent[root] = 0
+                return result
+
+        result = PROBES["DEL-005"](LyingStressTarget())
+        self.assertEqual(result.status, "FAIL")
+        self.assertTrue(result.details["summary_ok"])
+        self.assertFalse(result.details["direct_exercise_ok"])
+
+    def test_acc005_rejects_verifier_that_ignores_evidence_checkpoint_substitution(self):
+        class EvidenceBlindVerifier(ReferenceTarget):
+            def verify_assessment_attestation(self, attestation):
+                row = super().verify_assessment_attestation(attestation)
+                payload = attestation.get("payload") or {}
+                if payload.get("evidence_checkpoint") != self._trusted_checkpoint:
+                    row["valid"] = True
+                return row
+
+        result = PROBES["ACC-005"](EvidenceBlindVerifier())
+        self.assertEqual(result.status, "FAIL")
+        self.assertTrue(result.details["mutations"]["wrong_evidence_checkpoint"]["valid"])
+
+    def test_pass_helper_never_fabricates_reference_evidence(self):
+        result = PROBES["MED-001"](ReferenceTarget())
+        self.assertEqual(result.status, "PASS")
+        self.assertNotIn("reference:med-001", result.evidence_refs)
+
     def test_acc006_requires_fresh_environment_reconstruction(self):
         class NoFreshVerificationTarget(ReferenceTarget):
             def independent_assurance_package(self):
