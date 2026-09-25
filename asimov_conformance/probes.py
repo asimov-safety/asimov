@@ -2379,6 +2379,18 @@ PROBES: dict[str, Callable[[ConformanceAdapter], ProbeResult]] = {
 }
 
 
+def _validate_requirement_selection(requirements: tuple[str, ...]) -> tuple[str, ...]:
+    selected = tuple(requirements)
+    if any(not isinstance(rid, str) or not rid.strip() for rid in selected):
+        raise ValueError("requirements must contain only nonblank requirement IDs")
+    if len(selected) != len(set(selected)):
+        raise ValueError("requirements must not contain duplicate requirement IDs")
+    unknown = sorted(set(selected) - set(PROBES))
+    if unknown:
+        raise ValueError("unknown requirement ID(s): " + ", ".join(unknown))
+    return selected
+
+
 def _profile_level_for_requirements(requirements: tuple[str, ...]) -> int:
     levels = {}
     for rid in A1_REQUIREMENTS:
@@ -2395,6 +2407,7 @@ def _profile_level_for_requirements(requirements: tuple[str, ...]) -> int:
 
 
 def run_reference_probes(adapter: ConformanceAdapter | None = None, requirements: tuple[str, ...] = A5_REQUIREMENTS) -> dict[str, Any]:
+    requirements = _validate_requirement_selection(tuple(requirements))
     # Only omission selects the disposable reference target. A supplied adapter
     # may define falsey truth semantics; silently substituting ReferenceTarget
     # would test the toy deployment and could create a catastrophic false PASS.
@@ -2486,18 +2499,25 @@ def run_initial_probes(adapter: ConformanceAdapter | None = None) -> dict[str, A
 
 
 def run_mutation_validation(requirements: tuple[str, ...] = A5_REQUIREMENTS) -> dict[str, Any]:
+    requirements = _validate_requirement_selection(tuple(requirements))
     rows = []
     for rid in requirements:
         field, description = MUTATIONS[rid]
         adapter = ReferenceTarget(mutated_config(rid))
-        result = PROBES[rid](adapter)
+        try:
+            result = PROBES[rid](adapter)
+            status = result.status
+            summary = result.summary
+        except Exception as exc:
+            status = "ERROR"
+            summary = f"Mutation probe raised {type(exc).__name__}: {exc}"
         rows.append({
             "requirement_id": rid,
             "mutation": field,
             "description": description,
-            "probe_status": result.status,
-            "mutation_detected": result.status == "FAIL",
-            "summary": result.summary,
+            "probe_status": status,
+            "mutation_detected": status == "FAIL",
+            "summary": summary,
         })
     return {
         "tool": "asimov-reference-mutation-validation",
