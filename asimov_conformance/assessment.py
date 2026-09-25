@@ -250,6 +250,16 @@ def _review_methods(requirement: dict[str, Any]) -> list[str]:
     return methods
 
 
+def _expected_requirement_checklist_ids(requirement: dict[str, Any]) -> list[str]:
+    ids = ["scope-and-requirement", "catalog-setup"]
+    ids.extend(method.lower().replace("_", "-") for method in _review_methods(requirement))
+    ids.extend(["expected-vs-evidence", "limitations-and-contradictions"])
+    return ids
+
+
+PRECONDITION_CHECKLIST_IDS = ("planned-before-execution", "evidence-retained")
+
+
 def _requirement_review_template(
     requirement: dict[str, Any],
     assessor: str,
@@ -719,8 +729,38 @@ def _load_workspace_plan(workspace: Path) -> dict[str, Any]:
     plan = _json_read(workspace / "assessment-plan.json")
     if plan.get("workflow_version") != WORKFLOW_VERSION:
         raise AssessmentWorkflowError("unsupported assessment workflow version")
-    if plan.get("requested_profile") not in PROFILE_LEVELS:
+    profile = plan.get("requested_profile")
+    if profile not in PROFILE_LEVELS:
         raise AssessmentWorkflowError("invalid requested profile in assessment plan")
+    if plan.get("spec_version") != SPEC_VERSION:
+        raise AssessmentWorkflowError("assessment plan spec_version does not match this Asimov release")
+    current_catalog_version = catalog()["version"]
+    if plan.get("catalog_version") != current_catalog_version:
+        raise AssessmentWorkflowError("assessment plan catalog_version does not match this Asimov release")
+    if plan.get("assessment_mode") not in ASSESSMENT_MODES:
+        raise AssessmentWorkflowError("invalid assessment_mode in assessment plan")
+
+    requirements = _required_requirements(str(profile))
+    expected_requirements = [r["id"] for r in requirements]
+    expected_preconditions = list(PROFILE_PRECONDITIONS[PROFILE_LEVELS[str(profile)]])
+    review_requirements = [r for r in requirements if r["automation"] in {"HYBRID", "REVIEW_REQUIRED"}]
+    expected_human_reviews = [r["id"] for r in review_requirements]
+    expected_review_relationships = {r["id"]: _review_requirement(r) for r in review_requirements}
+    expected_independent = [r["id"] for r in review_requirements if _requires_independence(r)]
+
+    exact_fields = {
+        "requirements": expected_requirements,
+        "required_preconditions": expected_preconditions,
+        "human_review_requirements": expected_human_reviews,
+        "review_requirements": expected_review_relationships,
+        "independent_review_requirements": expected_independent,
+    }
+    for field, expected in exact_fields.items():
+        if plan.get(field) != expected:
+            raise AssessmentWorkflowError(
+                f"assessment plan {field} does not match the mandatory {profile} catalog; "
+                "create a fresh workspace instead of editing assessment-plan.json"
+            )
     return plan
 
 
@@ -887,6 +927,7 @@ def _validate_completed_review(
     required_review_requirement: str | None = None,
     evidence_root: Path | None = None,
     require_attestation: bool = True,
+    required_checklist_ids: list[str] | tuple[str, ...] | None = None,
 ) -> tuple[str, str, list[str]]:
     decision = record.get("decision")
     if decision not in REVIEW_DECISIONS:
@@ -907,10 +948,41 @@ def _validate_completed_review(
         if missing:
             return "INCONCLUSIVE", "A PASS review cites missing/unbound evidence: " + ", ".join(missing), refs
     checklist = record.get("checklist", [])
-    if decision == "PASS" and (
-        not isinstance(checklist, list) or any(item.get("status") != "PASS" for item in checklist)
-    ):
-        return "INCONCLUSIVE", "A PASS review requires every checklist item to be PASS.", refs
+    if decision == "PASS":
+        if not isinstance(checklist, list) or not checklist or any(not isinstance(item, dict) for item in checklist):
+            return "INCONCLUSIVE", "A PASS review requires a nonempty structured checklist.", refs
+        checklist_ids = [str(item.get("id", "")).strip() for item in checklist]
+        if any(not item_id for item_id in checklist_ids) or len(checklist_ids) != len(set(checklist_ids)):
+            return "INCONCLUSIVE", "A PASS review checklist has missing or duplicate item IDs.", refs
+        if required_checklist_ids is not None and set(checklist_ids) != set(required_checklist_ids):
+            missing = sorted(set(required_checklist_ids) - set(checklist_ids))
+            extra = sorted(set(checklist_ids) - set(required_checklist_ids))
+            return (
+                "INCONCLUSIVE",
+                "A PASS review checklist does not match the required review steps"
+                + (f"; missing: {', '.join(missing)}" if missing else "")
+                + (f"; unexpected: {', '.join(extra)}" if extra else "")
+                + ".",
+                refs,
+            )
+        if any(item.get("status") != "PASS" for item in checklist):
+            return "INCONCLUSIVE", "A PASS review requires every checklist item to be PASS.", refs
+        for item in checklist:
+            item_refs = item.get("evidence_refs")
+            if not isinstance(item_refs, list) or not any(str(ref).strip() for ref in item_refs):
+                return "INCONCLUSIVE", f"Checklist item {item.get('id')} must cite evidence before the review can PASS.", refs
+            if evidence_root is not None:
+                missing_item_refs = [
+                    str(ref) for ref in item_refs
+                    if str(ref).strip() and not _evidence_ref_exists(evidence_root, str(ref))
+                ]
+                if missing_item_refs:
+                    return (
+                        "INCONCLUSIVE",
+                        f"Checklist item {item.get('id')} cites missing/unbound evidence: "
+                        + ", ".join(missing_item_refs),
+                        refs,
+                    )
     review_requirement = str(record.get("review_requirement") or ("THIRD_PARTY" if independence_required else "HUMAN"))
     if review_requirement not in {"HUMAN", "ROLE_SEPARATED", "THIRD_PARTY"}:
         return "INCONCLUSIVE", "Human review has an invalid review_requirement.", refs
@@ -1005,6 +1077,7 @@ def _merge_finding(
         independence_required=_requires_independence(requirement),
         required_review_requirement=_review_requirement(requirement),
         evidence_root=Path(review.get("_evidence_root")) if review.get("_evidence_root") else None,
+        required_checklist_ids=_expected_requirement_checklist_ids(requirement),
     )
     evidence_refs = [technical_ref]
     if review_evidence_ref:
@@ -1046,6 +1119,7 @@ def _finalize_precondition(workspace: Path, name: str, scope: dict[str, Any]) ->
         record,
         evidence_root=workspace / "evidence",
         require_attestation=False,
+        required_checklist_ids=PRECONDITION_CHECKLIST_IDS,
     )
     if decision == "PASS" and name == "deployment_binding" and not str(scope.get("scope_description", "")).strip():
         decision, rationale = "INCONCLUSIVE", "deployment_binding cannot PASS until scope.json has a nonblank scope_description."
