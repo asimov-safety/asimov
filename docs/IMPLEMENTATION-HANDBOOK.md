@@ -105,185 +105,71 @@ A valid signature establishes the authenticated signer and binds the exact recor
 ---
 
 
-# Common framework patterns
+# Provider & stack assistance
 
-## OpenAI Agents API / Agents SDK
+Provider APIs move faster than Asimov Core. The canonical provider/runtime
+taxonomy now lives in:
 
-OpenAI now distinguishes a managed **Agents API** from the application-hosted **Agents SDK**. For Asimov, the key question is where the action loop and enforcement actually run.
+- `asimov_conformance/adapter_catalog.json` — machine-readable mappings used
+  by Studio and the scaffold generator;
+- [Provider & Stack Guide](ADAPTER-PROVIDERS.md) — current human-readable
+  guidance and important non-equivalences.
 
-**Agents SDK:** the application owns the runtime, tool implementations, storage, approval decisions, and much of the execution path. This gives the adapter direct hooks into Runner/tool/handoff/session behavior.
+Use the same guidance from either interface:
 
-**Agents API:** the managed harness becomes an additional provider-controlled action surface. Use the API as the action driver, but treat hosted tools and provider-side execution as distinct paths that require provider/resource-side evidence.
-
-**Use for:** agent loop, tools, handoffs, sessions, tracing, human-in-the-loop.
-
-Recommended mapping:
-
-| Asimov surface | OpenAI Agents deployment |
-|---|---|
-| Action driver | `Runner` / application entry point |
-| Function-tool observation | SDK tracing + application events |
-| Delegation | handoffs / agents-as-tools, correlated with external authority records |
-| Mediation | function-tool guardrails plus an external policy/authority layer |
-| Resource oracle | the actual DB/API/filesystem/cloud resource |
-| Supervisor | separate policy/supervisor service or infrastructure control plane |
-| Evidence | SDK traces + external resource/audit evidence |
-
-Important boundary: OpenAI's tool guardrail pipeline applies to function tools and configured local MCP tools, but several hosted/built-in tool paths use different execution pipelines. Treat provider-hosted capabilities as separate action paths and pair them with provider/resource-side evidence rather than assuming one SDK hook sees everything.
-
-Official SDK: https://openai.github.io/openai-agents-python/
-
-### Practical composition
-
-```text
-OpenAI Agents SDK      -> ActionDriver
-AWS IAM / policy API   -> AuthorityController
-PostgreSQL             -> ResourceOracle
-Kubernetes             -> LifecycleController
-separate supervisor    -> SupervisionProvider
-OpenTelemetry + DB log -> EvidenceOracle
+```bash
+asimov studio
 ```
 
-A1/A2 can usually be added with limited application changes. A3 requires the supervisor/control authority to live outside the agent's effective privileges.
+Open **Adapter Assistant** and choose the runtime, hosting, authority system,
+protected resources, and evidence sources.
 
----
+Or from the CLI:
 
-## Claude Agent SDK
+```bash
+asimov adapter-catalog
 
-Recommended mapping:
-
-- SDK client/session -> action driver;
-- tool permission configuration -> declared capability surface;
-- PreToolUse/PostToolUse hooks -> proposal/dispatch evidence and policy hooks;
-- separate IAM/OS/cloud controls -> enforceable authority;
-- target database/API/filesystem -> independent effect oracle;
-- external supervisor process/service -> A3+.
-
-Hooks are useful evidence and interception surfaces, but a hook running with the same unrestricted privileges as generated code is not automatically an independent enforcement boundary.
-
-Official platform: https://platform.claude.com/
-
----
-
-## Google Agent Development Kit (ADK)
-
-Recommended mapping:
-
-- ADK runner / workflow -> action driver;
-- before/after agent, model, and tool callbacks -> orchestration evidence and mediation hooks;
-- session/event service -> lifecycle evidence;
-- Vertex/Google Cloud service account -> actor identity and authority;
-- Agent Runtime sandbox / Cloud Run / GKE -> execution and lifecycle boundary;
-- Cloud Audit Logs + protected resource state -> independent evidence.
-
-ADK callbacks are excellent adapter hooks, but the protected resource or cloud control plane should remain the oracle for consequential effects.
-
-Official documentation: https://google.github.io/adk-docs/
-
----
-
-## LangGraph / LangChain
-
-**Use for:** durable graph orchestration, tool execution, checkpoints, long-running agent workflows.
-
-Recommended mapping:
-
-- graph invocation / tool nodes -> action driver;
-- middleware/callback/event surfaces -> proposal and lifecycle evidence;
-- checkpoint store -> orchestration-state evidence, not the sole external oracle;
-- database/API/cloud resource -> independent effect oracle;
-- IAM/policy gateway -> authority and revocation;
-- Kubernetes/process manager -> restart and partition fixtures;
-- separate supervisor service -> A3+ intervention.
-
-Do not treat a graph checkpoint as proof that an external action occurred. Observe the target resource itself.
-
-A strong deployment pattern is:
-
-```text
-LangGraph
-   |
-policy gateway ---- IAM / short-lived capability
-   |
-tool/API ---------- protected resource
-   |                     |
-OTel trace          resource audit
-        \             /
-          evidence store
+asimov adapter-scaffold \
+  --runtime openai-agents-api \
+  --hosting kubernetes \
+  --authority aws-iam \
+  --resource postgresql \
+  --evidence opentelemetry \
+  --evidence resource-audit \
+  --output ./asimov-adapter
 ```
 
----
+The generator is intentionally fail-closed. A starter adapter reports an empty
+capability set. Selecting a provider does **not** prove that any Asimov control
+exists; it only supplies a current wiring map and TODO scaffold.
 
-## CrewAI
+## Current runtime families
 
-**Use for:** role-based multi-agent teams, crews, tools, delegated work, MCP-connected capabilities.
+The catalog distinguishes architectures that used to be collapsed under one
+vendor name:
 
-Recommended mapping:
+- **OpenAI:** Agents API, Agents SDK, or a custom loop around Responses;
+- **Anthropic:** Claude Managed Agents, Claude Agent SDK, or a custom Messages
+  API loop;
+- **AWS:** Amazon Bedrock AgentCore Runtime for managed framework-agnostic agent hosting;
+- **Google:** Agent Development Kit (ADK) plus managed Agent Runtime (formerly Vertex AI Agent Engine);
+- **Microsoft:** Agent Framework plus managed Foundry Agent Service;
+- **LangGraph / LangChain agents;**
+- **CrewAI;**
+- **custom/local open-weight stacks** such as Python, Ollama, vLLM, and
+  llama.cpp.
 
-- crew kickoff/application API -> action driver;
-- tool hooks/callbacks -> action proposal/dispatch evidence;
-- agent/crew task graph -> delegation lineage;
-- MCP/tool provider -> enumerate as individual consequential paths;
-- external IAM/policy -> enforce authority independently of role prompts;
-- target resource -> independent oracle;
-- separate supervisor/operator path -> A3+.
+MCP is modeled separately as a tool/integration boundary. Every consequential
+MCP server/tool family remains part of the action surface.
 
-Crew role definitions are descriptive context, not security identities. Bind consequential authority to authenticated principals outside model-written role labels.
+The architecture rule does not change across providers:
 
----
+> **Framework hooks tell you what the agent attempted. Independent authority,
+> resource, lifecycle, supervision, and evidence surfaces establish whether
+> control actually held.**
 
-## Microsoft Agent Governance Toolkit / OWASP ACS
-
-This is a particularly natural Asimov integration because AGT/ACS already provides runtime-governance mechanisms.
-
-Recommended mapping:
-
-| Asimov | AGT / ACS role |
-|---|---|
-| action snapshot / request | ACS snapshot or framework hook |
-| admission decision | Guardian/policy verdict |
-| mediation | host enforcement |
-| supervisor state | governance control plane |
-| evidence | ACS/AGT trace + resource-side observation |
-| fault/resilience | AGT SRE/chaos tooling plus infrastructure faults |
-
-Asimov does not replace ACS or AGT. It supplies the cross-framework **property and conformance layer**: does the deployed combination actually satisfy the Constant under the tested threat model?
-
-Microsoft AGT: https://microsoft.github.io/agent-governance-toolkit/
-
----
-
-## Custom Python / local models / Ollama
-
-This is often the easiest architecture to understand because you own the whole stack.
-
-Suggested composition:
-
-```text
-Python orchestrator / local model API
-             |
-      tool dispatcher
-             |
-      policy boundary
-       /           \
-filesystem/DB      HTTP APIs
-      |               |
-separate observer / audit process
-             |
-       evidence store
-
-independent supervisor process
-             |
-     stop / revoke state
-```
-
-For A3, do not put the only stop/supervisor latch in the same unrestricted process that runs generated code. Use a separate process/service or OS-level authority boundary.
-
-Lifecycle providers by OS:
-
-- macOS: launchd / process controller;
-- Linux: systemd, containers, cgroups, namespaces;
-- Windows: Service Control Manager, Job Objects, Windows identities/ACLs.
+For provider-specific mappings and current official documentation links, use
+[ADAPTER-PROVIDERS.md](ADAPTER-PROVIDERS.md).
 
 ---
 

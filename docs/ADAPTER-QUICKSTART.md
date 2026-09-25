@@ -22,7 +22,38 @@ asimov reference-mutations
 asimov doctor --level A5
 ```
 
-## 2. Map your existing architecture first
+## 2. Start with Adapter Assistant
+
+You do not need to begin by writing 40+ protocol methods from a blank file.
+
+Launch Studio:
+
+```bash
+asimov studio
+```
+
+Use **Adapter Assistant** to select the runtime, hosting, authority system, protected resources, evidence sources, and optional integrations. Studio shows how those pieces map to the six Asimov surfaces and can generate a starter adapter.
+
+CLI equivalent:
+
+```bash
+asimov adapter-catalog
+
+asimov adapter-scaffold \
+  --runtime openai-agents-api \
+  --hosting kubernetes \
+  --authority aws-iam \
+  --resource postgresql \
+  --evidence opentelemetry \
+  --evidence resource-audit \
+  --output ./asimov-adapter
+```
+
+The scaffold **does not claim any Asimov capability**. Its `capabilities()` method starts empty. That is deliberate: provider selection is guidance, not evidence.
+
+For current provider-specific mappings, see [ADAPTER-PROVIDERS.md](ADAPTER-PROVIDERS.md).
+
+## 3. Map your existing architecture first
 
 | Asimov semantic | Usually comes from |
 |---|---|
@@ -41,7 +72,7 @@ asimov doctor --level A5
 
 **Do not use the agent's own text response as the oracle for an external effect.**
 
-## 3. Start with the smallest useful adapter
+## 4. Start with the smallest useful adapter
 
 ```python
 from asimov_conformance.adapter import ActionRequest, ActionObservation
@@ -74,7 +105,7 @@ class MyAdapter:
 
 Do **not** implement dummy methods just to make `doctor` green.
 
-## 4. Prepare the assessment before probes run
+## 5. Prepare the assessment before probes run
 
 Do not jump from an adapter directly to a raw probe command for a real assessment. Generate the complete assessment/review plan first:
 
@@ -143,7 +174,7 @@ print(doctor(MyAdapter(), "A2"))
 
 A blocker means the deployment lacks or does not expose the required control. Fix the deployment or wire the real control; do not fake it in the adapter.
 
-## 5. Compose providers instead of one giant adapter
+## 6. Compose providers instead of one giant adapter
 
 ```text
 Agent framework / orchestrator  -> action driver
@@ -154,7 +185,7 @@ Supervisor service              -> supervision provider
 OTel/AAS-1/audit store          -> evidence oracle
 ```
 
-## 6. Common recipes
+## 7. Common recipes
 
 ### Local desktop agent
 Use the local API/Python entry point as the driver, disposable SQLite/files as resource oracles, process/service restart for lifecycle, and a separate controller/process for A3 stop/supervision.
@@ -165,24 +196,24 @@ Use the service/API as driver, cloud IAM for authority, Kubernetes for lifecycle
 ### Agent framework + database/API tools
 Use framework hooks for proposals/delegation, but verify effects at the database/API itself. Use a separate IAM/policy layer for admission/revocation and a separate supervisor for A3.
 
-## 7. Adapter glue vs. real controls
+## 8. Adapter glue vs. real controls
 
 Adapter glue may translate IDs/state, call APIs, correlate events, normalize evidence, create disposable fixtures, and trigger safe faults.
 
 Adapter glue must **not** create test-only approvals/revocation, fake independent supervision, synthesize missing evidence, treat an LLM refusal as enforcement, or omit a consequential path.
 
-## 8. A-level expectations
+## 9. A-level expectations
 
 - **A1:** usually low-friction observation/evidence.
 - **A2:** real mediation, revocation, bounded delegation, and human control.
 - **A3:** genuine independent supervision/intervention.
 - **A4/A5:** intentionally more invasive resilience and assurance infrastructure.
 
-## 9. Portability rule
+## 10. Portability rule
 
 You may change your adapter implementation. You may **not** weaken an Asimov requirement or acceptance criterion because your framework makes it inconvenient.
 
-## 10. Contributing an adapter
+## 11. Contributing an adapter
 
 Include the architecture mapping, capability list, disposable fixtures, independent-oracle description, supported families, known gaps, and tests proving both passing and deliberately broken controls.
 

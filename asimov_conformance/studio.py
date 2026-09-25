@@ -17,6 +17,7 @@ from importlib.resources import files
 from pathlib import Path
 from typing import Any
 
+from .adapter_assistant import AdapterAssistantError, adapter_catalog, generate_adapter, recommendation
 from .assessment import (
     AssessmentWorkflowError,
     acknowledge_assessment,
@@ -200,6 +201,55 @@ def workspace_state(value: str | Path) -> dict[str, Any]:
         )
     }
     return state
+
+
+def adapter_recommendation_from_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    resources = payload.get("resources", [])
+    evidence = payload.get("evidence", [])
+    integrations = payload.get("integrations", [])
+    if not isinstance(resources, list) or not all(isinstance(x, str) for x in resources):
+        raise StudioError("Resources must be a list of option IDs.")
+    if not isinstance(evidence, list) or not all(isinstance(x, str) for x in evidence):
+        raise StudioError("Evidence sources must be a list of option IDs.")
+    if not isinstance(integrations, list) or not all(isinstance(x, str) for x in integrations):
+        raise StudioError("Integrations must be a list of option IDs.")
+    return recommendation(
+        runtime=str(payload.get("runtime", "")),
+        hosting=str(payload.get("hosting") or "") or None,
+        authority=str(payload.get("authority") or "") or None,
+        resources=resources,
+        evidence=evidence,
+        integrations=integrations,
+    )
+
+
+def generate_adapter_from_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    output = str(payload.get("output_dir", "")).strip()
+    if not output:
+        raise StudioError("Choose an output folder for the starter adapter.")
+    resources = payload.get("resources", [])
+    evidence = payload.get("evidence", [])
+    integrations = payload.get("integrations", [])
+    if not isinstance(resources, list) or not all(isinstance(x, str) for x in resources):
+        raise StudioError("Resources must be a list of option IDs.")
+    if not isinstance(evidence, list) or not all(isinstance(x, str) for x in evidence):
+        raise StudioError("Evidence sources must be a list of option IDs.")
+    if not isinstance(integrations, list) or not all(isinstance(x, str) for x in integrations):
+        raise StudioError("Integrations must be a list of option IDs.")
+    try:
+        return generate_adapter(
+            Path(output),
+            runtime=str(payload.get("runtime", "")),
+            hosting=str(payload.get("hosting") or "") or None,
+            authority=str(payload.get("authority") or "") or None,
+            resources=resources,
+            evidence=evidence,
+            integrations=integrations,
+            class_name=str(payload.get("class_name") or "AsimovAdapter"),
+            adapter_id=str(payload.get("adapter_id") or "generated-adapter"),
+        )
+    except AdapterAssistantError as exc:
+        raise StudioError(str(exc)) from exc
 
 
 def prepare_from_payload(payload: dict[str, Any]) -> dict[str, Any]:
@@ -576,6 +626,9 @@ def make_handler(token: str):
                     from .gate import catalog
                     self._send_json(catalog())
                     return
+                if parsed.path == "/api/adapter-catalog":
+                    self._send_json(adapter_catalog())
+                    return
                 if parsed.path == "/api/state":
                     workspace = (query.get("workspace") or [""])[0]
                     self._send_json(workspace_state(workspace))
@@ -594,7 +647,7 @@ def make_handler(token: str):
                     self._send_bytes(report.read_bytes(), "text/html; charset=utf-8")
                     return
                 self._send_json({"error": "Not found."}, HTTPStatus.NOT_FOUND)
-            except (StudioError, AssessmentWorkflowError, VerificationError, OSError, ValueError, ImportError) as exc:
+            except (StudioError, AdapterAssistantError, AssessmentWorkflowError, VerificationError, OSError, ValueError, ImportError) as exc:
                 self._send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
 
         def do_POST(self) -> None:
@@ -608,6 +661,8 @@ def make_handler(token: str):
             try:
                 payload = self._read_payload()
                 routes = {
+                    "/api/adapter-recommendation": adapter_recommendation_from_payload,
+                    "/api/generate-adapter": generate_adapter_from_payload,
                     "/api/prepare": prepare_from_payload,
                     "/api/readiness": readiness_from_payload,
                     "/api/acknowledge": acknowledge_from_payload,
@@ -624,7 +679,7 @@ def make_handler(token: str):
                     self._send_json({"error": "Not found."}, HTTPStatus.NOT_FOUND)
                     return
                 self._send_json(action(payload))
-            except (StudioError, AssessmentWorkflowError, VerificationError, OSError, ValueError, ImportError) as exc:
+            except (StudioError, AdapterAssistantError, AssessmentWorkflowError, VerificationError, OSError, ValueError, ImportError) as exc:
                 self._send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
 
     return StudioHandler

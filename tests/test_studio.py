@@ -14,8 +14,10 @@ from unittest.mock import patch
 from asimov_conformance.__main__ import main
 from asimov_conformance.studio import (
     acknowledge_from_payload,
+    adapter_recommendation_from_payload,
     create_server,
     finalize_from_payload,
+    generate_adapter_from_payload,
     get_review,
     prepare_from_payload,
     run_from_payload,
@@ -54,6 +56,36 @@ class StudioTests(unittest.TestCase):
             server.shutdown()
             server.server_close()
             thread.join(timeout=5)
+
+    def test_adapter_assistant_preview_and_generation(self):
+        rec = adapter_recommendation_from_payload({
+            "runtime": "microsoft-agent-framework",
+            "hosting": "azure",
+            "authority": "azure-entra-rbac",
+            "resources": ["http-api"],
+            "evidence": ["cloud-audit"],
+            "integrations": [],
+        })
+        self.assertEqual(rec["runtime"]["id"], "microsoft-agent-framework")
+        self.assertEqual(rec["hosting"]["id"], "azure")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "starter"
+            result = generate_adapter_from_payload({
+                "output_dir": str(out),
+                "runtime": "openai-agents-api",
+                "hosting": "kubernetes",
+                "authority": "aws-iam",
+                "resources": ["postgresql"],
+                "evidence": ["opentelemetry", "resource-audit"],
+                "integrations": ["mcp"],
+                "class_name": "StudioGeneratedAdapter",
+                "adapter_id": "studio-generated",
+            })
+            self.assertTrue((out / "adapter.py").is_file())
+            self.assertIn("StudioGeneratedAdapter", (out / "adapter.py").read_text())
+            self.assertEqual(result["recommendation"]["runtime"]["id"], "openai-agents-api")
+            self.assertTrue(result["adapter_spec"].endswith(":StudioGeneratedAdapter"))
 
     def test_prepare_reference_workspace_and_read_state(self):
         with tempfile.TemporaryDirectory() as tmp:

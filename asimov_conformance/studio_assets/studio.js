@@ -5,6 +5,7 @@
   const token = params.get("token") || "";
   let state = null;
   let currentReview = null;
+  let adapterCatalog = null;
 
   const $ = (id) => document.getElementById(id);
   const val = (id) => $(id).value;
@@ -14,6 +15,88 @@
   const pretty = (s) => String(s || "").replaceAll("_", " ").toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
 
   function workspace() { return val("workspace-path").trim(); }
+
+  function selectedChoices(id) {
+    return Array.from($(id).querySelectorAll('input[type="checkbox"]:checked')).map(x => x.value);
+  }
+
+  function adapterAssistantPayload() {
+    const runtime = val("aa-runtime");
+    if (!runtime) throw new Error("Choose an agent runtime first.");
+    return {
+      runtime: runtime,
+      hosting: val("aa-hosting") || null,
+      authority: val("aa-authority") || null,
+      resources: selectedChoices("aa-resources"),
+      evidence: selectedChoices("aa-evidence"),
+      integrations: selectedChoices("aa-integrations")
+    };
+  }
+
+  function optionHtml(row, detailKey) {
+    const detail = row[detailKey] || row.summary || row.role || "";
+    return '<label class="choice"><input type="checkbox" value="' + escapeHtml(row.id) + '">' +
+      '<span><strong>' + escapeHtml(row.name) + '</strong><small>' + escapeHtml(detail) + '</small></span></label>';
+  }
+
+  async function loadAdapterCatalog() {
+    adapterCatalog = await apiGet("/api/adapter-catalog");
+    const runtimes = adapterCatalog.runtime_options || [];
+    $("aa-runtime").innerHTML = '<option value="">Choose runtime…</option>' + runtimes.map(r =>
+      '<option value="' + escapeHtml(r.id) + '">' + escapeHtml(r.name) + '</option>'
+    ).join("");
+    $("aa-hosting").innerHTML = '<option value="">Choose hosting…</option>' + (adapterCatalog.hosting_options || []).map(r =>
+      '<option value="' + escapeHtml(r.id) + '">' + escapeHtml(r.name) + '</option>'
+    ).join("");
+    $("aa-authority").innerHTML = '<option value="">Choose authority…</option>' + (adapterCatalog.authority_options || []).map(r =>
+      '<option value="' + escapeHtml(r.id) + '">' + escapeHtml(r.name) + '</option>'
+    ).join("");
+    $("aa-resources").innerHTML = (adapterCatalog.resource_options || []).map(r => optionHtml(r, "oracle")).join("");
+    $("aa-evidence").innerHTML = (adapterCatalog.evidence_options || []).map(r => optionHtml(r, "role")).join("");
+    $("aa-integrations").innerHTML = (adapterCatalog.integration_options || []).map(r => optionHtml(r, "warning")).join("");
+    $("adapter-assistant-status").textContent = "Catalog checked " + (adapterCatalog.checked_at || "");
+  }
+
+  function renderAdapterRecommendation(rec) {
+    const runtime = rec.runtime || {};
+    const mappings = (rec.surfaces || []).map(surface => {
+      const mapped = runtime.recommended && runtime.recommended[surface.id] ? runtime.recommended[surface.id] : "Wire a real deployment surface.";
+      return '<div class="surface-map-row"><b>' + escapeHtml(surface.name) + '</b><span>' + escapeHtml(mapped) + '</span></div>';
+    }).join("");
+    const warnings = []
+      .concat(runtime.not_enough || [])
+      .concat(rec.gaps || []);
+    $("aa-recommendation").classList.remove("empty-state");
+    $("aa-recommendation").innerHTML =
+      '<div class="assistant-summary"><div><div class="overline">Suggested architecture</div><h3>' +
+      escapeHtml(runtime.name || "Adapter") + '</h3><p>' + escapeHtml(runtime.summary || "") +
+      '</p><ul class="warning-list">' + warnings.map(x => '<li>' + escapeHtml(x) + '</li>').join("") +
+      '</ul></div><div class="surface-map">' + mappings + '</div></div>';
+  }
+
+  async function previewAdapterRecommendation() {
+    busy(true, "Mapping your stack…", "Studio is matching provider hooks to Asimov's six deployment surfaces.");
+    try {
+      const rec = await apiPost("/api/adapter-recommendation", adapterAssistantPayload());
+      renderAdapterRecommendation(rec);
+    } finally { busy(false); }
+  }
+
+  async function generateStarterAdapter() {
+    const payload = adapterAssistantPayload();
+    payload.output_dir = val("aa-output").trim();
+    payload.class_name = val("aa-class").trim() || "AsimovAdapter";
+    payload.adapter_id = val("aa-id").trim() || "generated-adapter";
+    busy(true, "Generating starter adapter…", "Studio is creating a fail-closed scaffold and stack-specific wiring guide.");
+    try {
+      const result = await apiPost("/api/generate-adapter", payload);
+      set("adapter", result.adapter_spec);
+      persistSessionFields();
+      renderAdapterRecommendation(result.recommendation);
+      toast("Starter adapter created. Studio populated the Adapter field; wire real controls before running doctor.");
+      document.querySelector("#workspace").scrollIntoView({behavior: "smooth"});
+    } finally { busy(false); }
+  }
 
   function toast(message, bad) {
     const el = $("toast");
@@ -432,6 +515,11 @@
   }
 
   function bind() {
+    $("aa-preview").addEventListener("click", () => action(previewAdapterRecommendation));
+    $("aa-generate").addEventListener("click", () => action(generateStarterAdapter));
+    $("aa-runtime").addEventListener("change", () => {
+      if (val("aa-runtime")) action(previewAdapterRecommendation);
+    });
     $("open-workspace").addEventListener("click", () => action(() => loadWorkspace(true)));
     $("refresh").addEventListener("click", () => action(() => loadWorkspace(false)));
     $("prepare").addEventListener("click", () => action(prepare));
@@ -468,6 +556,7 @@
       toast("Studio session token is missing. Relaunch with asimov studio.", true);
       return;
     }
+    await action(loadAdapterCatalog);
     if (workspace()) await action(() => loadWorkspace(false));
   }
 

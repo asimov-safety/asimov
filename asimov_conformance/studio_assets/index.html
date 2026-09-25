@@ -16,6 +16,7 @@
     </div>
     <div class="local-badge"><i></i> Local only</div>
     <nav>
+      <a href="#adapter-builder" data-nav="adapter-builder"><span>00</span> Adapter</a>
       <a href="#workspace" data-nav="workspace"><span>01</span> Workspace</a>
       <a href="#scope" data-nav="scope"><span>02</span> Scope</a>
       <a href="#readiness" data-nav="readiness"><span>03</span> Readiness</a>
@@ -46,6 +47,60 @@
         <h2>Build the evidence.<br><em>Keep the rigor.</em></h2>
       </div>
       <p>Studio is a local interface over the same Asimov engine and files used by the CLI. Every assessment remains portable, inspectable, and independently verifiable.</p>
+    </section>
+
+    <section class="panel" id="adapter-builder">
+      <div class="section-head">
+        <div><div class="overline">00 · Adapter Assistant</div><h2>Tell Asimov what your stack looks like.</h2></div>
+        <div class="section-status" id="adapter-assistant-status">Catalog loading</div>
+      </div>
+      <p class="lede">Studio can generate a conservative starter adapter for common agent runtimes, clouds, authority systems, and protected resources. The starter claims <strong>zero</strong> Asimov capabilities until you wire real controls.</p>
+      <div class="form-grid">
+        <label class="field">
+          <span>Agent runtime</span>
+          <select id="aa-runtime"><option value="">Loading…</option></select>
+          <small>Choose where the agent loop actually runs—not just the model provider.</small>
+        </label>
+        <label class="field">
+          <span>Hosting / lifecycle</span>
+          <select id="aa-hosting"><option value="">Choose hosting…</option></select>
+        </label>
+        <label class="field">
+          <span>Authority mechanism</span>
+          <select id="aa-authority"><option value="">Choose authority…</option></select>
+        </label>
+        <label class="field">
+          <span>Starter output folder</span>
+          <input id="aa-output" type="text" value="./asimov-adapter" autocomplete="off">
+        </label>
+        <label class="field">
+          <span>Adapter class</span>
+          <input id="aa-class" type="text" value="AsimovAdapter">
+        </label>
+        <label class="field">
+          <span>Adapter ID</span>
+          <input id="aa-id" type="text" value="generated-adapter">
+        </label>
+      </div>
+      <div class="assistant-options">
+        <div>
+          <div class="option-heading">Protected resources</div>
+          <div id="aa-resources" class="choice-grid"></div>
+        </div>
+        <div>
+          <div class="option-heading">Evidence sources</div>
+          <div id="aa-evidence" class="choice-grid"></div>
+        </div>
+        <div>
+          <div class="option-heading">Integrations</div>
+          <div id="aa-integrations" class="choice-grid"></div>
+        </div>
+      </div>
+      <div class="button-row">
+        <button class="button secondary" id="aa-preview">Show suggested mapping</button>
+        <button class="button" id="aa-generate">Generate starter adapter</button>
+      </div>
+      <div id="aa-recommendation" class="assistant-recommendation empty-state">Choose a runtime to see how its native surfaces map to Asimov.</div>
     </section>
 
     <section class="panel" id="workspace">
