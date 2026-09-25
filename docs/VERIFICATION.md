@@ -4,14 +4,15 @@ Asimov verification is designed first for the artifact that will actually circul
 
 ## Public verification — primary use case
 
-For ordinary public, media, customer, procurement, or policy use, distribute two files together:
+For ordinary public, media, customer, procurement, or policy use, distribute **one file**:
 
 ```text
 report.html
-public-verification.json
 ```
 
-The public verification record contains:
+The HTML report contains a non-visible Asimov public verification capsule. The capsule is excluded from the report-content digest so it can carry the statement/signature without creating a cryptographic self-reference.
+
+The embedded public verification record contains:
 
 - the report SHA-256 digest;
 - the **exact bytes** of the Asimov verification statement;
@@ -23,10 +24,12 @@ It does **not** contain the private evidence directory.
 A reader can verify locally:
 
 ```bash
-asimov verify-report report.html public-verification.json
+asimov verify-report report.html
 ```
 
-The public Verify page exposes the same two-file workflow.
+The separate `public-verification.json` file remains an optional export/compatibility artifact, not a requirement for ordinary public verification.
+
+The public Verify page exposes the same one-file workflow.
 
 ### What public verification establishes
 
@@ -55,11 +58,7 @@ Those remain semantic assessment/review questions. The report must continue to d
 
 ## Creating a public verification record
 
-`finalize-assessment` automatically creates an **unsigned** public sidecar:
-
-```text
-public-verification.json
-```
+`finalize-assessment` automatically embeds an **unsigned** public verification capsule into `report.html` and also writes `public-verification.json` as an optional export.
 
 That is sufficient for a local report/statement match, but **not authenticated public provenance**.
 
@@ -71,7 +70,7 @@ First sign the exact statement:
 asimov sigstore-sign asimov-statement.json --bundle asimov.sigstore.json
 ```
 
-Then rebuild the public sidecar with the signature material:
+Then refresh the embedded report capsule with the signature material (and optionally export the same record as JSON):
 
 ```bash
 asimov public-record \
@@ -153,7 +152,7 @@ The verifier reports separately:
 
 ## Browser verification
 
-The public Verify page prioritizes **report + public verification record**.
+The public Verify page prioritizes **one-file HTML report verification**.
 
 The complete package verifier remains available in a collapsed **Auditor / advanced verification** section.
 
