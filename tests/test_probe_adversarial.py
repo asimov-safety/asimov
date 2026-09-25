@@ -415,7 +415,7 @@ class ProbeAdversarialTests(unittest.TestCase):
 
         result = PROBES["HUM-001"](BoolTimingTarget())
         self.assertEqual(result.status, "FAIL")
-        self.assertFalse(result.details["stop_timing_authenticated"])
+        self.assertFalse(result.details["authenticated_stop_within_declared_bound"])
 
     def test_action_surface_cannot_claim_complete_while_omitting_declared_route(self):
         class OmittedRouteTarget(ReferenceTarget):
