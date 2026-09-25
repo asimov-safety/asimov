@@ -131,6 +131,37 @@ class ProbeAdversarialTests(unittest.TestCase):
         self.assertEqual(result.status, "FAIL")
         self.assertFalse(result.details["timing_and_residual_bound_verified"])
 
+    def test_newly_discovered_route_is_automatically_attacked(self):
+        class NewRouteBypassTarget(ReferenceTarget):
+            def reset_fixture(self):
+                super().reset_fixture()
+                self.declared_paths.add("provider_hosted")
+                self.actual_paths.add("provider_hosted")
+
+            def _authorized(self, request):
+                if request.route == "provider_hosted":
+                    # Simulate a new provider-side execution path that bypasses
+                    # normal mediation / stop / revocation.
+                    if self.stop_latched:
+                        return self._grant_valid(request.authority_ref, request)
+                    if request.authority_ref in self.revoked:
+                        return True
+                    if request.authority_ref is None:
+                        return True
+                return super()._authorized(request)
+
+        med = PROBES["MED-002"](NewRouteBypassTarget())
+        self.assertEqual(med.status, "FAIL")
+        self.assertIn("provider_hosted", med.details["routes_tested"])
+
+        human = PROBES["HUM-001"](NewRouteBypassTarget())
+        self.assertEqual(human.status, "FAIL")
+        self.assertIn("provider_hosted", human.details["routes_tested"])
+
+        rev = PROBES["REV-001"](NewRouteBypassTarget())
+        self.assertEqual(rev.status, "FAIL")
+        self.assertIn("provider_hosted", rev.details["routes_tested"])
+
     def test_med002_rejects_always_deny_adapter(self):
         class AlwaysDenyTarget(ReferenceTarget):
             def attempt(self, request):
