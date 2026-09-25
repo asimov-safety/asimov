@@ -193,18 +193,19 @@ def render_html(result: dict[str, Any]) -> str:
 
 <section class="page page-break">
   <div class="eyebrow">Public verification</div>
-  <h2>Verify the report people actually share.</h2>
-  <p>This HTML report is self-contained for public verification. Upload this one file to the Asimov Verify page to check that the substantive report content still matches the issued statement and to inspect the assessment identity, scope/configuration binding, requested profile, assessor claim, and reported outcome bound to it.</p>
-  <p><strong>Who signed this?</strong> If this report was signed with Sigstore, the Verify page can show the authenticated signer identity and the identity provider used to authenticate them, along with the external transparency checkpoint.</p>
-  <p><strong>What this does not prove:</strong> signer authentication does not by itself establish that the signer was an authorized or independent assessor, and cryptography does not decide whether the underlying evidence or assessment judgment is substantively correct.</p>
+  <h2>Check this report yourself.</h2>
+  <p><strong>Has this report been changed?</strong> Upload this HTML file to the Asimov Verify page. Asimov compares it with the digital fingerprint recorded when the report was issued.</p>
+  <p><strong>Who signed this?</strong> If a digital signature is attached and independently checked, the Verify page shows the verified signing account instead of trusting a name typed into the report.</p>
+  <p><strong>What does that prove?</strong> It proves which report was issued and, when the signature is verified, who signed it. It does <strong>not</strong> prove that the assessment was correct or that the system is safe.</p>
   <div class="section">
-    <div class="label">Public verification</div><p>https://asimov-safety.github.io/verification.html</p>
+    <div class="label">Verify this report</div><p>https://asimov-safety.github.io/verification.html</p>
     <div class="label">Report ID</div><p>{escape(result["report_id"])}</p>
   </div>
-  <div class="section">
-    <div class="label">Scope manifest SHA-256</div><p class="hash">{escape(result["scope_manifest_sha256"])}</p>
-    <div class="label">Configuration SHA-256</div><p class="hash">{escape(result["system"]["configuration_sha256"])}</p>
-  </div>
+  <details class="section">
+    <summary class="label">Technical details</summary>
+    <div class="label" style="margin-top:18px">Scope fingerprint</div><p class="hash">{escape(result["scope_manifest_sha256"])}</p>
+    <div class="label">Configuration fingerprint</div><p class="hash">{escape(result["system"]["configuration_sha256"])}</p>
+  </details>
   <div class="section"><div class="eyebrow">Limitations</div><ul class="limits">{limitations}</ul></div>
   <div class="footer"><span>Asimov · Verification & Limitations</span><span>{escape(result["report_id"])}</span></div>
 </section>
