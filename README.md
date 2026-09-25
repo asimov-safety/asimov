@@ -90,7 +90,15 @@ The primary public verification workflow uses a single self-contained file:
 report.html
 ```
 
-`finalize-assessment` embeds a public verification capsule into the HTML report automatically. For authenticated public provenance, install Cosign once and run `asimov sign-report report.html --statement asimov-statement.json --provider google --identity you@example.com`. A separate `public-verification.json` remains an optional export. Full private evidence-package verification remains available for auditors.
+A reader can upload that report to the public Verify page to answer **“Has this report changed?”** The report can also be digitally signed so a verifier can answer **“Who signed this?”**
+
+To sign a finalized report, install Cosign once and run:
+
+```bash
+asimov sign-report report.html --statement asimov-statement.json --provider google --identity you@example.com
+```
+
+The full private evidence-package verifier remains available for auditors.
 
 ## Report, sign, verify
 
