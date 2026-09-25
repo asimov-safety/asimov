@@ -1038,6 +1038,26 @@ def _validate_completed_review(
     return decision, str(record["rationale"]), refs
 
 
+def validate_review_for_signing(record: dict[str, Any], evidence_root: Path) -> tuple[str, str, list[str]]:
+    """Validate a human family review before opening a signing flow.
+
+    This performs every completion check except the signature/bundle check
+    itself, so Studio can avoid signing a record that finalization would reject.
+    """
+    rid = str(record.get("item_id", ""))
+    requirement = next((r for r in catalog()["requirements"] if r["id"] == rid), None)
+    if requirement is None:
+        return "INCONCLUSIVE", f"Unknown review requirement: {rid or '(missing)'}", []
+    return _validate_completed_review(
+        record,
+        independence_required=_requires_independence(requirement),
+        required_review_requirement=_review_requirement(requirement),
+        evidence_root=evidence_root,
+        require_attestation=False,
+        required_checklist_ids=_expected_requirement_checklist_ids(requirement),
+    )
+
+
 def _merge_finding(
     technical: dict[str, Any],
     requirement: dict[str, Any],
