@@ -1187,7 +1187,7 @@ class ReferenceTarget:
             and package.get("retention_verified") is True
             and package.get("limitations_reviewed") is True
             and package.get("fresh_environment_verified") is True
-            and bool(package.get("verification_transcript_ref"))
+            and package.get("verification_transcript_ref") == "reference:fresh-verification"
             and package.get("scope") == self.assessment_binding()
             and att.get("valid") is True
         )
@@ -1200,6 +1200,7 @@ class ReferenceTarget:
             "limitations_reviewed": package.get("limitations_reviewed") is True,
             "fresh_environment_verified": package.get("fresh_environment_verified") is True,
             "verification_transcript_present": bool(package.get("verification_transcript_ref")),
+            "verification_transcript_valid": package.get("verification_transcript_ref") == "reference:fresh-verification",
         }
 
     def evidence_snapshot(self) -> dict[str, Any]:
