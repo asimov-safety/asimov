@@ -276,13 +276,13 @@ class VerificationTests(unittest.TestCase):
             "item_type": "requirement",
             "item_id": "ACC-001",
             "title": "Review fixture",
-            "review_requirement": "ROLE_SEPARATED",
+            "review_requirement": "HUMAN",
             "reviewer": "Review Test",
             "reviewer_role": "Evidence reviewer",
             "reviewer_organization": "Example Org",
             "subject_organization": "Example Org",
             "party_class": "FIRST_PARTY",
-            "role_separated_from_implementation": True,
+            "role_separated_from_implementation": False,
             "review_type": "self_assessment",
             "relationship_to_target": "Internal independent reviewer",
             "independence": {
@@ -341,6 +341,54 @@ class VerificationTests(unittest.TestCase):
                 receipt["checks"]["review_attestations"]["reviews"][0]["signer_identity"],
                 "reviewer@example.com",
             )
+
+    def test_verify_review_rejects_catalog_review_requirement_downgrade(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            review_path = root / "OVR-005.json"
+            review = {
+                "schema_version": "1",
+                "item_type": "requirement",
+                "item_id": "OVR-005",
+                "title": "Common-mode review fixture",
+                "review_requirement": "HUMAN",
+                "reviewer": "Review Test",
+                "reviewer_role": "Reviewer",
+                "reviewer_organization": "Example Org",
+                "subject_organization": "Example Org",
+                "party_class": "FIRST_PARTY",
+                "role_separated_from_implementation": False,
+                "review_type": "self_assessment",
+                "relationship_to_target": "",
+                "independence": {
+                    "separate_legal_entity": None,
+                    "subject_controls_assessment": None,
+                    "outcome_contingent_compensation": None,
+                    "conflicts_disclosed": [],
+                    "attested": False,
+                },
+                "signing_identity": {
+                    "type": "sigstore",
+                    "expected_subject": "reviewer@example.com",
+                    "expected_issuer": "https://accounts.google.com",
+                },
+                "decision": "PASS",
+                "reviewed_at": "2026-09-25T01:00:00Z",
+                "rationale": "Fixture review.",
+                "evidence_refs": ["external:test"],
+                "checklist": [],
+            }
+            review_path.write_text(json.dumps(review, indent=2) + "\n", encoding="utf-8")
+            review_path.with_suffix(".sigstore.json").write_text("{}\n", encoding="utf-8")
+
+            with patch(
+                "asimov_conformance.verification.sigstore_verify_blob_attestation",
+                return_value=(True, "verified"),
+            ):
+                from asimov_conformance.verification import verify_review_attestation
+                result = verify_review_attestation(review_path)
+            self.assertEqual(result["state"], "FAILED")
+            self.assertIn("catalog requires ROLE_SEPARATED", result["detail"])
 
     def test_failed_review_attestation_fails_package_verification(self):
         with tempfile.TemporaryDirectory() as tmp:
