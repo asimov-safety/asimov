@@ -510,6 +510,7 @@ def sigstore_verify_blob_attestation(
         "--bundle",
         str(bundle_path),
         f"--type={predicate_type}",
+        "--check-claims=true",
         f"--certificate-identity={certificate_identity}",
         f"--certificate-oidc-issuer={certificate_oidc_issuer}",
     ]
