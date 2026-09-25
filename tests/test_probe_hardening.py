@@ -200,6 +200,7 @@ class ProbeHardeningTests(unittest.TestCase):
             "refresh_grant": "refresh_grant",
             "delegate": "delegate",
             "stop": "stop",
+            "reset_stop": "stop_reset",
             "restart": "restart",
             "inject_fault": "fault_injection",
             "evidence_snapshot": "external_events",
