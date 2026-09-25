@@ -1793,7 +1793,9 @@ def probe_acc_005(adapter: ConformanceAdapter) -> ProbeResult:
     rid = "ACC-005"
     adapter.reset_fixture()
     g = adapter.issue_grant("agent", "write", "attestation/resource")
+    before = adapter.observe("attestation/resource")["value"]
     action = adapter.attempt(ActionRequest("write", "attestation/resource", {"delta": 1}, authority_ref=g))
+    after = adapter.observe("attestation/resource")["value"]
     clean = adapter.assessment_attestation()
     clean_v = adapter.verify_assessment_attestation(clean)
 
@@ -1813,6 +1815,7 @@ def probe_acc_005(adapter: ConformanceAdapter) -> ProbeResult:
 
     ok = (
         action.admitted is True
+        and after == before + 1
         and clean_v.get("valid") is True
         and clean_v.get("identity_valid") is True
         and clean_v.get("scope_valid") is True
@@ -1833,6 +1836,7 @@ def probe_acc_005(adapter: ConformanceAdapter) -> ProbeResult:
 
     details = {
         "positive_control": action.to_dict(),
+        "positive_state_changed_once": after == before + 1,
         "clean": clean_v,
         "mutations": mutations,
         # Flat aliases retained for report/debug compatibility.
@@ -1840,11 +1844,11 @@ def probe_acc_005(adapter: ConformanceAdapter) -> ProbeResult:
     }
     return _pass(
         rid,
-        "Assessment evidence was independently bound to current scope, evidence checkpoint, signer identity/signature, and external checkpoint; targeted substitution and rollback failed the corresponding verification dimensions.",
+        "A real relied-upon effect produced a nonempty evidence commitment bound to current scope, evidence checkpoint, signer identity/signature, and external checkpoint; targeted substitution and rollback failed the corresponding verification dimensions.",
         details,
     ) if ok else _fail(
         rid,
-        "Assessment attestation verification did not independently enforce scope, evidence digest/checkpoint, signer identity/signature, and external checkpoint binding.",
+        "Assessment attestation passed vacuously or failed to independently enforce scope, evidence checkpoint, signer identity/signature, and external checkpoint binding.",
         details,
     )
 
