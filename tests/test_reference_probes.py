@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import ast
+import inspect
 import json
 import tempfile
 import unittest
 from pathlib import Path
 
 from asimov_conformance.__main__ import main
-from asimov_conformance.probes import A2_REQUIREMENTS, A3_REQUIREMENTS, A4_REQUIREMENTS, A5_REQUIREMENTS, PROBES, run_initial_probes, run_mutation_validation, run_reference_probes
+from asimov_conformance.probes import A2_REQUIREMENTS, A3_REQUIREMENTS, A4_REQUIREMENTS, A5_REQUIREMENTS, PROBE_CAPABILITIES, PROBES, run_initial_probes, run_mutation_validation, run_reference_probes
 from asimov_conformance.reference_target import ReferenceTarget, mutated_config
 
 
@@ -29,6 +31,70 @@ class ReferenceProbeTests(unittest.TestCase):
                 self.assertTrue(report["selected_all_pass"])
                 self.assertEqual(report["counts"]["PASS"], expected)
                 self.assertEqual(report["scope"], scope)
+
+    def test_probe_capability_map_covers_every_direct_adapter_method(self):
+        method_capability = {
+            "discover_action_surface": "action_surface",
+            "attempt": "attempt",
+            "observe": "observe",
+            "issue_grant": "issue_grant",
+            "issue_approval": "issue_approval",
+            "approval_view": "approval_view",
+            "revoke": "revoke",
+            "refresh_grant": "refresh_grant",
+            "delegate": "delegate",
+            "stop": "stop",
+            "restart": "restart",
+            "inject_fault": "fault_injection",
+            "issue_supervisor_message": "supervisor_auth",
+            "deliver_supervisor_message": "supervisor_auth",
+            "supervision_snapshot": "independent_supervision",
+            "ingest_untrusted": "untrusted_content_isolation",
+            "delegation_snapshot": "delegation_lifecycle",
+            "delegate_external": "cross_boundary_delegation",
+            "intervention_plan": "intervention_exercise",
+            "exercise_intervention": "intervention_exercise",
+            "high_consequence_observation": "high_consequence_observation",
+            "common_mode_snapshot": "common_mode_analysis",
+            "delegation_stress": "delegation_churn",
+            "assessment_attestation": "assessment_attestation",
+            "verify_assessment_attestation": "assessment_attestation",
+            "critical_transition_plan": "critical_observation",
+            "exercise_critical_transition": "critical_observation",
+            "critical_barrier_test": "critical_barriers",
+            "secondary_containment": "secondary_containment",
+            "adversarial_assurance": "adversarial_assurance",
+            "emergency_recovery": "emergency_recovery",
+            "independent_assurance_package": "independent_assurance",
+            "verify_assurance_package": "independent_assurance",
+            "evidence_snapshot": "external_events",
+            "evidence_report": "evidence_access",
+            "read_raw_evidence": "evidence_access",
+            "assessment_binding": "assessment_binding",
+            "validate_assessment_binding": "assessment_binding",
+            "verify_evidence_integrity": "evidence_integrity",
+        }
+
+        for rid, probe in PROBES.items():
+            tree = ast.parse(inspect.getsource(probe))
+            direct_methods = {
+                node.attr
+                for node in ast.walk(tree)
+                if isinstance(node, ast.Attribute)
+                and isinstance(node.value, ast.Name)
+                and node.value.id == "adapter"
+                and node.attr in method_capability
+            }
+            with self.subTest(requirement=rid):
+                missing = {
+                    method_capability[name]
+                    for name in direct_methods
+                    if method_capability[name] not in PROBE_CAPABILITIES[rid]
+                }
+                self.assertFalse(
+                    missing,
+                    f"{rid} calls adapter methods whose capabilities are not required: {sorted(missing)}",
+                )
 
     def test_each_deliberate_control_removal_is_detected(self):
         report = run_mutation_validation()
