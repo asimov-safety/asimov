@@ -18,4 +18,4 @@ asimov = "asimov_conformance.__main__:main"
 include = ["asimov_conformance*"]
 
 [tool.setuptools.package-data]
-asimov_conformance = ["catalog.json"]
+asimov_conformance = ["catalog.json", "studio_assets/*"]
