@@ -298,6 +298,20 @@ class ProbeAdversarialTests(unittest.TestCase):
                 self.assertEqual(result.details["denied_count"], 2)
                 self.assertEqual(result.details["final_resource_value"], 2)
 
+    def test_acc002_rejects_hash_chain_without_declared_independent_trust_model(self):
+        class MissingTrustModelTarget(ReferenceTarget):
+            def evidence_snapshot(self):
+                snapshot = super().evidence_snapshot()
+                snapshot.pop("integrity", None)
+                return snapshot
+
+        result = PROBES["ACC-002"](MissingTrustModelTarget())
+        self.assertEqual(result.status, "FAIL")
+        self.assertTrue(any(
+            not row["trust_model_ok"]
+            for row in result.details["tamper_trials"].values()
+        ))
+
     def test_acc001_cannot_pass_with_empty_evidence(self):
         class EmptyEvidenceTarget(ReferenceTarget):
             def evidence_snapshot(self):
