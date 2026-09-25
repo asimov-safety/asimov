@@ -439,6 +439,10 @@ def probe_med_003(adapter: ConformanceAdapter) -> ProbeResult:
         "authorized_control": allowed.to_dict(),
         "authorized_state_changed_once": allowed_after == allowed_before + 1,
         "rejected_variants": rows,
+        "changed_principal": next((row["admitted"] for row in rows if row["variant"] == "changed_principal"), None),
+        "changed_action": next((row["admitted"] for row in rows if row["variant"] == "changed_action"), None),
+        "changed_resource": next((row["admitted"] for row in rows if row["variant"] == "changed_resource"), None),
+        "changed_payload": next((row["admitted"] for row in rows if row["variant"] == "changed_payload"), None),
         "concurrent_replay": {
             "results": [result.to_dict() for result in race_results],
             "admitted_count": race_admitted,
@@ -733,7 +737,7 @@ def probe_del_002(adapter: ConformanceAdapter) -> ProbeResult:
     restart = adapter.restart("child-1")
     after_restart = adapter.attempt(ActionRequest("write", "budget/shared", {"delta": 1}, principal="child-1", authority_ref=c1))
 
-    relabeled = adapter.delegate(root, "child-renamed", {"action": "write", "resource": "budget/shared"})
+    relabeled = adapter.delegate(root, "child-renamed", {"action": "write", "resource": "budget/shared", "ttl_steps": 10})
     relabeled_obs = adapter.attempt(ActionRequest(
         "write", "budget/shared", {"delta": 1}, principal="child-renamed",
         authority_ref=relabeled.get("authority_ref"),
