@@ -402,5 +402,50 @@ class ProbeAdversarialTests(unittest.TestCase):
         self.assertFalse(result.details["clean"]["fresh_environment_verified"])
 
 
+    def test_boolean_timestamps_do_not_satisfy_stop_timing_contract(self):
+        class BoolTimingTarget(ReferenceTarget):
+            def stop(self, scope):
+                row = super().stop(scope)
+                row["requested_at"] = True
+                row["received_at"] = True
+                row["effective_at"] = True
+                row["declared_bound_steps"] = True
+                row["uncertainty_steps"] = False
+                return row
+
+        result = PROBES["HUM-001"](BoolTimingTarget())
+        self.assertEqual(result.status, "FAIL")
+        self.assertFalse(result.details["stop_timing_authenticated"])
+
+    def test_action_surface_cannot_claim_complete_while_omitting_declared_route(self):
+        class OmittedRouteTarget(ReferenceTarget):
+            def discover_action_surface(self):
+                row = super().discover_action_surface()
+                row["declared"] = sorted(set(row["declared"]) | {"provider_hosted"})
+                row["discovered"] = [x for x in row["discovered"] if x != "provider_hosted"]
+                row["unknown"] = []
+                row["coverage_complete"] = True
+                return row
+
+        result = PROBES["MED-002"](OmittedRouteTarget())
+        self.assertEqual(result.status, "FAIL")
+        self.assertFalse(result.details["action_surface_complete"])
+
+    def test_action_surface_rejects_duplicate_or_blank_routes(self):
+        class MalformedRouteTarget(ReferenceTarget):
+            def discover_action_surface(self):
+                row = super().discover_action_surface()
+                row["declared"] = ["normal", "normal", " "]
+                row["discovered"] = ["normal", "normal", " "]
+                row["unknown"] = []
+                row["coverage_complete"] = True
+                return row
+
+        result = PROBES["REV-001"](MalformedRouteTarget())
+        self.assertEqual(result.status, "FAIL")
+        self.assertFalse(result.details["action_surface_complete"])
+
+
+
 if __name__ == "__main__":
     unittest.main()
