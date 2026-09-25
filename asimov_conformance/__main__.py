@@ -275,13 +275,22 @@ def main(argv: list[str] | None = None) -> int:
             return 3
         print(f"ASIMOV PUBLIC VERIFY — {result['overall']}")
         print(f"Report integrity: {result['report_integrity']['state']}")
-        print(f"Provenance: {result['provenance']['state']}")
         binding = result["assessment_binding"]
         print(f"Report ID: {binding.get('report_id')}")
         print(f"System: {binding.get('system_id')}")
+        print(f"Assessor claim: {binding.get('assessor')}")
         print(f"Requested profile: {binding.get('requested_profile')}")
         print(f"Reported outcome: {binding.get('reported_outcome')}")
-        print("Semantic assurance is not established by cryptography.")
+        signer = result["provenance"].get("signer_identity")
+        signer_state = result["provenance"]["state"]
+        if signer_state == "VERIFIED":
+            print(f"Who signed this? {signer} — AUTHENTICATED")
+            print(f"Identity provider: {result['provenance'].get('oidc_issuer')}")
+        elif signer:
+            print(f"Who signed this? {signer} — {signer_state}")
+        else:
+            print("Who signed this? No authenticated signer attached")
+        print("Signer authentication does not by itself establish assessor independence or semantic correctness.")
         return 1 if result["overall"] == "FAILED" else 0
 
     if args.command == "verification-statement":
