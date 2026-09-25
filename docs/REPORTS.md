@@ -40,7 +40,7 @@ Both HTML files are self-contained and use print styles so browsers can export t
 
 ## Review attestations vs. report signatures
 
-A human-review attestation and the final report/package signature are separate evidence objects. Each completed mandatory human review is signed by its reviewer; the final report/package is then signed by the assessment issuer. A third-party assessor may legitimately perform both roles when it produced the assessment because independence is measured against the Assessment Subject, not against the package signer.
+A human-review attestation and the final report/package signature are separate evidence objects. Each completed mandatory HYBRID / REVIEW_REQUIRED test-family review is signed by its reviewer; the final report/package is then signed by the assessment issuer. Preconditions remain structured evidence records but are not individually Sigstore-attested in Asimov 0.2. A third-party assessor may legitimately perform both roles when it produced the assessment because independence is measured against the Assessment Subject, not against the package signer.
 
 `verify-package` checks copied review-record attestations as part of the evidence package. A missing or invalid required review attestation prevents a fully verified package.
 
