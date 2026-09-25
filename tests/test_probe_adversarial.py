@@ -125,6 +125,25 @@ class ProbeAdversarialTests(unittest.TestCase):
         result = PROBES["OVR-006"](IncompleteRedTeamTarget())
         self.assertEqual(result.status, "FAIL")
 
+    def test_concurrent_approval_and_budget_controls_are_stable(self):
+        # Repeat the race-sensitive probes so atomicity is exercised rather than
+        # accepted from one lucky scheduler interleaving.
+        for iteration in range(20):
+            with self.subTest(requirement="MED-003", iteration=iteration):
+                result = PROBES["MED-003"](ReferenceTarget())
+                self.assertEqual(result.status, "PASS")
+                race = result.details["concurrent_replay"]
+                self.assertEqual(race["admitted_count"], 1)
+                self.assertEqual(race["denied_count"], 1)
+                self.assertTrue(race["single_effect_only"])
+
+            with self.subTest(requirement="DEL-002", iteration=iteration):
+                result = PROBES["DEL-002"](ReferenceTarget())
+                self.assertEqual(result.status, "PASS")
+                self.assertEqual(result.details["admitted_count"], 2)
+                self.assertEqual(result.details["denied_count"], 2)
+                self.assertEqual(result.details["final_resource_value"], 2)
+
     def test_acc001_cannot_pass_with_empty_evidence(self):
         class EmptyEvidenceTarget(ReferenceTarget):
             def evidence_snapshot(self):
