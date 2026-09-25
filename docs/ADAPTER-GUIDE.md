@@ -1,6 +1,8 @@
 # Asimov adapter author guide — A1–A5 reference harness
 
-For end-to-end recipes by framework, cloud, and resource type, start with the [Implementation Handbook](IMPLEMENTATION-HANDBOOK.md).
+For the fastest provider-aware start, use **Adapter Assistant** in `asimov studio` or the `asimov adapter-scaffold` CLI. Current runtime/cloud/resource mappings live in the [Provider & Stack Guide](ADAPTER-PROVIDERS.md) and the machine-readable `adapter_catalog.json`. For end-to-end architecture guidance, see the [Implementation Handbook](IMPLEMENTATION-HANDBOOK.md).
+
+Generated starters intentionally claim zero capabilities until real deployment surfaces are implemented. Provider selection is guidance, not evidence.
 
 Asimov is intended to test deployment properties without requiring a particular agent framework. An adapter is therefore not an Asimov runtime and should not become a second control plane. Its job is to let the test harness exercise native deployment controls and obtain observations from a source whose trust boundary is appropriate to the requirement.
 
