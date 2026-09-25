@@ -1036,11 +1036,7 @@ def _render_verification_instructions(profile: str) -> str:
         "For authenticated public provenance, sign the statement and rebuild the public record with the Sigstore bundle:",
         "",
         "```bash",
-        "asimov public-record --statement asimov-statement.json --report report.html \",
-        "  --bundle asimov.sigstore.json \",
-        "  --certificate-identity '<EXPECTED_IDENTITY>' \",
-        "  --certificate-oidc-issuer '<EXPECTED_OIDC_ISSUER>' \",
-        "  --output public-verification.json",
+        "asimov public-record --statement asimov-statement.json --report report.html --bundle asimov.sigstore.json --certificate-identity '<EXPECTED_IDENTITY>' --certificate-oidc-issuer '<EXPECTED_OIDC_ISSUER>' --output public-verification.json",
         "```",
         "",
         "Public verification proves integrity/provenance/binding. It does not decide whether the evidence "
