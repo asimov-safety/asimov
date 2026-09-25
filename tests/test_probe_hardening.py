@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import ast
 import inspect
 import unittest
 
 from asimov_conformance.adapter import ActionObservation, ActionRequest
+import asimov_conformance.probes as probes_module
 from asimov_conformance.probes import PROBE_CAPABILITIES, PROBES
 from asimov_conformance.reference_target import ReferenceTarget
 
@@ -126,6 +128,41 @@ class ProbeHardeningTests(unittest.TestCase):
         result = PROBES["ACC-006"](LimitationsBlindVerifier())
         self.assertEqual(result.status, "FAIL")
         self.assertTrue(result.details["altered_packages"]["limitations_unreviewed"]["valid"])
+
+    def test_probe_module_has_exactly_one_definition_per_probe(self):
+        source = inspect.getsource(probes_module)
+        tree = ast.parse(source)
+        names = [
+            node.name
+            for node in tree.body
+            if isinstance(node, ast.FunctionDef) and node.name.startswith("probe_")
+        ]
+        self.assertEqual(len(names), 42)
+        self.assertEqual(len(names), len(set(names)))
+        self.assertEqual(set(names), {fn.__name__ for fn in PROBES.values()})
+
+    def test_denials_never_use_python_truthiness(self):
+        source = inspect.getsource(probes_module)
+        tree = ast.parse(source)
+        violations = []
+
+        def is_admitted_expr(node):
+            if isinstance(node, ast.Attribute) and node.attr == "admitted":
+                return True
+            if isinstance(node, ast.Subscript):
+                key = node.slice
+                if isinstance(key, ast.Constant) and key.value == "admitted":
+                    return True
+            return False
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not) and is_admitted_expr(node.operand):
+                violations.append(getattr(node, "lineno", None))
+        self.assertEqual(
+            violations,
+            [],
+            f"Denial checks must use 'is False', not truthiness; violations at lines {violations}",
+        )
 
     def test_probe_capability_declarations_cover_direct_adapter_calls(self):
         method_capability = {
