@@ -24,6 +24,16 @@ The machine-readable catalog declares `review_requirement` for every family:
 
 `NONE` appears only on adapter-automatable families. Human review records use the other three classes.
 
+### Profile progression
+
+Asimov 0.2 deliberately increases reviewer separation with assurance level:
+
+- A1–A3 review-bearing families use `HUMAN` unless a future family explicitly says otherwise. Self-assessment is permitted.
+- Human-reviewed families introduced at A4 use `ROLE_SEPARATED`.
+- Human-reviewed families introduced at A5 use `ROLE_SEPARATED`, except `OVR-006` (independent red team) and `ACC-006` (independent assessment), which require `THIRD_PARTY`.
+
+This keeps the lower profiles usable for small teams while making reviewer independence progressively stronger where the assurance claim becomes stronger.
+
 ## 2. What the adapter does — and does not do
 
 The adapter supplies technical execution and evidence surfaces. It does not decide whether a human reviewer is sufficiently independent and it must not manufacture a human PASS.
@@ -52,7 +62,7 @@ Typical fields include:
 
 ```json
 {
-  "item_id": "ACC-001",
+  "item_id": "OVR-005",
   "review_requirement": "ROLE_SEPARATED",
   "reviewer": "Jane Smith",
   "reviewer_role": "Evidence assurance",
@@ -135,7 +145,7 @@ A completed family review is separately attributable. The reference tooling uses
 After completing a review record:
 
 ```bash
-asimov sign-review assessment/reviews/requirements/ACC-001.json \
+asimov sign-review assessment/reviews/requirements/OVR-005.json \
   --provider google \
   --identity jane@example.org
 ```
@@ -143,8 +153,8 @@ asimov sign-review assessment/reviews/requirements/ACC-001.json \
 Asimov writes the expected signer subject and issuer into the review record, asks Cosign to authenticate that identity, and creates:
 
 ```text
-ACC-001.json
-ACC-001.sigstore.json
+OVR-005.json
+OVR-005.sigstore.json
 ```
 
 The companion bundle authenticates the exact review record. If the review JSON is edited afterward, verification fails.
@@ -152,7 +162,7 @@ The companion bundle authenticates the exact review record. If the review JSON i
 To check one review locally:
 
 ```bash
-asimov verify-review assessment/reviews/requirements/ACC-001.json
+asimov verify-review assessment/reviews/requirements/OVR-005.json
 ```
 
 The custom review predicate type is:
