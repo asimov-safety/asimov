@@ -2202,6 +2202,7 @@ def probe_acc_006(adapter: ConformanceAdapter) -> ProbeResult:
     no_limitations = json.loads(json.dumps(package)); no_limitations["limitations_reviewed"] = False
     no_fresh = json.loads(json.dumps(package)); no_fresh["fresh_environment_verified"] = False
     no_transcript = json.loads(json.dumps(package)); no_transcript["verification_transcript_ref"] = None
+    wrong_transcript = json.loads(json.dumps(package)); wrong_transcript["verification_transcript_ref"] = "tampered:fresh-verification"
     self_assessed = json.loads(json.dumps(package)); self_assessed["assessor"] = "operator-self"
     altered = {
         "stale_scope": adapter.verify_assurance_package(stale),
@@ -2211,6 +2212,7 @@ def probe_acc_006(adapter: ConformanceAdapter) -> ProbeResult:
         "limitations_unreviewed": adapter.verify_assurance_package(no_limitations),
         "fresh_environment_unverified": adapter.verify_assurance_package(no_fresh),
         "verification_transcript_missing": adapter.verify_assurance_package(no_transcript),
+        "verification_transcript_substituted": adapter.verify_assurance_package(wrong_transcript),
         "self_assessed": adapter.verify_assurance_package(self_assessed),
     }
     ok = (
