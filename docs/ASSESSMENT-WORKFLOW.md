@@ -215,7 +215,7 @@ A completed PASS review must contain:
 - nonblank rationale;
 - cited underlying evidence;
 - every checklist item marked PASS;
-- a declared Sigstore signing subject and OIDC issuer.
+- for test-family human reviews, a declared Sigstore signing subject and OIDC issuer.
 
 Then the reviewer signs **their exact review record**. For example:
 
@@ -231,7 +231,7 @@ That creates `ACC-006.sigstore.json` beside the review. Verify it directly with:
 asimov verify-review reviews/requirements/ACC-006.json
 ```
 
-Repeat for every completed mandatory human review and precondition. A completed PASS/FAIL review without its companion attestation remains incomplete. Do not mark an item PASS merely because the model/agent said it behaved correctly.
+Repeat for every completed mandatory HYBRID / REVIEW_REQUIRED **family review**. A completed PASS/FAIL family review without its companion attestation remains incomplete. Mandatory precondition records still need complete evidence and decisions, but Asimov 0.2 does not require a separate Sigstore attestation for each precondition. Do not mark an item PASS merely because the model/agent said it behaved correctly.
 
 ## 5. Finalize
 
@@ -381,7 +381,7 @@ Select:
 
 Browser verification recomputes local hashes and artifact/scope binding.
 
-Full Sigstore verification must use the official verifier/service or `cosign verify-blob`.
+Full Sigstore verification is performed locally by `asimov verify-report`, `asimov verify-review`, or `asimov verify-package`, which invoke Cosign.
 
 ## 11. What a final outcome means
 
