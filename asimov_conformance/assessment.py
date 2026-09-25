@@ -225,8 +225,19 @@ def _required_requirements(profile: str) -> list[dict[str, Any]]:
     return [r for r in catalog()["requirements"] if int(r["minimum_profile"]) <= level]
 
 
+def _review_requirement(requirement: dict[str, Any]) -> str:
+    declared = requirement.get("review_requirement")
+    if declared in {"NONE", "HUMAN", "ROLE_SEPARATED", "THIRD_PARTY"}:
+        return str(declared)
+    if requirement.get("automation") == "ADAPTER_AUTOMATABLE":
+        return "NONE"
+    if any(str(method).startswith("INDEPENDENT_") for method in requirement.get("methods", [])):
+        return "THIRD_PARTY"
+    return "HUMAN"
+
+
 def _requires_independence(requirement: dict[str, Any]) -> bool:
-    return any(str(method).startswith("INDEPENDENT_") for method in requirement.get("methods", []))
+    return _review_requirement(requirement) == "THIRD_PARTY"
 
 
 def _review_methods(requirement: dict[str, Any]) -> list[str]:
@@ -239,7 +250,14 @@ def _review_methods(requirement: dict[str, Any]) -> list[str]:
     return methods
 
 
-def _requirement_review_template(requirement: dict[str, Any], assessor: str, mode: str) -> dict[str, Any]:
+def _requirement_review_template(
+    requirement: dict[str, Any],
+    assessor: str,
+    mode: str,
+    *,
+    subject_organization: str = "",
+    assessor_organization: str = "",
+) -> dict[str, Any]:
     methods = _review_methods(requirement)
     checklist = [
         {
@@ -299,11 +317,28 @@ def _requirement_review_template(requirement: dict[str, Any], assessor: str, mod
         "normative_requirement": requirement["requirement"],
         "required_evidence": requirement["evidence"],
         "independence_required": _requires_independence(requirement),
+        "review_requirement": _review_requirement(requirement),
         "pre_run_acknowledged": False,
         "reviewer": assessor,
         "reviewer_role": "",
+        "reviewer_organization": assessor_organization,
+        "subject_organization": subject_organization,
+        "party_class": "THIRD_PARTY" if mode == "independent_assessment" else "FIRST_PARTY",
+        "role_separated_from_implementation": False,
         "review_type": "independent_assessment" if mode == "independent_assessment" else "self_assessment",
         "relationship_to_target": "",
+        "independence": {
+            "separate_legal_entity": None,
+            "subject_controls_assessment": None,
+            "outcome_contingent_compensation": None,
+            "conflicts_disclosed": [],
+            "attested": False,
+        },
+        "signing_identity": {
+            "type": "sigstore",
+            "expected_subject": "",
+            "expected_issuer": "",
+        },
         "decision": "PENDING",
         "reviewed_at": "",
         "rationale": "",
@@ -312,17 +347,43 @@ def _requirement_review_template(requirement: dict[str, Any], assessor: str, mod
     }
 
 
-def _precondition_template(name: str, assessor: str, mode: str) -> dict[str, Any]:
+def _precondition_template(
+    name: str,
+    assessor: str,
+    mode: str,
+    *,
+    subject_organization: str = "",
+    assessor_organization: str = "",
+) -> dict[str, Any]:
     return {
         "schema_version": WORKFLOW_VERSION,
         "item_type": "precondition",
         "item_id": name,
         "title": name.replace("_", " ").title(),
         "guidance": PRECONDITION_GUIDANCE[name],
+        "review_requirement": "HUMAN",
+        "independence_required": False,
         "pre_run_acknowledged": False,
         "reviewer": assessor,
         "reviewer_role": "",
+        "reviewer_organization": assessor_organization,
+        "subject_organization": subject_organization,
+        "party_class": "THIRD_PARTY" if mode == "independent_assessment" else "FIRST_PARTY",
+        "role_separated_from_implementation": False,
         "review_type": "independent_assessment" if mode == "independent_assessment" else "self_assessment",
+        "relationship_to_target": "",
+        "independence": {
+            "separate_legal_entity": None,
+            "subject_controls_assessment": None,
+            "outcome_contingent_compensation": None,
+            "conflicts_disclosed": [],
+            "attested": False,
+        },
+        "signing_identity": {
+            "type": "sigstore",
+            "expected_subject": "",
+            "expected_issuer": "",
+        },
         "decision": "PENDING",
         "reviewed_at": "",
         "rationale": "",
@@ -465,6 +526,8 @@ def prepare_assessment(
     assessor: str,
     mode: str = "self_assessment",
     adapter_spec: str | None = None,
+    subject_organization: str = "",
+    assessor_organization: str = "",
 ) -> dict[str, Any]:
     if mode not in ASSESSMENT_MODES:
         raise AssessmentWorkflowError(f"mode must be one of {sorted(ASSESSMENT_MODES)}")
@@ -513,12 +576,24 @@ def prepare_assessment(
     for requirement in review_requirements:
         _json_write(
             output_dir / "reviews" / "requirements" / f"{requirement['id']}.json",
-            _requirement_review_template(requirement, assessor.strip(), mode),
+            _requirement_review_template(
+                requirement,
+                assessor.strip(),
+                mode,
+                subject_organization=subject_organization.strip(),
+                assessor_organization=assessor_organization.strip(),
+            ),
         )
     for name in required_preconditions:
         _json_write(
             output_dir / "reviews" / "preconditions" / f"{name}.json",
-            _precondition_template(name, assessor.strip(), mode),
+            _precondition_template(
+                name,
+                assessor.strip(),
+                mode,
+                subject_organization=subject_organization.strip(),
+                assessor_organization=assessor_organization.strip(),
+            ),
         )
 
     plan = {
@@ -529,6 +604,8 @@ def prepare_assessment(
         "requested_profile": profile,
         "assessment_mode": mode,
         "assessor": assessor.strip(),
+        "subject_organization": subject_organization.strip(),
+        "assessor_organization": assessor_organization.strip(),
         "adapter_id": adapter_id,
         "adapter_spec": adapter_spec,
         "system_id": target_id,
@@ -536,6 +613,9 @@ def prepare_assessment(
         "requirements": [r["id"] for r in requirements],
         "required_preconditions": required_preconditions,
         "human_review_requirements": [r["id"] for r in review_requirements],
+        "review_requirements": {
+            r["id"]: _review_requirement(r) for r in review_requirements
+        },
         "independent_review_requirements": [
             r["id"] for r in review_requirements if _requires_independence(r)
         ],
@@ -808,11 +888,51 @@ def _validate_completed_review(
         not isinstance(checklist, list) or any(item.get("status") != "PASS" for item in checklist)
     ):
         return "INCONCLUSIVE", "A PASS review requires every checklist item to be PASS.", refs
-    if independence_required:
+    review_requirement = str(record.get("review_requirement") or ("THIRD_PARTY" if independence_required else "HUMAN"))
+    if review_requirement not in {"HUMAN", "ROLE_SEPARATED", "THIRD_PARTY"}:
+        return "INCONCLUSIVE", "Human review has an invalid review_requirement.", refs
+
+    if decision in {"PASS", "FAIL"}:
+        signing = record.get("signing_identity")
+        if not isinstance(signing, dict):
+            return "INCONCLUSIVE", "Completed human review is missing signing_identity.", refs
+        if signing.get("type") != "sigstore":
+            return "INCONCLUSIVE", "Completed human review must declare a Sigstore signing identity.", refs
+        if not str(signing.get("expected_subject", "")).strip() or not str(signing.get("expected_issuer", "")).strip():
+            return "INCONCLUSIVE", "Completed human review must declare expected Sigstore subject and issuer.", refs
+        if record.get("_bundle_present") is not True:
+            return "INCONCLUSIVE", "Completed human review is missing its companion Sigstore attestation bundle.", refs
+
+    if review_requirement == "ROLE_SEPARATED":
+        if record.get("role_separated_from_implementation") is not True:
+            return "INCONCLUSIVE", "This review requires separation from the implementation/control owner.", refs
+
+    if independence_required or review_requirement == "THIRD_PARTY":
         if record.get("review_type") != "independent_assessment":
             return "INCONCLUSIVE", "This requirement requires an independent assessment record.", refs
+        if record.get("party_class") != "THIRD_PARTY":
+            return "INCONCLUSIVE", "Third-party review must declare party_class THIRD_PARTY.", refs
+        reviewer_org = str(record.get("reviewer_organization", "")).strip()
+        subject_org = str(record.get("subject_organization", "")).strip()
+        if not reviewer_org or not subject_org:
+            return "INCONCLUSIVE", "Third-party review must name both reviewer and subject organizations.", refs
+        if reviewer_org.casefold() == subject_org.casefold():
+            return "INCONCLUSIVE", "Third-party reviewer organization must differ from the assessment subject organization.", refs
         if not str(record.get("relationship_to_target", "")).strip():
             return "INCONCLUSIVE", "Independent review must state relationship_to_target.", refs
+        independence = record.get("independence")
+        if not isinstance(independence, dict):
+            return "INCONCLUSIVE", "Third-party review is missing its independence declaration.", refs
+        if independence.get("separate_legal_entity") is not True:
+            return "INCONCLUSIVE", "Third-party review must attest that the reviewer is a separate legal entity.", refs
+        if independence.get("subject_controls_assessment") is not False:
+            return "INCONCLUSIVE", "Third-party review must attest that the subject does not control the assessment outcome.", refs
+        if independence.get("outcome_contingent_compensation") is not False:
+            return "INCONCLUSIVE", "Third-party review must attest that compensation is not contingent on the outcome.", refs
+        if not isinstance(independence.get("conflicts_disclosed"), list):
+            return "INCONCLUSIVE", "Third-party review must include a conflicts_disclosed list.", refs
+        if independence.get("attested") is not True:
+            return "INCONCLUSIVE", "Third-party reviewer must explicitly attest the independence declaration.", refs
     return decision, str(record["rationale"]), refs
 
 
@@ -890,6 +1010,7 @@ def _finalize_precondition(workspace: Path, name: str, scope: dict[str, Any]) ->
             "evidence_refs": [],
         }
     record = _json_read(path)
+    record["_bundle_present"] = path.with_suffix(".sigstore.json").is_file()
     decision, rationale, refs = _validate_completed_review(record, evidence_root=workspace / "evidence")
     if decision == "PASS" and name == "deployment_binding" and not str(scope.get("scope_description", "")).strip():
         decision, rationale = "INCONCLUSIVE", "deployment_binding cannot PASS until scope.json has a nonblank scope_description."
@@ -922,11 +1043,17 @@ def finalize_assessment(workspace: Path) -> dict[str, Any]:
         if src.exists():
             dst = evidence / "reviews" / "preconditions" / src.name
             dst.write_bytes(src.read_bytes())
+            bundle = src.with_suffix(".sigstore.json")
+            if bundle.is_file():
+                (dst.parent / bundle.name).write_bytes(bundle.read_bytes())
     for rid in plan["human_review_requirements"]:
         src = _record_path(workspace, "requirement", rid)
         if src.exists():
             dst = evidence / "reviews" / "requirements" / src.name
             dst.write_bytes(src.read_bytes())
+            bundle = src.with_suffix(".sigstore.json")
+            if bundle.is_file():
+                (dst.parent / bundle.name).write_bytes(bundle.read_bytes())
 
     final_results = []
     for requirement in requirements:
@@ -945,6 +1072,7 @@ def finalize_assessment(workspace: Path) -> dict[str, Any]:
             if path.exists():
                 review = _json_read(path)
                 review["_evidence_root"] = str(evidence)
+                review["_bundle_present"] = path.with_suffix(".sigstore.json").is_file()
                 review_ref = f"reviews/requirements/{rid}.json"
         final_results.append(_merge_finding(technical_row, requirement, review, review_ref))
 
@@ -970,6 +1098,8 @@ def finalize_assessment(workspace: Path) -> dict[str, Any]:
         "assessment": {
             "mode": plan["assessment_mode"],
             "assessor": plan["assessor"],
+            "subject_organization": plan.get("subject_organization", ""),
+            "assessor_organization": plan.get("assessor_organization", ""),
         },
         "system": {
             "id": system_id,
@@ -982,7 +1112,8 @@ def finalize_assessment(workspace: Path) -> dict[str, Any]:
         "limitations": [
             "Asimov assesses the declared deployment scope and threat model; it does not certify absolute safety.",
             "Automated probe evidence and human/review evidence are merged fail-closed; missing mandatory review prevents PASS.",
-            "A signed package authenticates a commitment to evidence and scope but does not prove semantic truth or eliminate residual risk.",
+            "Completed human reviews require companion Sigstore attestations; cryptographic validity is checked by full-package verification.",
+            "A signed package authenticates a commitment to evidence and scope but does not prove semantic truth, hidden independence facts, or eliminate residual risk.",
         ],
     }
 
