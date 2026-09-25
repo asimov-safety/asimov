@@ -73,6 +73,27 @@ It does **not** prove that:
 
 Those remain semantic assessment/review questions. The report must continue to display FAIL, NOT_TESTED, INCONCLUSIVE, self-assessment, and independence limitations honestly.
 
+## Signed human-review attestations
+
+The package signature and a human review signature mean different things.
+
+- The **package/report signature** says who authenticated the final bound assessment package.
+- A **review attestation** says which authenticated reviewer made a particular human judgment about a particular exact review record.
+
+Every completed mandatory human review is signed separately. The review record declares its expected Sigstore identity and issuer; Asimov verifies that the actual signer matches those declarations and that the attestation is bound to the exact review-record bytes.
+
+```bash
+asimov sign-review reviews/requirements/ACC-006.json \
+  --provider google \
+  --identity reviewer@example.org
+
+asimov verify-review reviews/requirements/ACC-006.json
+```
+
+For `ROLE_SEPARATED`, verification also checks the signed declaration that the reviewer is separated from the implementer/control owner. For `THIRD_PARTY`, it checks the signed declarations that reviewer and subject organizations differ, the reviewer is a separate legal entity, the subject does not control the assessment outcome, compensation is not contingent on passing, and conflicts are disclosed.
+
+These are **signed assertions**, not magical corporate-registry checks. Cosign can prove which authenticated identity signed the exact assertions; it cannot independently discover a hidden ownership relationship or undisclosed conflict.
+
 ## Signing a public report — recommended path
 
 `finalize-assessment` automatically embeds an **unsigned** public verification capsule into `report.html` and also writes `public-verification.json` as an optional export.
@@ -117,6 +138,8 @@ go install github.com/sigstore/cosign/v3/cmd/cosign@latest
 
 Official installation guide: https://docs.sigstore.dev/cosign/system_config/installation/  
 Official releases: https://github.com/sigstore/cosign/releases
+
+Use a current patched Cosign release. Asimov's blob-attestation workflow relies on `attest-blob` / `verify-blob-attestation`; old verifier releases with known attestation-verification vulnerabilities should not be used.
 
 ### 2. Sign the report
 
@@ -226,7 +249,9 @@ The verifier reports separately:
 - evidence integrity;
 - artifact/report binding;
 - scope and configuration binding;
-- signer identity and transparency proof;
+- package signer identity and transparency proof;
+- each mandatory human review's Sigstore attestation and authenticated reviewer identity;
+- declared ROLE_SEPARATED / THIRD_PARTY relationship checks;
 - semantic assurance status.
 
 ## Profile requirements
@@ -235,7 +260,7 @@ The verifier reports separately:
 
 **A4 / ACC-005:** authenticated signing plus an external transparency/timestamp/append-only or equivalent independent checkpoint is mandatory.
 
-**A5 / ACC-006:** independent assessment, durable evidence retention/escrow outside the assessed actor and ordinary mutable operator path, and successful reverification from a fresh environment are additionally mandatory.
+**A5 / ACC-006:** independent assessment by a separate legal entity from the Assessment Subject, a signed independence declaration, durable evidence retention/escrow outside the assessed actor and ordinary mutable operator path, and successful reverification from a fresh environment are additionally mandatory.
 
 ## Browser verification and zero-infrastructure operation
 
@@ -243,7 +268,7 @@ The public Verify page prioritizes **one-file HTML report verification**. The co
 
 The public site is static and can verify the report fingerprint entirely in the browser. No server, database, account, or paid hosting is required for that check.
 
-The authoritative signer check is currently available through local Cosign / `asimov verify-report`. The repository also contains an optional verifier service, but it is **not required** to use Asimov and does not need to be deployed for zero-cost/static operation.
+The authoritative signer check is local Cosign / `asimov verify-report`. The static website does not run a second signing-verification service. Anyone who wants cryptographic confirmation runs the verifier on their own computer.
 
 Asimov intentionally does not label a signer as verified unless the cryptographic signature has actually been checked.
 
