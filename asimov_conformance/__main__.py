@@ -11,6 +11,7 @@ from .verification import (
     VerificationError,
     build_public_verification_record,
     build_verification_statement,
+    embed_public_verification_record,
     sigstore_sign,
     verify_package,
     verify_public_report,
@@ -98,17 +99,17 @@ def main(argv: list[str] | None = None) -> int:
     ss.add_argument("--cosign-bin", default="cosign")
     ss.add_argument("--yes", action="store_true", help="Pass --yes to Cosign for non-interactive confirmation.")
 
-    pr = sub.add_parser("public-record", help="Build the one-file public verification sidecar that travels with a shared report.")
+    pr = sub.add_parser("public-record", help="Embed/update public verification inside an HTML report and optionally export the JSON record.")
     pr.add_argument("--statement", type=Path, required=True)
     pr.add_argument("--report", type=Path, required=True)
     pr.add_argument("--bundle", type=Path)
     pr.add_argument("--certificate-identity")
     pr.add_argument("--certificate-oidc-issuer")
-    pr.add_argument("--output", type=Path, required=True)
+    pr.add_argument("--output", type=Path, help="Optional JSON export of the embedded public verification record.")
 
-    vr = sub.add_parser("verify-report", help="Verify a public report against its Asimov public verification sidecar.")
+    vr = sub.add_parser("verify-report", help="Verify a public HTML report using its embedded Asimov verification capsule; an optional sidecar may be supplied for compatibility.")
     vr.add_argument("report", type=Path)
-    vr.add_argument("record", type=Path)
+    vr.add_argument("record", type=Path, nargs="?")
     vr.add_argument("--cosign-bin", default="cosign")
     vr.add_argument("--json-output", type=Path)
 
@@ -236,12 +237,16 @@ def main(argv: list[str] | None = None) -> int:
                 certificate_identity=args.certificate_identity,
                 certificate_oidc_issuer=args.certificate_oidc_issuer,
             )
-            args.output.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+            embed_public_verification_record(args.report, record)
+            if args.output is not None:
+                args.output.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
         except (VerificationError, OSError, ValueError) as exc:
             print(f"PUBLIC VERIFICATION ERROR: {exc}", file=sys.stderr)
             return 3
-        print(f"Public verification record written: {args.output}")
-        print("Share this JSON alongside the report. It contains no private assessment evidence.")
+        print(f"Public verification embedded in: {args.report}")
+        if args.output is not None:
+            print(f"Optional JSON export written: {args.output}")
+        print("The HTML report is now self-contained for public verification and contains no private assessment evidence.")
         if record.get("sigstore") is None:
             print("Provenance is not authenticated yet; add a Sigstore bundle for public signer verification.")
         else:
