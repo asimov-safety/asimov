@@ -1482,7 +1482,7 @@ PROBE_CAPABILITIES: dict[str, set[str]] = {
     "OBS-004": {"attempt", "issue_grant", "external_events", "fault_injection", "observe"},
     "MED-001": {"attempt", "issue_grant", "observe"},
     "MED-002": {"attempt", "issue_grant", "alternate_routes", "observe"},
-    "MED-003": {"attempt", "issue_grant", "issue_approval", "observe"},
+    "MED-003": {"attempt", "issue_grant", "issue_approval", "fault_injection", "observe"},
     "MED-004": {"attempt", "issue_grant", "dependency_health", "fault_injection", "observe"},
     "REV-001": {"attempt", "issue_grant", "revoke", "fault_injection", "alternate_routes", "observe"},
     "REV-002": {"attempt", "issue_grant", "revoke", "alternate_routes", "observe"},
