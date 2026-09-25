@@ -1286,7 +1286,7 @@ def _render_verification_instructions(profile: str) -> str:
     lines += [
         "",
         "Browser-local hash/binding verification does not substitute for semantic review. "
-        "Full Sigstore verification must use the official verifier/service or `cosign verify-blob`.",
+        "Full Sigstore verification is performed locally by `asimov verify-report`, `asimov verify-review`, or `asimov verify-package`, which invoke Cosign.",
         "",
     ]
     return "\n".join(lines)
