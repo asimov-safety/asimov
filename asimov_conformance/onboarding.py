@@ -51,6 +51,7 @@ CAPABILITY_REMEDIATION = {
     "budget_accounting": "Add aggregate resource/spend accounting tied to the root grant.",
     "control_plane_observation": "Expose control-plane state through an independent observer.",
     "stop": "Add an authenticated out-of-band human stop path.",
+    "stop_reset": "Add a separately authorized, attributable human stop-reset/recovery path that the actor cannot invoke.",
     "restart": "Add a lifecycle provider for actor/application/background-service restarts.",
     "fault_injection": "Add a bounded fault-injection provider or simulator for the required dependency/control.",
     "evidence_integrity": "Add an evidence integrity provider with an independent checkpoint/trust anchor.",
