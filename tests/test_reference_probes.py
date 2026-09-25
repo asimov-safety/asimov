@@ -245,6 +245,15 @@ class ReferenceProbeTests(unittest.TestCase):
 
         self.assertEqual(PROBES["ACC-006"](IgnoresLimitations()).status, "FAIL")
 
+    def test_empty_probe_and_mutation_selections_never_report_success(self):
+        empty_probes = run_reference_probes(ReferenceTarget(), ())
+        self.assertFalse(empty_probes["selected_all_pass"])
+        self.assertEqual(empty_probes["results"], [])
+
+        empty_mutations = run_mutation_validation(())
+        self.assertFalse(empty_mutations["all_mutations_detected"])
+        self.assertEqual(empty_mutations["rows"], [])
+
     def test_missing_adapter_capabilities_never_become_passes(self):
         class SparseAdapter:
             adapter_id = "sparse"
