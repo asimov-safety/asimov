@@ -21,6 +21,7 @@ The Seven Constants are **Observable Agency, Mediated Action, Revocable Authorit
 | Cross-platform CI | Ubuntu, macOS, Windows · Python 3.10 and 3.13 |
 | Evidence integrity | Deterministic SHA-256 manifests and verification |
 | Human review | HUMAN / ROLE_SEPARATED / THIRD_PARTY + signed Sigstore review attestations |
+| Studio | Local browser UI over the same assessment engine |
 | Results | Console, JSON, and dependency-free HTML |
 
 Profiles are cumulative. Every mandatory family for a claimed level must pass with the required evidence.
@@ -36,6 +37,20 @@ python -m asimov_conformance reference-probes
 python -m asimov_conformance reference-mutations
 python -m asimov_conformance doctor --level A5
 ```
+
+## Asimov Studio
+
+The Asimov standard is language-neutral. The current reference implementation and Studio require Python 3.10+.
+
+Launch the local browser interface with:
+
+```bash
+asimov studio
+```
+
+Studio provides forms and guided workflows for scope, readiness, technical testing, human review, signing, finalization, and verification while continuing to write the ordinary portable Asimov workspace files. It binds only to localhost and does not require an Asimov account or hosted service.
+
+See [Asimov Studio](docs/STUDIO.md).
 
 ## Build an adapter
 
@@ -86,6 +101,7 @@ An A5 run is cumulative and covers A1–A5. HYBRID and REVIEW_REQUIRED findings 
 - [Test Methodology](docs/TEST-METHODOLOGY.md)
 - [Full A1–A5 Reference Harness](docs/FULL-REFERENCE-HARNESS.md)
 - [Verification](docs/VERIFICATION.md)
+- [Asimov Studio](docs/STUDIO.md)
 - [Human review and reviewer attestations](docs/REVIEW-ATTESTATIONS.md)
 - [Professional Reports](docs/REPORTS.md)
 - [Implementation Handbook](docs/IMPLEMENTATION-HANDBOOK.md)
