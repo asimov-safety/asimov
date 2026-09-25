@@ -1,69 +1,141 @@
-# Verifiable Asimov evidence
+# Asimov Verification
 
-The conformance result needs to be **independently checkable without pretending cryptography proves safety**.
-
-## What hashes can and cannot do
-
-A SHA-256 digest can bind a report to exact bytes. If any bound artifact changes, its digest changes. But a hash alone does not establish who created the evidence, when it existed, whether relevant evidence was omitted, or whether the logged event actually happened. An operator can modify a report and calculate a new hash.
-
-Asimov therefore separates four assurance layers.
-
-### V1 — Content integrity
-
-Create a deterministic evidence manifest containing the relative path, size, and SHA-256 digest of each relied-upon artifact. Bind the report to the scope manifest and tested configuration digest.
-
-The prototype implements:
-
-```bash
-python -m asimov_conformance evidence-manifest ./evidence --output evidence-manifest.json
-python -m asimov_conformance verify-evidence evidence-manifest.json ./evidence
-```
-
-This detects local artifact modification/substitution against the manifest. It is not an identity proof.
-
-### V2 — Signer identity
-
-Sign the report/evidence commitment with an authenticated assessor or assessment-system identity. Asimov should prefer standard attestation envelopes rather than invent a signature format.
-
-A strong candidate is an **in-toto Statement** whose subject is the assessment report and whose Asimov predicate binds the specification, scope/configuration, evidence-manifest digest, profile request, and result. The statement can then be signed with an established signing system.
-
-### V3 — Independent timestamp/transparency checkpoint
-
-An issuer who controls both the evidence store and long-lived private key can otherwise rewrite history and issue a new signature. For A4, the signed commitment should therefore be externally checkpointed in a transparency log, trusted timestamp service, independently controlled append-only log, or equivalent mechanism.
-
-**Sigstore** is a strong public option because it supports identity-bound short-lived signing certificates and transparency-log inclusion. Enterprise deployments may instead use an HSM-backed PKI plus independently administered immutable/timestamped storage. Blockchain can satisfy the external-checkpoint property, but is neither required nor preferred by Core.
-
-### V4 — Semantic assurance
-
-An assessor verifies that the evidence actually supports each requirement and that the scope matches the deployment. Cryptographic validity cannot establish completeness, correctness of a monitor, or truth of an unobserved event.
-
-## A4 vs A5
-
-**A4 / ACC-005** requires cryptographic binding plus authenticated signing and an external checkpoint (or equivalent independent mechanism).
-
-**A5 / ACC-006** additionally requires independent assessment and durable evidence that can be verified from a fresh environment. The A5 assessor must verify the scope/configuration binding and material limitations, not merely a signature.
-
-## Reuse, not reinvention
-
-- **Sigstore/Cosign** — signature identity, certificate, timestamp, transparency proof.
-- **in-toto** — extensible attestation statement model.
-- **AAS-1** — agent audit records, signatures, timestamps, Merkle aggregation, auditor determinations. Asimov should be able to cite AAS-1 records as evidence rather than define a rival action-record format.
-- **GitHub Artifact Attestations / SLSA** — useful for proving how the Asimov package and released conformance runner were built; this is distinct from proving a deployment's controls.
-
-## Verification states for a future CLI
-
-A future `asimov verify` should report layers separately, for example:
+Asimov verification is a chain, not a badge.
 
 ```text
-REPORT STRUCTURE            VERIFIED
-EVIDENCE CONTENT INTEGRITY  VERIFIED
-SIGNER IDENTITY             VERIFIED
-EXTERNAL CHECKPOINT         VERIFIED
-SCOPE/CONFIGURATION MATCH   VERIFIED
-SEMANTIC EVIDENCE REVIEW    INDEPENDENTLY REVIEWED
-
-A4 reported result: SATISFIED_IN_SCOPE
-This is not a claim of absolute AI safety.
+evidence files
+     |
+     v
+evidence-manifest.json
+     |
+     +---- assessment.json
+     +---- styled report / summary
+     |
+     v
+asimov-statement.json
+     |
+     v
+Sigstore bundle
+     |
+     v
+verification receipt
 ```
 
-The tool must never collapse all of these into a single ambiguous green "verified safe" badge.
+## What is implemented
+
+### 1. Evidence integrity
+
+```bash
+asimov evidence-manifest ./evidence --output evidence-manifest.json
+asimov verify-evidence evidence-manifest.json ./evidence
+```
+
+The manifest deterministically binds file paths, sizes, and SHA-256 digests.
+
+### 2. Assessment/report binding
+
+```bash
+asimov verification-statement assessment.json \
+  --evidence-manifest evidence-manifest.json \
+  --report asimov-report.html \
+  --output asimov-statement.json
+```
+
+The statement uses the in-toto Statement v1 shape and an Asimov predicate. It binds:
+
+- the assessment JSON digest;
+- the evidence-manifest digest;
+- each supplied styled report digest;
+- system ID;
+- deployment configuration SHA-256;
+- scope-manifest SHA-256;
+- requested assurance profile;
+- assessment mode and report ID;
+- reported outcome.
+
+### 3. Identity-bound Sigstore signing
+
+Install Cosign, then:
+
+```bash
+asimov sigstore-sign asimov-statement.json --bundle asimov.sigstore.json
+```
+
+This invokes the standard `cosign sign-blob` workflow. Keyless signing associates the signature with an OIDC identity through Sigstore Fulcio and stores verification material in the Sigstore bundle.
+
+For CI/non-interactive confirmation:
+
+```bash
+asimov sigstore-sign asimov-statement.json \
+  --bundle asimov.sigstore.json --yes
+```
+
+### 4. Full package verification
+
+```bash
+asimov verify-package assessment.json \
+  --evidence-manifest evidence-manifest.json \
+  --evidence-root ./evidence \
+  --statement asimov-statement.json \
+  --report asimov-report.html \
+  --bundle asimov.sigstore.json \
+  --certificate-identity assessor@example.com \
+  --certificate-oidc-issuer https://accounts.google.com \
+  --json-output verification-receipt.json \
+  --html-output verification-receipt.html
+```
+
+The verifier reports these layers separately:
+
+- evidence integrity;
+- artifact/report binding;
+- scope and configuration binding;
+- Sigstore signer identity and transparency proof;
+- semantic assurance review.
+
+A successful Cosign bundle verification establishes the signature against the expected identity and issuer and verifies the Sigstore bundle's signed-time/transparency material. Semantic evidence review remains a separate assessment judgment.
+
+## Browser verification
+
+The public **Verify** page performs the non-network parts locally in the browser:
+
+- SHA-256 recomputation;
+- evidence-manifest self-digest;
+- optional evidence-directory comparison;
+- assessment/report subject digests;
+- in-toto-style statement binding;
+- scope/configuration binding.
+
+Files selected in this mode stay in the browser.
+
+Full Sigstore cryptographic verification uses the official Sigstore verifier. The site UI supports a verifier-service endpoint, and also generates the exact `cosign verify-blob` command when no service is configured.
+
+## Verification service
+
+A small optional verifier service lives in `services/verifier/`. It accepts only the verification statement, Sigstore bundle, expected identity, and OIDC issuer; it does not need the private assessment evidence. It executes Cosign with strict file-size limits and no shell interpolation.
+
+## A4 and A5
+
+**ACC-005 / A4** requires cryptographic binding, authenticated signing, and an external checkpoint.
+
+**ACC-006 / A5** additionally requires independent assessment and durable evidence retention/escrow that can be reverified from a fresh environment.
+
+## Sigstore interoperability
+
+Asimov uses standard Sigstore/Cosign blob signing rather than inventing a signature system:
+
+```bash
+cosign sign-blob asimov-statement.json --bundle asimov.sigstore.json
+
+cosign verify-blob asimov-statement.json \
+  --bundle asimov.sigstore.json \
+  --certificate-identity=assessor@example.com \
+  --certificate-oidc-issuer=https://accounts.google.com
+```
+
+Official documentation:
+
+- https://docs.sigstore.dev/quickstart/quickstart-cosign/
+- https://docs.sigstore.dev/cosign/signing/signing_with_blobs/
+- https://docs.sigstore.dev/cosign/verifying/verify/
+- https://docs.sigstore.dev/about/bundle/

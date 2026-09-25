@@ -1,10 +1,4 @@
-"""Deterministic evidence-manifest hashing for the Asimov draft.
-
-This is an integrity primitive, not an identity or timestamp service. For public
-verifiability, sign the generated manifest/attestation with a trusted signing
-system (for example Sigstore) and retain an independent transparency/timestamp
-proof.
-"""
+"""Evidence integrity primitives for Asimov verification."""
 from __future__ import annotations
 
 import hashlib
@@ -12,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-EVIDENCE_MANIFEST_VERSION = "asimov-evidence-manifest/0.2-draft.1"
+EVIDENCE_MANIFEST_VERSION = "asimov-evidence-manifest/0.2.0"
 
 
 class EvidenceError(ValueError):
@@ -32,8 +26,7 @@ def sha256_file(path: Path) -> str:
 
 
 def canonical_json_bytes(value: Any) -> bytes:
-    # This deterministic encoding is local to the draft prototype. Interchange
-    # profiles should use a published canonicalization standard such as JCS.
+    """Deterministic JSON encoding used by Asimov v0.2."""
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
 
 
@@ -60,8 +53,7 @@ def build_evidence_manifest(root: Path) -> dict[str, Any]:
     return {**content, "manifest_sha256": sha256_bytes(canonical_json_bytes(content))}
 
 
-def verify_evidence_manifest(manifest: dict[str, Any], root: Path) -> list[str]:
-    root = root.resolve()
+def verify_manifest_self_digest(manifest: dict[str, Any]) -> list[str]:
     errors: list[str] = []
     if manifest.get("version") != EVIDENCE_MANIFEST_VERSION:
         errors.append("unsupported evidence manifest version")
@@ -70,6 +62,19 @@ def verify_evidence_manifest(manifest: dict[str, Any], root: Path) -> list[str]:
     files = manifest.get("files")
     if not isinstance(files, list):
         return errors + ["files must be an array"]
+    content = {"version": manifest.get("version"), "algorithm": manifest.get("algorithm"), "files": files}
+    expected = sha256_bytes(canonical_json_bytes(content))
+    if expected != manifest.get("manifest_sha256"):
+        errors.append("manifest digest mismatch")
+    return errors
+
+
+def verify_evidence_manifest(manifest: dict[str, Any], root: Path) -> list[str]:
+    root = root.resolve()
+    errors = verify_manifest_self_digest(manifest)
+    files = manifest.get("files")
+    if not isinstance(files, list):
+        return errors
 
     seen: set[str] = set()
     for row in files:
@@ -95,9 +100,4 @@ def verify_evidence_manifest(manifest: dict[str, Any], root: Path) -> list[str]:
                 errors.append(f"digest mismatch: {rel}")
         except OSError as exc:
             errors.append(f"cannot inspect {rel}: {exc}")
-
-    content = {"version": manifest.get("version"), "algorithm": manifest.get("algorithm"), "files": files}
-    expected = sha256_bytes(canonical_json_bytes(content))
-    if expected != manifest.get("manifest_sha256"):
-        errors.append("manifest digest mismatch")
     return errors

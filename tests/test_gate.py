@@ -113,11 +113,16 @@ class GateTests(unittest.TestCase):
 
     def test_cli_complete_html_output(self):
         with tempfile.TemporaryDirectory() as tmp:
-            out=Path(tmp)/'report.html'; stream=io.StringIO()
+            out=Path(tmp)/'report.html'; summary=Path(tmp)/'summary.html'; stream=io.StringIO()
             with contextlib.redirect_stdout(stream):
-                code=main(['report',str(ROOT/'examples/report-illustrative-complete.json'),'--html-output',str(out)])
-            self.assertEqual(code,0); self.assertTrue(out.exists())
-            html=out.read_text(); self.assertIn('Asimov Conformance Result',html); self.assertIn('A5',html)
+                code=main([
+                    'report',str(ROOT/'examples/report-illustrative-complete.json'),
+                    '--html-output',str(out),'--summary-output',str(summary)
+                ])
+            self.assertEqual(code,0); self.assertTrue(out.exists()); self.assertTrue(summary.exists())
+            html=out.read_text(); self.assertIn('The Seven Constants',html); self.assertIn('A5',html)
+            self.assertIn('Conformance assessment',html)
+            self.assertIn('Assessment summary',summary.read_text())
             self.assertIn('No deployment probed',stream.getvalue())
 
     def test_cli_failure_exit(self):

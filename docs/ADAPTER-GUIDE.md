@@ -1,5 +1,7 @@
 # Asimov adapter author guide — A1–A5 reference harness
 
+For end-to-end recipes by framework, cloud, and resource type, start with the [Implementation Handbook](IMPLEMENTATION-HANDBOOK.md).
+
 Asimov is intended to test deployment properties without requiring a particular agent framework. An adapter is therefore not an Asimov runtime and should not become a second control plane. Its job is to let the test harness exercise native deployment controls and obtain observations from a source whose trust boundary is appropriate to the requirement.
 
 ## Core rule
@@ -10,7 +12,7 @@ For an external effect, `attempt()` should exercise the action using the same ef
 
 ## Semantic operations
 
-The draft `ConformanceAdapter` exposes:
+The `ConformanceAdapter` exposes:
 
 - `capabilities()` — machine-readable declaration of which probe semantics are supported;
 - `deployment_snapshot()` — version/configuration binding for the tested target;

@@ -181,20 +181,21 @@ def evaluate_report(report: Any) -> dict[str, Any]:
         "tool": "asimov-report",
         "spec_version": SPEC_VERSION,
         "report_id": report["report_id"],
+        "created_at": report["created_at"],
         "assessment_mode": report["assessment"]["mode"],
+        "assessor": report["assessment"]["assessor"],
         "system": report["system"],
         "scope_manifest_sha256": report["scope_manifest_sha256"],
         "requested_profile": requested,
         "reported_outcome": profiles[requested]["state"],
         "profiles": profiles,
+        "preconditions": report["preconditions"],
+        "findings": report["results"],
         "claim_status": "ILLUSTRATIVE_ONLY" if report["assessment"]["mode"] == "illustrative" else "UNVERIFIED_REPORTED_RESULTS",
         "certificate_issued": False,
         "evidence_verified_by_this_tool": False,
         "deployment_probed_by_this_tool": False,
-        "limitations": report["limitations"] + [
-            "This tool aggregates supplied findings; it does not verify evidence, assessor identity, scope binding, or deployment controls.",
-            "Neither an exit code nor a profile label from this tool is an authorization to deploy.",
-        ],
+        "limitations": report["limitations"],
     }
 
 
