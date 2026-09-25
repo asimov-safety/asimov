@@ -2175,10 +2175,61 @@ def _profile_level_for_requirements(requirements: tuple[str, ...]) -> int:
 
 
 def run_reference_probes(adapter: ConformanceAdapter | None = None, requirements: tuple[str, ...] = A5_REQUIREMENTS) -> dict[str, Any]:
-    adapter = adapter or ReferenceTarget()
-    results = []
-    available = set(adapter.capabilities())
+    # Only omission selects the disposable reference target. A supplied adapter
+    # may define falsey truth semantics; silently substituting ReferenceTarget
+    # would test the toy deployment and could create a catastrophic false PASS.
+    if adapter is None:
+        adapter = ReferenceTarget()
+
+    try:
+        adapter_id = str(getattr(adapter, "adapter_id"))
+    except Exception:
+        adapter_id = type(adapter).__name__
+
     profile_level = _profile_level_for_requirements(tuple(requirements))
+    scope = (
+        "A1_REFERENCE_HARNESS" if tuple(requirements) == A1_REQUIREMENTS else
+        "A2_REFERENCE_HARNESS" if tuple(requirements) == A2_REQUIREMENTS else
+        "A3_REFERENCE_HARNESS" if tuple(requirements) == A3_REQUIREMENTS else
+        "A4_REFERENCE_HARNESS" if tuple(requirements) == A4_REQUIREMENTS else
+        "A5_REFERENCE_HARNESS" if tuple(requirements) == A5_REQUIREMENTS else
+        f"A{profile_level}_REFERENCE_HARNESS"
+    )
+
+    try:
+        declared = adapter.capabilities()
+        if isinstance(declared, (str, bytes)):
+            raise TypeError("capabilities() must return an iterable of capability names, not a string")
+        available = set(declared)
+        if any(not isinstance(item, str) or not item.strip() for item in available):
+            raise TypeError("capabilities() must contain only nonblank strings")
+    except Exception as exc:
+        results = [
+            ProbeResult(
+                rid,
+                "ERROR",
+                f"Adapter capabilities() failed closed with {type(exc).__name__}: {exc}",
+                [],
+                {"stage": "capability_discovery"},
+            ).to_dict()
+            for rid in requirements
+        ]
+        statuses = ("PASS", "FAIL", "ERROR", "NOT_TESTED", "INCONCLUSIVE")
+        counts = {status: sum(r["status"] == status for r in results) for status in statuses}
+        return {
+            "tool": "asimov-reference-probes",
+            "spec_version": SPEC_VERSION,
+            "adapter_id": adapter_id,
+            "scope": scope,
+            "conformance_claim": False,
+            "results": results,
+            "counts": counts,
+            "selected_all_pass": False,
+            "coverage_blockers": list(requirements),
+            "warning": "Reference-harness validation only. Passing does not establish an A-profile for any external deployment.",
+        }
+
+    results = []
     for rid in requirements:
         missing = PROBE_CAPABILITIES[rid] - available
         if missing:
@@ -2194,20 +2245,13 @@ def run_reference_probes(adapter: ConformanceAdapter | None = None, requirements
             except Exception as exc:
                 result = ProbeResult(rid, "ERROR", f"Probe raised {type(exc).__name__}: {exc}", [], {})
         results.append(result.to_dict())
+
     statuses = ("PASS", "FAIL", "ERROR", "NOT_TESTED", "INCONCLUSIVE")
     counts = {status: sum(r["status"] == status for r in results) for status in statuses}
-    scope = (
-        "A1_REFERENCE_HARNESS" if tuple(requirements) == A1_REQUIREMENTS else
-        "A2_REFERENCE_HARNESS" if tuple(requirements) == A2_REQUIREMENTS else
-        "A3_REFERENCE_HARNESS" if tuple(requirements) == A3_REQUIREMENTS else
-        "A4_REFERENCE_HARNESS" if tuple(requirements) == A4_REQUIREMENTS else
-        "A5_REFERENCE_HARNESS" if tuple(requirements) == A5_REQUIREMENTS else
-        f"A{profile_level}_REFERENCE_HARNESS"
-    )
     return {
         "tool": "asimov-reference-probes",
         "spec_version": SPEC_VERSION,
-        "adapter_id": adapter.adapter_id,
+        "adapter_id": adapter_id,
         "scope": scope,
         "conformance_claim": False,
         "results": results,
