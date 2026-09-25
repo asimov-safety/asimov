@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:asimov:0.2.0:public-verification",
   "title": "Asimov public verification record",
-  "description": "Public sidecar distributed with an Asimov report. It contains no private evidence directory.",
+  "description": "Public verification record embedded inside an Asimov HTML report and optionally exported as JSON. It contains no private evidence directory.",
   "type": "object",
   "required": ["version", "report", "statement", "sigstore", "meaning"],
   "properties": {
