@@ -884,6 +884,7 @@ def _validate_completed_review(
     record: dict[str, Any],
     *,
     independence_required: bool = False,
+    required_review_requirement: str | None = None,
     evidence_root: Path | None = None,
     require_attestation: bool = True,
 ) -> tuple[str, str, list[str]]:
@@ -913,6 +914,13 @@ def _validate_completed_review(
     review_requirement = str(record.get("review_requirement") or ("THIRD_PARTY" if independence_required else "HUMAN"))
     if review_requirement not in {"HUMAN", "ROLE_SEPARATED", "THIRD_PARTY"}:
         return "INCONCLUSIVE", "Human review has an invalid review_requirement.", refs
+    if required_review_requirement is not None and review_requirement != required_review_requirement:
+        return (
+            "INCONCLUSIVE",
+            f"Review relationship downgrade/mismatch: catalog requires {required_review_requirement}, "
+            f"but the review record declares {review_requirement}.",
+            refs,
+        )
 
     if require_attestation and decision in {"PASS", "FAIL"}:
         signing = record.get("signing_identity")
@@ -995,6 +1003,7 @@ def _merge_finding(
     decision, rationale, refs = _validate_completed_review(
         review,
         independence_required=_requires_independence(requirement),
+        required_review_requirement=_review_requirement(requirement),
         evidence_root=Path(review.get("_evidence_root")) if review.get("_evidence_root") else None,
     )
     evidence_refs = [technical_ref]
