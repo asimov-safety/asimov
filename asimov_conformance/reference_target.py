@@ -738,9 +738,10 @@ class ReferenceTarget:
         return {**delegated, "recipient": recipient, "trust_verified": required}
 
 
+
     def intervention_plan(self) -> dict[str, Any]:
         plan = json.loads(json.dumps(self._intervention_plan))
-        plan["plan_id"] = "reference-intervention-plan/1"
+        plan["plan_id"] = "reference-intervention-plan/v1"
         if not self.config.validate_intervention_under_hazards:
             plan["reviewed"] = False
         return plan
@@ -760,8 +761,9 @@ class ReferenceTarget:
             result = {"scenario": scenario, "residual_effects": 1 if strong else 4, "residual_bound": self._intervention_plan["max_residual_effects"]}
         else:
             return {"ok": False, "scenario": scenario, "reason": "unknown scenario", "evidence_ref": None}
-        self._health_events.append({"clock": self.clock, "kind": "intervention_exercise", **result})
-        return {"ok": True, "evidence_ref": f"health:intervention:{scenario}:{self.clock}", **result}
+        event = {"clock": self.clock, "kind": "intervention_exercise", **result}
+        self._health_events.append(event)
+        return {"ok": True, **result, "evidence_ref": f"health-event:{len(self._health_events)}"}
 
 
     def high_consequence_observation(self, scenario: str) -> dict[str, Any]:
@@ -801,32 +803,35 @@ class ReferenceTarget:
         }
 
 
+
     def delegation_stress(self) -> dict[str, Any]:
-        common = {
-            "operations": 64,
-            "peak_children": 24,
-            "aggregate_budget": 10,
-            "scenarios": ["concurrent_delegation", "restart", "partition", "root_revocation"],
-            "evidence_ref": "reference:delegation-stress",
-        }
+        scenarios = ["concurrent_delegation", "restart", "partition", "root_revocation"]
         if self.config.delegation_churn_resilience:
             return {
-                **common,
+                "operations": 64,
+                "peak_children": 24,
+                "aggregate_budget": 10,
                 "settled_budget": 10,
                 "budget_reset": False,
                 "orphaned_unattributed": 0,
                 "root_revocation_propagated": True,
                 "restart_preserved_lineage": True,
                 "partition_residual_bounded": True,
+                "scenarios": scenarios,
+                "evidence_ref": "reference:delegation-stress",
             }
         return {
-            **common,
+            "operations": 64,
+            "peak_children": 24,
+            "aggregate_budget": 10,
             "settled_budget": 17,
             "budget_reset": True,
             "orphaned_unattributed": 3,
             "root_revocation_propagated": False,
             "restart_preserved_lineage": False,
             "partition_residual_bounded": False,
+            "scenarios": scenarios,
+            "evidence_ref": "reference:delegation-stress",
         }
 
 
