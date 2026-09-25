@@ -56,33 +56,77 @@ It does **not** prove that:
 
 Those remain semantic assessment/review questions. The report must continue to display FAIL, NOT_TESTED, INCONCLUSIVE, self-assessment, and independence limitations honestly.
 
-## Creating a public verification record
+## Signing a public report — recommended path
 
 `finalize-assessment` automatically embeds an **unsigned** public verification capsule into `report.html` and also writes `public-verification.json` as an optional export.
 
-That is sufficient for a local report/statement match, but **not authenticated public provenance**.
+That is sufficient for a local report/statement match, but it does not answer **“Who signed this?”**
 
-For a report intended for broad public distribution, authenticated signing is strongly recommended even when the requested profile is below A4.
+For a report intended for public distribution, install Sigstore's Cosign client once, then use Asimov's one-command wrapper.
 
-First sign the exact statement:
+### 1. Install Cosign
+
+On macOS with Homebrew:
+
+```bash
+brew install cosign
+cosign version
+```
+
+For Linux, Windows, package managers, and verified binary installation, use Sigstore's official Cosign installation guide.
+
+### 2. Sign the report
+
+For a human signer using a Google account:
+
+```bash
+asimov sign-report report.html \
+  --statement asimov-statement.json \
+  --provider google \
+  --identity you@example.com
+```
+
+Before opening the identity flow, Asimov prints the exact signer identity and identity provider it expects. When Cosign asks you to authenticate, use that exact account.
+
+Asimov then:
+
+1. signs the exact `asimov-statement.json` bytes using Cosign/Sigstore;
+2. writes `asimov.sigstore.json`;
+3. embeds the Sigstore bundle, expected signer identity, and OIDC issuer into the report's verification capsule;
+4. leaves the substantive report-content digest unchanged.
+
+After that, the file to publish is simply:
+
+```text
+report.html
+```
+
+### Other identity providers
+
+`sign-report` supports:
+
+- `--provider google` → `https://accounts.google.com`
+- `--provider github` → `https://github.com/login/oauth`
+- `--provider microsoft` → `https://login.microsoftonline.com`
+- `--provider github-actions` → `https://token.actions.githubusercontent.com`
+- `--provider custom --oidc-issuer <URL>`
+
+The value supplied to `--identity` must be the exact identity you expect the Sigstore certificate to contain. If the actual signer does not match it, later verification fails rather than silently accepting a different signer.
+
+### Low-level signing
+
+The lower-level two-command path remains available for advanced use:
 
 ```bash
 asimov sigstore-sign asimov-statement.json --bundle asimov.sigstore.json
-```
 
-Then refresh the embedded report capsule with the signature material (and optionally export the same record as JSON):
-
-```bash
 asimov public-record \
   --statement asimov-statement.json \
   --report report.html \
   --bundle asimov.sigstore.json \
   --certificate-identity '<EXPECTED_IDENTITY>' \
-  --certificate-oidc-issuer '<EXPECTED_OIDC_ISSUER>' \
-  --output public-verification.json
+  --certificate-oidc-issuer '<EXPECTED_OIDC_ISSUER>'
 ```
-
-Record the **exact** authenticated identity and exact OIDC issuer used by the signing flow. Do not guess either value.
 
 ## Why Sigstore is used
 
