@@ -188,6 +188,7 @@ class {class_name}:
 {todo("revoke", "authority")}
 {todo("refresh_grant", "authority")}
 {todo("stop", "supervision")}
+{todo("reset_stop", "supervision")}
 {todo("restart", "lifecycle")}
 {todo("inject_fault", "lifecycle")}
 {todo("delegate", "action")}
