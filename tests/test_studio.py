@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import shutil
+import subprocess
 import tempfile
 import threading
 import unittest
@@ -121,6 +123,21 @@ class StudioTests(unittest.TestCase):
         root = files("asimov_conformance").joinpath("studio_assets")
         for name in ("index.html", "studio.css", "studio.js", "asimov-mark.svg"):
             self.assertTrue(root.joinpath(name).is_file(), name)
+
+    def test_studio_javascript_parses_when_node_is_available(self):
+        node = shutil.which("node")
+        if node is None:
+            self.skipTest("Node.js is not installed")
+        from importlib.resources import files
+
+        script = files("asimov_conformance").joinpath("studio_assets", "studio.js")
+        proc = subprocess.run(
+            [node, "--check", str(script)],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
 
 
 if __name__ == "__main__":
