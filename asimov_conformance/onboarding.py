@@ -32,7 +32,45 @@ class ReadinessFinding:
     requirement_id: str
     state: str
     missing_capabilities: tuple[str, ...]
+    missing_methods: tuple[str, ...]
     remediation: str
+
+
+CAPABILITY_METHODS: dict[str, tuple[str, ...]] = {
+    "action_surface": ("discover_action_surface",),
+    "attempt": ("attempt",),
+    "observe": ("observe",),
+    "issue_grant": ("issue_grant",),
+    "issue_approval": ("issue_approval",),
+    "approval_view": ("approval_view",),
+    "revoke": ("revoke",),
+    "refresh_grant": ("refresh_grant",),
+    "delegate": ("delegate",),
+    "stop": ("stop",),
+    "stop_reset": ("reset_stop",),
+    "restart": ("restart",),
+    "fault_injection": ("inject_fault",),
+    "external_events": ("evidence_snapshot",),
+    "evidence_integrity": ("verify_evidence_integrity",),
+    "evidence_access": ("evidence_report", "read_raw_evidence"),
+    "assessment_binding": ("assessment_binding", "validate_assessment_binding"),
+    "supervisor_auth": ("issue_supervisor_message", "deliver_supervisor_message"),
+    "independent_supervision": ("supervision_snapshot",),
+    "untrusted_content_isolation": ("ingest_untrusted",),
+    "delegation_lifecycle": ("delegation_snapshot",),
+    "cross_boundary_delegation": ("delegate_external",),
+    "intervention_exercise": ("intervention_plan", "exercise_intervention"),
+    "high_consequence_observation": ("high_consequence_observation",),
+    "common_mode_analysis": ("common_mode_snapshot",),
+    "delegation_churn": ("delegation_stress",),
+    "assessment_attestation": ("assessment_attestation", "verify_assessment_attestation"),
+    "critical_observation": ("critical_transition_plan", "exercise_critical_transition"),
+    "critical_barriers": ("critical_barrier_test",),
+    "secondary_containment": ("secondary_containment",),
+    "adversarial_assurance": ("adversarial_assurance",),
+    "emergency_recovery": ("emergency_recovery",),
+    "independent_assurance": ("independent_assurance_package", "verify_assurance_package"),
+}
 
 
 CAPABILITY_REMEDIATION = {
@@ -83,26 +121,81 @@ CAPABILITY_REMEDIATION = {
 def doctor(adapter: Any, profile: str = "A2") -> dict[str, Any]:
     if profile not in PROFILE_REQUIREMENTS:
         raise ValueError(f"unsupported profile {profile!r}")
-    available = set(adapter.capabilities())
+
+    adapter_id = getattr(adapter, "adapter_id", "unknown")
+    try:
+        declared = adapter.capabilities()
+        if isinstance(declared, (str, bytes)):
+            raise TypeError("capabilities() must return an iterable of capability names, not a string")
+        available = set(declared)
+        if any(not isinstance(item, str) or not item.strip() for item in available):
+            raise TypeError("capabilities() must contain only nonblank strings")
+    except Exception as exc:
+        findings = [
+            ReadinessFinding(
+                rid,
+                "BLOCKED_INVALID_ADAPTER_CAPABILITIES",
+                (),
+                (),
+                f"Adapter capability discovery failed: {type(exc).__name__}: {exc}",
+            )
+            for rid in PROFILE_REQUIREMENTS[profile]
+        ]
+        return {
+            "tool": "asimov-doctor",
+            "profile": profile,
+            "adapter_id": adapter_id,
+            "platform": platform.system(),
+            "ready": False,
+            "requirements": len(findings),
+            "blockers": len(findings),
+            "findings": [asdict(f) for f in findings],
+            "rule": "Every mandatory requirement must be testable with an independent control/evidence surface. Coverage gaps block the profile; they are not averaged away.",
+        }
+
     findings: list[ReadinessFinding] = []
     for rid in PROFILE_REQUIREMENTS[profile]:
         if rid not in PROBES:
             findings.append(ReadinessFinding(
-                rid, "BLOCKED_PROBE_NOT_IMPLEMENTED", (),
+                rid, "BLOCKED_PROBE_NOT_IMPLEMENTED", (), (),
                 "The normative family exists, but this Asimov release does not yet ship an executable reference probe for it.",
             ))
             continue
-        missing = tuple(sorted(PROBE_CAPABILITIES[rid] - available))
+
+        required_caps = PROBE_CAPABILITIES[rid]
+        missing = tuple(sorted(required_caps - available))
+        missing_methods = tuple(sorted({
+            method
+            for capability in (required_caps & available)
+            for method in CAPABILITY_METHODS.get(capability, ())
+            if not callable(getattr(adapter, method, None))
+        }))
+
         if missing:
             remediation = " ".join(CAPABILITY_REMEDIATION.get(c, f"Provide capability: {c}.") for c in missing)
-            findings.append(ReadinessFinding(rid, "BLOCKED_MISSING_CONTROL_SURFACE", missing, remediation))
+            findings.append(ReadinessFinding(
+                rid, "BLOCKED_MISSING_CONTROL_SURFACE", missing, missing_methods, remediation
+            ))
+        elif missing_methods:
+            methods = ", ".join(f"{name}()" for name in missing_methods)
+            findings.append(ReadinessFinding(
+                rid,
+                "BLOCKED_MISSING_ADAPTER_METHOD",
+                (),
+                missing_methods,
+                f"The adapter claims the required capability but does not implement callable method(s): {methods}.",
+            ))
         else:
-            findings.append(ReadinessFinding(rid, "READY_TO_TEST", (), "No capability blocker detected; run the probe and review evidence."))
+            findings.append(ReadinessFinding(
+                rid, "READY_TO_TEST", (), (),
+                "Required capability names and adapter methods are present; run the probe and review the resulting evidence.",
+            ))
+
     blockers = [f for f in findings if f.state.startswith("BLOCKED")]
     return {
         "tool": "asimov-doctor",
         "profile": profile,
-        "adapter_id": getattr(adapter, "adapter_id", "unknown"),
+        "adapter_id": adapter_id,
         "platform": platform.system(),
         "ready": not blockers,
         "requirements": len(findings),
