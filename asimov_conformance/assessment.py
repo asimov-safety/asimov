@@ -687,10 +687,36 @@ def run_assessment(adapter: Any, workspace: Path) -> dict[str, Any]:
     return result
 
 
+def _valid_review_timestamp(value: str) -> bool:
+    if not isinstance(value, str) or not value.strip():
+        return False
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})", value) is None:
+        return False
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    return parsed.utcoffset() is not None
+
+
+def _evidence_ref_exists(evidence_root: Path, ref: str) -> bool:
+    # External/immutable references are allowed, but local relative references
+    # must exist in the evidence directory so a PASS cannot cite invented files.
+    if re.match(r"^(?:https?://|urn:|external:|git:|sha256:)", ref):
+        return True
+    candidate = (evidence_root / ref).resolve()
+    try:
+        candidate.relative_to(evidence_root.resolve())
+    except ValueError:
+        return False
+    return candidate.exists()
+
+
 def _validate_completed_review(
     record: dict[str, Any],
     *,
     independence_required: bool = False,
+    evidence_root: Path | None = None,
 ) -> tuple[str, str, list[str]]:
     decision = record.get("decision")
     if decision not in REVIEW_DECISIONS:
@@ -699,13 +725,17 @@ def _validate_completed_review(
         return "INCONCLUSIVE", "Required human review has no named reviewer.", []
     if not str(record.get("reviewer_role", "")).strip():
         return "INCONCLUSIVE", "Required human review has no reviewer role.", []
-    if not str(record.get("reviewed_at", "")).strip():
-        return "INCONCLUSIVE", "Required human review has no reviewed_at timestamp.", []
+    if not _valid_review_timestamp(str(record.get("reviewed_at", ""))):
+        return "INCONCLUSIVE", "Required human review needs a valid timezone-qualified reviewed_at timestamp.", []
     if not str(record.get("rationale", "")).strip():
         return "INCONCLUSIVE", "Required human review has no rationale.", []
     refs = [str(x) for x in record.get("evidence_refs", []) if str(x).strip()]
     if decision == "PASS" and not refs:
         return "INCONCLUSIVE", "A PASS review must cite underlying evidence.", []
+    if decision == "PASS" and evidence_root is not None:
+        missing = [ref for ref in refs if not _evidence_ref_exists(evidence_root, ref)]
+        if missing:
+            return "INCONCLUSIVE", "A PASS review cites missing/unbound evidence: " + ", ".join(missing), refs
     checklist = record.get("checklist", [])
     if decision == "PASS" and (
         not isinstance(checklist, list) or any(item.get("status") != "PASS" for item in checklist)
@@ -754,7 +784,9 @@ def _merge_finding(
         }
 
     decision, rationale, refs = _validate_completed_review(
-        review, independence_required=_requires_independence(requirement)
+        review,
+        independence_required=_requires_independence(requirement),
+        evidence_root=Path(review.get("_evidence_root")) if review.get("_evidence_root") else None,
     )
     evidence_refs = [technical_ref]
     if review_evidence_ref:
@@ -782,7 +814,7 @@ def _merge_finding(
     }
 
 
-def _finalize_precondition(workspace: Path, name: str) -> dict[str, Any]:
+def _finalize_precondition(workspace: Path, name: str, scope: dict[str, Any]) -> dict[str, Any]:
     path = _record_path(workspace, "precondition", name)
     if not path.exists():
         return {
@@ -791,7 +823,11 @@ def _finalize_precondition(workspace: Path, name: str) -> dict[str, Any]:
             "evidence_refs": [],
         }
     record = _json_read(path)
-    decision, rationale, refs = _validate_completed_review(record)
+    decision, rationale, refs = _validate_completed_review(record, evidence_root=workspace / "evidence")
+    if decision == "PASS" and name == "deployment_binding" and not str(scope.get("scope_description", "")).strip():
+        decision, rationale = "INCONCLUSIVE", "deployment_binding cannot PASS until scope.json has a nonblank scope_description."
+    if decision == "PASS" and name == "boundary_review" and not str(scope.get("threat_model", "")).strip():
+        decision, rationale = "INCONCLUSIVE", "boundary_review cannot PASS until scope.json has a nonblank threat_model."
     evidence_ref = f"reviews/preconditions/{name}.json"
     if decision == "PASS":
         return {"status": "PASS", "reason": rationale, "evidence_refs": [evidence_ref, *refs]}
@@ -841,20 +877,23 @@ def finalize_assessment(workspace: Path) -> dict[str, Any]:
             path = _record_path(workspace, "requirement", rid)
             if path.exists():
                 review = _json_read(path)
+                review["_evidence_root"] = str(evidence)
                 review_ref = f"reviews/requirements/{rid}.json"
         final_results.append(_merge_finding(technical_row, requirement, review, review_ref))
-
-    preconditions = {
-        name: _finalize_precondition(workspace, name)
-        for name in plan["required_preconditions"]
-    }
 
     snapshot = _json_read(evidence / "deployment-snapshot.json")
     scope_path = workspace / "scope.json"
     scope = _json_read(scope_path)
+    scope_evidence_path = evidence / "scope.json"
+    scope_evidence_path.write_bytes(scope_path.read_bytes())
+
+    preconditions = {
+        name: _finalize_precondition(workspace, name, scope)
+        for name in plan["required_preconditions"]
+    }
     system_id = str(scope.get("system_id") or plan["system_id"])
     config_sha = _sha256_bytes(_canonical_bytes(snapshot))
-    scope_sha = _sha256_bytes(scope_path.read_bytes())
+    scope_sha = _sha256_bytes(scope_evidence_path.read_bytes())
 
     report = {
         "spec_version": SPEC_VERSION,
