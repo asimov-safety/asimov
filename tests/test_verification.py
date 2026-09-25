@@ -217,7 +217,8 @@ class VerificationTests(unittest.TestCase):
                 bundle.write_text("{}", encoding="utf-8")
                 return 0
 
-            with patch("asimov_conformance.__main__.sigstore_sign", side_effect=fake_sign):
+            with patch("asimov_conformance.__main__.sigstore_sign", side_effect=fake_sign), \
+                 patch("asimov_conformance.__main__.sigstore_verify", return_value=(True, "verified")):
                 code = main([
                     "sign-report", str(report_path),
                     "--statement", str(statement_path),
