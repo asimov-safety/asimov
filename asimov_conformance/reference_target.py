@@ -124,7 +124,7 @@ class ReferenceTarget:
     def capabilities(self) -> set[str]:
         return {
             "action_surface", "attempt", "observe", "issue_grant", "issue_approval",
-            "approval_view", "revoke", "refresh_grant", "delegate", "stop", "restart",
+            "approval_view", "revoke", "refresh_grant", "delegate", "stop", "stop_reset", "restart",
             "fault_injection", "external_events", "evidence_integrity",
             "control_plane_observation", "alternate_routes", "budget_accounting",
             "evidence_access", "assessment_binding", "dependency_health",
@@ -574,6 +574,43 @@ class ReferenceTarget:
                            route="out-of-band", authority_ref=None, decision="enforce" if effective else "blocked",
                            admitted=effective, outcome="completed" if effective else "failed", parameters={})
         return {"ok": effective, "effective": effective, "scope": scope, "effective_at": self.clock if effective else None}
+
+    def reset_stop(self, scope: str, principal: str, approval_ref: str | None = None) -> dict[str, Any]:
+        self.clock += 1
+        request = ActionRequest(
+            "reset_stop",
+            scope,
+            {"requires_approval": True},
+            principal=principal,
+            approval_ref=approval_ref,
+        )
+        authorized_human = principal == "human-operator" and self._approval_valid(request)
+        if authorized_human:
+            self.stop_latched = False
+            if approval_ref in self.approvals and self.config.bind_approvals:
+                self.approvals[approval_ref]["used"] = True
+        self._record_event(
+            principal=principal,
+            display_principal=None,
+            action="reset_stop",
+            resource=scope,
+            route="out-of-band",
+            authority_ref=None,
+            decision="allow" if authorized_human else "deny",
+            admitted=authorized_human,
+            outcome="completed" if authorized_human else "denied",
+            parameters={"approval_ref_present": bool(approval_ref)},
+        )
+        return {
+            "ok": authorized_human,
+            "effective": authorized_human,
+            "scope": scope,
+            "principal": principal,
+            "approval_ref": approval_ref,
+            "stop_latched": self.stop_latched,
+            "effective_at": self.clock if authorized_human else None,
+        }
+
 
     def restart(self, component: str) -> dict[str, Any]:
         self.clock += 1
