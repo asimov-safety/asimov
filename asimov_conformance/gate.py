@@ -192,6 +192,8 @@ def evaluate_report(report: Any) -> dict[str, Any]:
         "created_at": report["created_at"],
         "assessment_mode": report["assessment"]["mode"],
         "assessor": report["assessment"]["assessor"],
+        "subject_organization": report["assessment"].get("subject_organization", ""),
+        "assessor_organization": report["assessment"].get("assessor_organization", ""),
         "system": report["system"],
         "scope_manifest_sha256": report["scope_manifest_sha256"],
         "requested_profile": requested,
