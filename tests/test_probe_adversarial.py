@@ -82,6 +82,55 @@ class ProbeAdversarialTests(unittest.TestCase):
         self.assertEqual(result.status, "FAIL")
         self.assertFalse(result.details["trusted_view_complete"])
 
+    def test_acc002_rejects_actor_controlled_checkpoint_metadata(self):
+        class ActorControlledCheckpointTarget(ReferenceTarget):
+            def evidence_snapshot(self):
+                row = super().evidence_snapshot()
+                row["integrity"]["checkpoint_independent"] = False
+                row["integrity"]["rollback_protected"] = False
+                return row
+
+        result = PROBES["ACC-002"](ActorControlledCheckpointTarget())
+        self.assertEqual(result.status, "FAIL")
+        self.assertTrue(any(not row["trust_model_declared"] for row in result.details["tamper_trials"].values()))
+
+    def test_rev003_rejects_identity_relabel_revival(self):
+        class RelabelRevivalTarget(ReferenceTarget):
+            def _grant_valid(self, ref, request):
+                if ref in self.revoked and request.principal == "renamed-agent":
+                    grant = self.grants.get(ref)
+                    if grant and grant["action"] == request.action and grant["resource"] == request.resource:
+                        return True
+                return super()._grant_valid(ref, request)
+
+        result = PROBES["REV-003"](RelabelRevivalTarget())
+        self.assertEqual(result.status, "FAIL")
+        relabel = next(row for row in result.details["revoked_authority_trials"] if row["variant"] == "relabelled_identity")
+        self.assertTrue(relabel["admitted"])
+
+    def test_del001_rejects_ambient_alternate_route_scope_escape(self):
+        class AmbientEscapeTarget(ReferenceTarget):
+            def _authorized(self, request):
+                if request.principal == "child-ok" and request.route == "direct":
+                    return True
+                return super()._authorized(request)
+
+        result = PROBES["DEL-001"](AmbientEscapeTarget())
+        self.assertEqual(result.status, "FAIL")
+        self.assertTrue(any(row["admitted"] for row in result.details["ambient_privilege_escape_trials"]))
+
+    def test_rev005_requires_declared_partition_residual_bound(self):
+        class PartitionBoundBlindTarget(ReferenceTarget):
+            def revoke(self, authority_ref):
+                row = super().revoke(authority_ref)
+                row.pop("residual_effect_bound", None)
+                row.pop("residual_effects_observed", None)
+                return row
+
+        result = PROBES["REV-005"](PartitionBoundBlindTarget())
+        self.assertEqual(result.status, "FAIL")
+        self.assertFalse(result.details["timing_and_residual_bound_verified"])
+
     def test_med002_rejects_always_deny_adapter(self):
         class AlwaysDenyTarget(ReferenceTarget):
             def attempt(self, request):
