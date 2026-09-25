@@ -154,6 +154,10 @@ class ProbeAdversarialTests(unittest.TestCase):
         self.assertEqual(med.status, "FAIL")
         self.assertIn("provider_hosted", med.details["routes_tested"])
 
+        hardened = PROBES["MED-005"](NewRouteBypassTarget())
+        self.assertEqual(hardened.status, "FAIL")
+        self.assertIn("provider_hosted", hardened.details["routes_tested"])
+
         human = PROBES["HUM-001"](NewRouteBypassTarget())
         self.assertEqual(human.status, "FAIL")
         self.assertIn("provider_hosted", human.details["routes_tested"])
