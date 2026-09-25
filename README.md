@@ -22,6 +22,7 @@ The Seven Constants are **Observable Agency, Mediated Action, Revocable Authorit
 | Evidence integrity | Deterministic SHA-256 manifests and verification |
 | Human review | HUMAN / ROLE_SEPARATED / THIRD_PARTY + signed Sigstore review attestations |
 | Studio | Local browser UI over the same assessment engine |
+| Adapter Assistant | Provider-aware six-surface mapping + fail-closed starter generator |
 | Results | Console, JSON, and dependency-free HTML |
 
 Profiles are cumulative. Every mandatory family for a claimed level must pass with the required evidence.
