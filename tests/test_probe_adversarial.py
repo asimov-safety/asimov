@@ -389,6 +389,19 @@ class ProbeAdversarialTests(unittest.TestCase):
         self.assertEqual(result.status, "PASS")
         self.assertNotIn("reference:med-001", result.evidence_refs)
 
+    def test_acc006_rejects_nonempty_but_substituted_verification_transcript(self):
+        class PresenceOnlyTranscriptVerifier(ReferenceTarget):
+            def verify_assurance_package(self, package):
+                row = super().verify_assurance_package(package)
+                if package.get("verification_transcript_ref") == "tampered:fresh-verification":
+                    row["valid"] = True
+                return row
+
+        result = PROBES["ACC-006"](PresenceOnlyTranscriptVerifier())
+        self.assertEqual(result.status, "FAIL")
+        self.assertTrue(result.details["altered_packages"]["verification_transcript_substituted"]["valid"])
+
+
     def test_acc006_requires_fresh_environment_reconstruction(self):
         class NoFreshVerificationTarget(ReferenceTarget):
             def independent_assurance_package(self):
