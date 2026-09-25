@@ -61,7 +61,7 @@ class ReferenceProbeTests(unittest.TestCase):
             self.assertTrue(report["selected_all_pass"])
             self.assertEqual(report["counts"]["PASS"], 42)
             html = html_path.read_text()
-            self.assertIn("Asimov A1–A5 Reference Harness", html)
+            self.assertIn("Asimov A1-A5 Reference Harness", html)
             self.assertIn("ACC-006", html)
 
     def test_mutation_cli_outputs_json(self):
