@@ -34,7 +34,7 @@ from .evidence import build_evidence_manifest
 from .gate import PROFILE_PRECONDITIONS, SPEC_VERSION, catalog, evaluate_report
 from .probes import run_reference_probes
 from .render import render_html, render_summary_html
-from .verification import build_verification_statement
+from .verification import build_public_verification_record, build_verification_statement
 
 
 WORKFLOW_VERSION = "1"
@@ -991,6 +991,11 @@ def finalize_assessment(workspace: Path) -> dict[str, Any]:
         [workspace / "report.html"],
     )
     _json_write(workspace / "asimov-statement.json", statement)
+    public_record = build_public_verification_record(
+        workspace / "asimov-statement.json",
+        workspace / "report.html",
+    )
+    _json_write(workspace / "public-verification.json", public_record)
     (workspace / "VERIFICATION-INSTRUCTIONS.md").write_text(
         _render_verification_instructions(plan["requested_profile"]), encoding="utf-8"
     )
@@ -1017,8 +1022,33 @@ def _render_verification_instructions(profile: str) -> str:
         "- `summary.html` — concise summary",
         "- `evidence-manifest.json` — deterministic evidence digest manifest",
         "- `asimov-statement.json` — in-toto-style artifact/scope binding statement",
+        "- `public-verification.json` — small public sidecar intended to travel with `report.html`",
         "",
-        "## 1. Verify the evidence bytes locally",
+        "## Public sharing — primary verification path",
+        "",
+        "For ordinary public/media sharing, distribute these two files together:",
+        "",
+        "- `report.html`",
+        "- `public-verification.json`",
+        "",
+        "The public sidecar contains the exact verification statement and no private evidence files. "
+        "A reader can verify the report digest and the assessment metadata bound by the statement. "
+        "For authenticated public provenance, sign the statement and rebuild the public record with the Sigstore bundle:",
+        "",
+        "```bash",
+        "asimov public-record --statement asimov-statement.json --report report.html \",
+        "  --bundle asimov.sigstore.json \",
+        "  --certificate-identity '<EXPECTED_IDENTITY>' \",
+        "  --certificate-oidc-issuer '<EXPECTED_OIDC_ISSUER>' \",
+        "  --output public-verification.json",
+        "```",
+        "",
+        "Public verification proves integrity/provenance/binding. It does not decide whether the evidence "
+        "or assessment conclusion is substantively correct.",
+        "",
+        "## Auditor / full-package verification",
+        "",
+        "### 1. Verify the evidence bytes locally",
         "",
         "```bash",
         "asimov verify-evidence evidence-manifest.json evidence",
