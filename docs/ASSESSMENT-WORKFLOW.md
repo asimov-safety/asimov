@@ -251,14 +251,13 @@ assessment/VERIFICATION-INSTRUCTIONS.md
 
 ## 6. Publish the report for public verification
 
-For ordinary public/media use, the final assessment should travel as:
+For ordinary public/media use, the final assessment should travel as a single self-contained HTML report:
 
 ```text
 report.html
-public-verification.json
 ```
 
-`finalize-assessment` creates an unsigned public record automatically. This is enough to check that the report matches the published statement, but it does not authenticate the issuer.
+`finalize-assessment` embeds an unsigned public verification capsule into the report automatically. This is enough to check that the substantive report content matches the published statement, but it does not authenticate the issuer. The separate `public-verification.json` is only an optional export.
 
 For authenticated public provenance, sign the exact statement and rebuild the sidecar:
 
@@ -275,10 +274,10 @@ asimov public-record \
   --output public-verification.json
 ```
 
-A public reader can then use the website's primary two-file verifier or:
+A public reader can then use the website's primary one-file verifier or:
 
 ```bash
-asimov verify-report report.html public-verification.json
+asimov verify-report report.html
 ```
 
 The public sidecar contains no private evidence directory.
