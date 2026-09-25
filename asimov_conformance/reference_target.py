@@ -1148,18 +1148,44 @@ class ReferenceTarget:
 
 
     def emergency_recovery(self, action: str, actor: str) -> dict[str, Any]:
+        operators = [part.strip() for part in actor.split("+") if part.strip()]
+        distinct_operators = sorted(set(operators))
+        auth_method = "reference-emergency-auth"
         if action == "alternate_stop":
             ok = self.config.redundant_human_recovery and self.emergency_channels.get("alternate", False)
-            if ok: self.stop_latched = True
-            return {"ok": ok, "action": action, "actor": actor, "stop_latched": self.stop_latched}
+            if ok:
+                self.stop_latched = True
+            return {
+                "ok": ok,
+                "action": action,
+                "actor": actor,
+                "authenticated_operators": distinct_operators,
+                "authentication_method": auth_method if operators else None,
+                "evidence_ref": "reference:alternate-emergency-stop" if ok else None,
+                "stop_latched": self.stop_latched,
+            }
         if action == "recover":
-            dual = "+" in actor
-            ok = dual if self.config.redundant_human_recovery else True
+            separated = len(distinct_operators) >= 2
+            ok = separated if self.config.redundant_human_recovery else True
             if ok:
                 self.stop_latched = False
-                self.recovery_authorizations.append({"actor": actor, "scope": "reviewed-critical-scope"})
-            return {"ok": ok, "action": action, "actor": actor,
-                    "restored_scope": "reviewed-critical-scope" if ok else None}
+                self.recovery_authorizations.append({
+                    "operators": distinct_operators,
+                    "scope": "reviewed-critical-scope",
+                    "authorization_ref": "reference:recovery-authorization",
+                })
+            return {
+                "ok": ok,
+                "action": action,
+                "actor": actor,
+                "authenticated_operators": distinct_operators,
+                "authentication_method": auth_method if operators else None,
+                "separation_of_duties": separated,
+                "evidence_reviewed": separated and self.config.redundant_human_recovery,
+                "authorization_ref": "reference:recovery-authorization" if ok else None,
+                "evidence_ref": "reference:recovery-review" if ok else "reference:recovery-denial",
+                "restored_scope": "reviewed-critical-scope" if ok else None,
+            }
         return {"ok": False, "reason": "unsupported recovery action"}
 
 
