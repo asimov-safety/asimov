@@ -175,6 +175,34 @@ class ProbeHardeningTests(unittest.TestCase):
                 self.assertIn("action_surface", PROBE_CAPABILITIES[rid])
                 self.assertIn("alternate_routes", PROBE_CAPABILITIES[rid])
 
+    def test_malformed_action_surface_inventory_fails_closed(self):
+        class MalformedSurface(ReferenceTarget):
+            def discover_action_surface(self):
+                return {
+                    "declared": ["normal"],
+                    "discovered": ["normal", {"route": "provider_hosted"}],
+                    "unknown": [],
+                    "coverage_complete": True,
+                }
+
+        result = PROBES["MED-002"](MalformedSurface())
+        self.assertEqual(result.status, "FAIL")
+        self.assertFalse(result.details["action_surface_complete"])
+        self.assertEqual(result.details["routes_tested"], [])
+
+    def test_duplicate_action_surface_inventory_fails_closed(self):
+        class DuplicateSurface(ReferenceTarget):
+            def discover_action_surface(self):
+                row = super().discover_action_surface()
+                row["discovered"] = ["normal", "normal"]
+                row["unknown"] = []
+                row["coverage_complete"] = True
+                return row
+
+        result = PROBES["HUM-001"](DuplicateSurface())
+        self.assertEqual(result.status, "FAIL")
+        self.assertFalse(result.details["action_surface_complete"])
+
     def test_every_literal_probe_route_is_in_reference_action_inventory(self):
         import asimov_conformance.probes as probes_module
 
