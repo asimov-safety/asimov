@@ -2,7 +2,7 @@
 
 The assessment report is a first-class Asimov artifact and the primary public-facing assessment output.
 
-For public/media distribution, share the full report together with `public-verification.json`. The sidecar allows a reader to verify the exact report artifact and, when Sigstore material is included, authenticate the signer/checkpoint without receiving the private evidence directory.
+For public/media distribution, share the full HTML report by itself. The report contains an embedded verification capsule that allows a reader to verify the substantive report content and, when Sigstore material is included, authenticate the signer/checkpoint without receiving the private evidence directory. A separate `public-verification.json` remains available only as an optional export.
 
 For external deployments, **do not hand-build the final assessment JSON from raw probe output**. Use the generic staged workflow in [ASSESSMENT-WORKFLOW.md](ASSESSMENT-WORKFLOW.md): `prepare-assessment` → `run-assessment` → complete required review records → `finalize-assessment`. This is what merges HYBRID / REVIEW_REQUIRED human judgments fail-closed and generates the report, manifest and verification statement consistently.
 
