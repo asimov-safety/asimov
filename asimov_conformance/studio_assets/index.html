@@ -46,7 +46,7 @@
         <div class="overline">Assessment without hand-editing JSON</div>
         <h2>Build the evidence.<br><em>Keep the rigor.</em></h2>
       </div>
-      <p>Studio is a local interface over the same Asimov engine and files used by the CLI. Every assessment remains portable, inspectable, and independently verifiable.</p>
+      <p>Studio is a local interface over the same Asimov engine and files used by the CLI. It runs from the Asimov Python package on your computer; assessment files stay local unless you choose to share them. Every assessment remains portable, inspectable, and independently verifiable.</p>
     </section>
 
     <section class="panel" id="adapter-builder">
@@ -101,6 +101,10 @@
         <button class="button" id="aa-generate">Generate starter adapter</button>
       </div>
       <div id="aa-recommendation" class="assistant-recommendation empty-state">Choose a runtime to see how its native surfaces map to Asimov.</div>
+      <div id="aa-handoff" class="callout hidden">
+        <strong>Starter created. The important work is wiring it.</strong>
+        <p>Open the generated <code>adapter.py</code> and connect each claimed capability to the real deployment control or evidence source. The starter deliberately claims zero capabilities. When you have wired a surface, return here and run <strong>Check readiness</strong>.</p>
+      </div>
     </section>
 
     <section class="panel" id="workspace">
@@ -109,11 +113,15 @@
         <div class="section-status" id="workspace-status">Not prepared</div>
       </div>
 
+      <div id="workspace-alert" class="callout danger hidden">
+        <strong>Workspace needs attention.</strong>
+        <p id="workspace-alert-text"></p>
+      </div>
       <div class="form-grid">
         <label class="field span-2">
           <span>Workspace folder</span>
           <input id="workspace-path" type="text" value="./asimov-assessment" autocomplete="off">
-          <small>A local folder. Existing Asimov workspaces can be reopened here.</small>
+          <small>The local folder where Studio writes the assessment plan, evidence, reviews, and report. Opening it does not upload anything.</small>
         </label>
         <div class="field-actions">
           <button class="button secondary" id="open-workspace">Open workspace</button>
@@ -126,18 +134,23 @@
         <label class="field span-2">
           <span>Adapter</span>
           <input id="adapter" type="text" placeholder="./my_adapter.py:MyAdapter" autocomplete="off">
-          <small>Path or Python module plus class name. Studio does not store adapter settings in the assessment.</small>
+          <small>If you generated a starter above, Studio fills this in. Otherwise use <code>./path/to/adapter.py:ClassName</code> or <code>package.module:ClassName</code>. Adapter settings are not stored in the assessment.</small>
         </label>
         <label class="field span-2">
           <span>Adapter settings <em>session only</em></span>
           <textarea id="adapter-kwargs" rows="3" spellcheck="false">{}</textarea>
-          <small>JSON object passed to your adapter. Keep secrets here only for the current Studio session.</small>
+          <small>Usually leave this as <code>{}</code>. Only add keys your adapter constructor expects, such as an endpoint or project name. These settings are kept for this browser session and are not written into assessment artifacts.</small>
         </label>
         <label class="field">
           <span>Assurance level</span>
           <select id="level">
-            <option>A1</option><option>A2</option><option>A3</option><option>A4</option><option selected>A5</option>
+            <option value="A1">A1 — Observable</option>
+            <option value="A2">A2 — Controlled</option>
+            <option value="A3">A3 — Supervised</option>
+            <option value="A4">A4 — Hardened</option>
+            <option value="A5" selected>A5 — Critical</option>
           </select>
+          <small>Levels are cumulative assessment targets, not safety scores. Choose the level justified by the deployment and threat model.</small>
         </label>
         <label class="field">
           <span>Assessment type</span>
@@ -145,6 +158,7 @@
             <option value="self_assessment">Self-assessment</option>
             <option value="independent_assessment">Independent assessment</option>
           </select>
+          <small>This describes who is conducting the assessment. Requirements marked Third party still require a separate legal entity even if the workspace began as a self-assessment.</small>
         </label>
         <label class="field span-2">
           <span>Assessor</span>
@@ -183,7 +197,7 @@
           <textarea id="exclusions" rows="4" placeholder="One exclusion per line. Keep exclusions narrow and defensible."></textarea>
         </label>
       </div>
-      <div class="button-row"><button class="button" id="save-scope">Save scope</button></div>
+      <div class="button-row"><button class="button" id="save-scope" disabled>Save scope</button></div>
     </section>
 
     <section class="panel" id="readiness">
@@ -216,8 +230,8 @@
         </label>
       </div>
       <div class="button-row">
-        <button class="button secondary" id="acknowledge">Acknowledge obligations</button>
-        <button class="button" id="run-assessment">Run technical assessment</button>
+        <button class="button secondary" id="acknowledge" disabled>Acknowledge obligations</button>
+        <button class="button" id="run-assessment" disabled>Run technical assessment</button>
       </div>
       <div id="technical-summary" class="metric-strip"></div>
     </section>
@@ -246,13 +260,13 @@
         <div class="finish-card">
           <span class="step-number">01</span>
           <h3>Finalize assessment</h3>
-          <p>Merges technical and human results fail-closed, builds the evidence manifest, and renders the report.</p>
-          <button class="button" id="finalize">Finalize</button>
+          <p>Merges technical and human results fail-closed, builds the evidence manifest, and renders the report. You may finalize a failing or incomplete assessment; missing required review can never become PASS.</p>
+          <button class="button" id="finalize" disabled>Finalize</button>
         </div>
         <div class="finish-card">
           <span class="step-number">02</span>
           <h3>Sign public report</h3>
-          <p>Authenticate the final report with your Sigstore identity.</p>
+          <p>Authenticate who signed this exact report with Sigstore. Signing establishes provenance; it does not turn an incomplete or failing result into a pass.</p>
           <label class="mini-field"><span>Identity</span><input id="report-identity" placeholder="you@example.com"></label>
           <label class="mini-field"><span>Provider</span><select id="report-provider"><option value="google">Google</option><option value="github">GitHub</option><option value="microsoft">Microsoft</option><option value="github-actions">GitHub Actions</option><option value="custom">Custom OIDC</option></select></label>
           <label class="mini-field hidden" id="report-issuer-wrap"><span>OIDC issuer</span><input id="report-issuer"></label>
@@ -261,7 +275,7 @@
         <div class="finish-card">
           <span class="step-number">03</span>
           <h3>Verify complete package</h3>
-          <p>Checks evidence binding, family review attestations, and the package signer when present.</p>
+          <p>Checks evidence binding, family review attestations, and the package signer when present. Verification confirms integrity and provenance, not whether the underlying human judgment was correct.</p>
           <button class="button secondary" id="verify-package">Verify package</button>
           <button class="text-button" id="open-report">Open report ↗</button>
         </div>
