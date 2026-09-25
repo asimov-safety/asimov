@@ -6,6 +6,8 @@
   let state = null;
   let currentReview = null;
   let adapterCatalog = null;
+  let lastReadiness = null;
+  let readinessKey = "";
 
   const $ = (id) => document.getElementById(id);
   const val = (id) => $(id).value;
@@ -15,6 +17,19 @@
   const pretty = (s) => String(s || "").replaceAll("_", " ").toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
 
   function workspace() { return val("workspace-path").trim(); }
+  function currentReadinessKey() {
+    return JSON.stringify([val("adapter").trim(), val("adapter-kwargs").trim(), val("level")]);
+  }
+  function invalidateReadiness() {
+    lastReadiness = null;
+    readinessKey = "";
+    $("readiness-status").textContent = "Not checked";
+    $("readiness-results").classList.add("empty-state");
+    $("readiness-results").textContent = "No readiness check yet.";
+    if (state && state.prepared && !state.technical && state.status && state.status.pre_run_ready === true) {
+      $("run-status").textContent = "Readiness not checked";
+    }
+  }
 
   function selectedChoices(id) {
     return Array.from($(id).querySelectorAll('input[type="checkbox"]:checked')).map(x => x.value);
@@ -93,7 +108,9 @@
       set("adapter", result.adapter_spec);
       persistSessionFields();
       renderAdapterRecommendation(result.recommendation);
-      toast("Starter adapter created. Studio populated the Adapter field; wire real controls before running doctor.");
+      $("aa-handoff").classList.remove("hidden");
+      invalidateReadiness();
+      toast("Starter adapter created. Studio populated the Adapter field; wire real controls before checking readiness.");
       document.querySelector("#workspace").scrollIntoView({behavior: "smooth"});
     } finally { busy(false); }
   }
@@ -170,12 +187,31 @@
     const status = (state && state.status) || {};
     const scope = (state && state.scope) || {};
     const reviews = (state && state.reviews) || [];
+    const broken = !!(state && state.status_error);
+    const usable = prepared && !broken;
+    const readinessCurrent = lastReadiness && readinessKey === currentReadinessKey();
 
-    $("state-pill").textContent = prepared ? ((plan.requested_profile || "") + " · " + pretty(plan.state || "prepared")) : "No workspace";
-    $("workspace-status").textContent = prepared ? "Prepared" : "Not prepared";
-    $("scope-status").textContent = prepared ? (scope.scope_description ? "Defined" : "Needs description") : "Workspace required";
-    $("run-status").textContent = state && state.technical ? "Technical run complete" : prepared ? "Ready when acknowledged" : "Not run";
-    $("finish-status").textContent = state && state.finalized ? pretty((state.result && state.result.reported_outcome) || "Finalized") : "Not finalized";
+    $("state-pill").textContent = broken ? "Workspace error" : prepared ? ((plan.requested_profile || "") + " · " + pretty(plan.state || "prepared")) : "No workspace";
+    $("workspace-status").textContent = broken ? "Needs attention" : prepared ? "Prepared" : "Not prepared";
+    $("scope-status").textContent = broken ? "Workspace error" : prepared ? (scope.scope_description ? "Defined" : "Needs description") : "Workspace required";
+
+    const alert = $("workspace-alert");
+    alert.classList.toggle("hidden", !broken);
+    $("workspace-alert-text").textContent = broken ? state.status_error : "";
+
+    if (state && state.technical) $("run-status").textContent = "Technical run complete";
+    else if (broken) $("run-status").textContent = "Workspace error";
+    else if (!prepared) $("run-status").textContent = "Not run";
+    else if (status.pre_run_ready !== true) $("run-status").textContent = "Acknowledgement required";
+    else if (readinessCurrent && lastReadiness.ready) $("run-status").textContent = "Ready to run";
+    else if (readinessCurrent) $("run-status").textContent = "Readiness blockers";
+    else $("run-status").textContent = "Readiness not checked";
+
+    $("save-scope").disabled = !usable;
+    $("acknowledge").disabled = !usable;
+    $("run-assessment").disabled = !usable || status.pre_run_ready !== true;
+    $("check-readiness").disabled = !val("adapter").trim();
+    ["level", "mode", "assessor", "subject-org", "assessor-org"].forEach(id => { $(id).disabled = prepared; });
 
     if (prepared) {
       if (!val("adapter")) set("adapter", plan.adapter_spec || "");
@@ -202,9 +238,12 @@
       return;
     }
     const family = reviews.filter(r => r.item_type === "requirement");
+    const preconditions = reviews.filter(r => r.item_type === "precondition");
     const complete = family.filter(r => ["PASS","FAIL"].includes(r.decision) && r.signed).length;
-    $("reviews-status").textContent = family.length ? (complete + " / " + family.length + " signed decisions") : "No family reviews";
-    if (status.pre_run_ready === false) $("run-status").textContent = "Acknowledgement required";
+    const preDecided = preconditions.filter(r => ["PASS","FAIL","INCONCLUSIVE"].includes(r.decision)).length;
+    const familyText = family.length ? (complete + " / " + family.length + " family attestations") : "No family reviews";
+    const preText = preconditions.length ? (preDecided + " / " + preconditions.length + " preconditions decided") : "No preconditions";
+    $("reviews-status").textContent = familyText + " · " + preText;
   }
 
   function badgeClass(decision) {
@@ -247,10 +286,18 @@
 
   function renderFinish() {
     const finalized = !!(state && state.finalized);
-    $("finalize").disabled = !(state && state.technical);
-    $("sign-report").disabled = !finalized;
-    $("verify-package").disabled = !finalized;
+    const broken = !!(state && state.status_error);
+    const status = (state && state.status) || {};
+    $("finalize").disabled = !(state && state.technical) || broken;
+    $("sign-report").disabled = !finalized || broken;
+    $("verify-package").disabled = !finalized || broken;
     $("open-report").disabled = !(state && state.artifacts && state.artifacts["report.html"]);
+    const pending = (status.pending_requirement_reviews || []).length + (status.pending_preconditions || []).length;
+    if (!finalized && state && state.technical) {
+      $("finish-status").textContent = pending
+        ? (pending + " review decisions still pending")
+        : "Decisions entered · final checks run on finalize";
+    }
     const sig = state && state.report_signature;
     if (sig && sig.signed) {
       $("finish-status").textContent = pretty((state.result && state.result.reported_outcome) || "Finalized") + " · report signed";
@@ -295,12 +342,16 @@
     busy(true, "Checking readiness…", "Studio is comparing the adapter's real capabilities with the requested profile.");
     try {
       const result = await apiPost("/api/readiness", a);
+      lastReadiness = result;
+      readinessKey = currentReadinessKey();
       $("readiness-status").textContent = result.ready ? "Ready to test" : (result.blockers + " blockers");
       $("readiness-results").innerHTML = result.findings.map(f =>
         '<div class="result-row"><code>' + escapeHtml(f.requirement_id) + '</code>' +
         '<div class="result-state ' + (f.state === "READY_TO_TEST" ? "ok" : "bad") + '">' + escapeHtml(pretty(f.state)) + '</div>' +
         '<p>' + escapeHtml(f.remediation) + '</p></div>'
       ).join("");
+      $("readiness-results").classList.remove("empty-state");
+      if (state && state.prepared && !state.technical) renderState();
       toast(result.ready ? "No capability blockers detected." : (result.blockers + " readiness blockers found."), !result.ready);
     } finally { busy(false); }
   }
@@ -537,7 +588,19 @@
     $("review-sign-provider").addEventListener("change", () => $("review-sign-issuer").classList.toggle("hidden", val("review-sign-provider") !== "custom"));
     $("report-provider").addEventListener("change", () => $("report-issuer-wrap").classList.toggle("hidden", val("report-provider") !== "custom"));
 
-    ["adapter","adapter-kwargs","workspace-path"].forEach(id => $(id).addEventListener("change", persistSessionFields));
+    ["adapter","adapter-kwargs"].forEach(id => $(id).addEventListener("change", () => {
+      persistSessionFields();
+      invalidateReadiness();
+      $("check-readiness").disabled = !val("adapter").trim();
+    }));
+    $("level").addEventListener("change", invalidateReadiness);
+    $("workspace-path").addEventListener("change", () => {
+      persistSessionFields();
+      state = null;
+      currentReview = null;
+      invalidateReadiness();
+      renderState();
+    });
     document.querySelectorAll(".rail nav a").forEach(a => a.addEventListener("click", () => {
       document.querySelectorAll(".rail nav a").forEach(x => x.classList.remove("active"));
       a.classList.add("active");
