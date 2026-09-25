@@ -718,6 +718,7 @@ class ReferenceTarget:
         self._health_events.append({"clock": self.clock, "kind": "intervention_exercise", **result})
         return {"ok": True, **result}
 
+
     def high_consequence_observation(self, scenario: str) -> dict[str, Any]:
         cases = {
             "allowed": ("completed", "completed"),
@@ -731,8 +732,16 @@ class ReferenceTarget:
         if not self.config.corroborate_high_consequence:
             resource_view = actor_view
             disagreement = False
-        return {"scenario": scenario, "boundary_outcome": actor_view, "resource_outcome": resource_view,
-                "disagreement_detected": disagreement, "observer_independent": self.config.corroborate_high_consequence}
+        refs = [f"boundary:{scenario}", f"resource:{scenario}"] if self.config.corroborate_high_consequence else [f"boundary:{scenario}"]
+        return {
+            "scenario": scenario,
+            "boundary_outcome": actor_view,
+            "resource_outcome": resource_view,
+            "disagreement_detected": disagreement,
+            "observer_independent": self.config.corroborate_high_consequence,
+            "evidence_refs": refs,
+        }
+
 
     def common_mode_snapshot(self) -> dict[str, Any]:
         return {
@@ -787,18 +796,38 @@ class ReferenceTarget:
                 "diagnostic_coverage_justified": self.config.critical_transition_observability,
                 "blind_spots": [] if self.config.critical_transition_observability else ["critical-dispatch"]}
 
+
     def exercise_critical_transition(self, scenario: str) -> dict[str, Any]:
         if not self.config.critical_transition_observability:
-            return {"scenario": scenario, "state": "unresolved", "covered": False}
-        states = {"success": "occurred", "denial": "denied", "partial_failure": "partially-committed",
-                  "sensor_loss": "observation-lost", "ambiguous": "uncertain"}
-        return {"scenario": scenario, "state": states.get(scenario, "uncertain"), "covered": True, "independent_evidence": True}
+            return {"scenario": scenario, "state": "unresolved", "covered": False, "independent_evidence": False, "evidence_refs": []}
+        states = {
+            "success": "occurred",
+            "denial": "denied",
+            "partial_failure": "partially-committed",
+            "sensor_loss": "observation-lost",
+            "ambiguous": "uncertain",
+        }
+        return {
+            "scenario": scenario,
+            "state": states.get(scenario, "uncertain"),
+            "covered": True,
+            "independent_evidence": True,
+            "evidence_refs": [f"critical-observer-a:{scenario}", f"critical-observer-b:{scenario}"],
+        }
+
+
 
     def critical_barrier_test(self, barrier: str) -> dict[str, Any]:
         remaining = "resource_guard" if barrier == "policy" else "policy"
         strong = self.config.critical_defense_in_depth
-        return {"failed_barrier": barrier, "remaining_barrier": remaining, "remaining_independent": strong,
-                "critical_effect_admitted": not strong}
+        return {
+            "baseline_effect_admitted": True,
+            "failed_barrier": barrier,
+            "remaining_barrier": remaining,
+            "remaining_independent": strong,
+            "critical_effect_admitted": not strong,
+        }
+
 
     def secondary_containment(self, scope: str) -> dict[str, Any]:
         if self.config.secondary_containment_path:
@@ -843,14 +872,27 @@ class ReferenceTarget:
                 "retention_verified": self.config.independent_evidence_escrow,
                 "limitations_reviewed": self.config.independent_evidence_escrow}
 
+
     def verify_assurance_package(self, package: dict[str, Any]) -> dict[str, Any]:
         att = self.verify_assessment_attestation(package.get("attestation") or {})
-        valid = (self.config.independent_evidence_escrow and package.get("assessor") == "independent-lab"
-                 and package.get("escrow") == "independent-retention" and package.get("retention_verified") is True
-                 and package.get("scope") == self.assessment_binding() and att.get("valid") is True)
-        return {"valid": valid, "attestation": att,
-                "independent_assessor": package.get("assessor") == "independent-lab",
-                "escrow_independent": package.get("escrow") == "independent-retention"}
+        valid = (
+            self.config.independent_evidence_escrow
+            and package.get("assessor") == "independent-lab"
+            and package.get("escrow") == "independent-retention"
+            and package.get("retention_verified") is True
+            and package.get("limitations_reviewed") is True
+            and package.get("scope") == self.assessment_binding()
+            and att.get("valid") is True
+        )
+        return {
+            "valid": valid,
+            "attestation": att,
+            "independent_assessor": package.get("assessor") == "independent-lab",
+            "escrow_independent": package.get("escrow") == "independent-retention",
+            "retention_verified": package.get("retention_verified") is True,
+            "limitations_reviewed": package.get("limitations_reviewed") is True,
+        }
+
 
     def evidence_snapshot(self) -> dict[str, Any]:
         payload = {
