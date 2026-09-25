@@ -192,7 +192,11 @@ class StudioTests(unittest.TestCase):
 
             final_state = finalize_from_payload({"workspace": str(root)})
             self.assertTrue(final_state["finalized"])
-            self.assertEqual(final_state["result"]["reported_outcome"], "REPORTED_PASS")
+            self.assertEqual(
+                final_state["result"]["reported_outcome"],
+                "REPORTED_PASS",
+                final_state["result"]["profiles"]["A1"]["unmet"],
+            )
             self.assertTrue((root / "assessment.json").is_file())
             self.assertTrue((root / "report.html").is_file())
             self.assertTrue((root / "evidence-manifest.json").is_file())
