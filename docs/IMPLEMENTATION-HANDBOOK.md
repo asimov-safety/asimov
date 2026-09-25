@@ -69,7 +69,13 @@ Every missing mandatory surface is a blocker with remediation. Wire the missing 
 
 # Common framework patterns
 
-## OpenAI Agents SDK
+## OpenAI Agents API / Agents SDK
+
+OpenAI now distinguishes a managed **Agents API** from the application-hosted **Agents SDK**. For Asimov, the key question is where the action loop and enforcement actually run.
+
+**Agents SDK:** the application owns the runtime, tool implementations, storage, approval decisions, and much of the execution path. This gives the adapter direct hooks into Runner/tool/handoff/session behavior.
+
+**Agents API:** the managed harness becomes an additional provider-controlled action surface. Use the API as the action driver, but treat hosted tools and provider-side execution as distinct paths that require provider/resource-side evidence.
 
 **Use for:** agent loop, tools, handoffs, sessions, tracing, human-in-the-loop.
 
@@ -101,6 +107,40 @@ OpenTelemetry + DB log -> EvidenceOracle
 ```
 
 A1/A2 can usually be added with limited application changes. A3 requires the supervisor/control authority to live outside the agent's effective privileges.
+
+---
+
+## Claude Agent SDK
+
+Recommended mapping:
+
+- SDK client/session -> action driver;
+- tool permission configuration -> declared capability surface;
+- PreToolUse/PostToolUse hooks -> proposal/dispatch evidence and policy hooks;
+- separate IAM/OS/cloud controls -> enforceable authority;
+- target database/API/filesystem -> independent effect oracle;
+- external supervisor process/service -> A3+.
+
+Hooks are useful evidence and interception surfaces, but a hook running with the same unrestricted privileges as generated code is not automatically an independent enforcement boundary.
+
+Official platform: https://platform.claude.com/
+
+---
+
+## Google Agent Development Kit (ADK)
+
+Recommended mapping:
+
+- ADK runner / workflow -> action driver;
+- before/after agent, model, and tool callbacks -> orchestration evidence and mediation hooks;
+- session/event service -> lifecycle evidence;
+- Vertex/Google Cloud service account -> actor identity and authority;
+- Agent Runtime sandbox / Cloud Run / GKE -> execution and lifecycle boundary;
+- Cloud Audit Logs + protected resource state -> independent evidence.
+
+ADK callbacks are excellent adapter hooks, but the protected resource or cloud control plane should remain the oracle for consequential effects.
+
+Official documentation: https://google.github.io/adk-docs/
 
 ---
 
