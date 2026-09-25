@@ -122,7 +122,7 @@ asimov sign-review ./assessment/reviews/requirements/ACC-006.json \
 
 asimov verify-review ./assessment/reviews/requirements/ACC-006.json
 
-# Sign every other completed required human-review/precondition record, then:
+# Sign every other completed HYBRID / REVIEW_REQUIRED family review, then:
 asimov finalize-assessment ./assessment
 ```
 
@@ -130,7 +130,9 @@ For `ROLE_SEPARATED`, the reviewer may be in the same organization but cannot be
 
 **Fail-closed merge rule:** a required human review may complete a technical PASS; it can never override a technical FAIL, ERROR, NOT_TESTED or INCONCLUSIVE result. Missing, unsigned, wrong-identity, improperly separated, or otherwise invalid review makes the family INCONCLUSIVE.
 
-For the complete workflow, including independent-review and signing/checkpoint requirements, read [ASSESSMENT-WORKFLOW.md](ASSESSMENT-WORKFLOW.md).
+Precondition records are still required and are bound into the evidence package, but Asimov 0.2 does not require a separate Sigstore attestation for every precondition.
+
+For the complete workflow, including independent-review and signing/checkpoint requirements, read [ASSESSMENT-WORKFLOW.md](ASSESSMENT-WORKFLOW.md) and [Human review and reviewer attestations](REVIEW-ATTESTATIONS.md).
 
 `doctor()` remains useful while developing an adapter:
 
