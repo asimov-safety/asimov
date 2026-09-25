@@ -206,6 +206,9 @@ class ProbeHardeningTests(unittest.TestCase):
             "independent_assurance_package": "independent_assurance",
             "verify_assurance_package": "independent_assurance",
         }
+        helper_capabilities = {
+            "_action_route_inventory": {"action_surface"},
+        }
         failures = []
         for rid, probe in PROBES.items():
             source = inspect.getsource(probe)
@@ -213,6 +216,11 @@ class ProbeHardeningTests(unittest.TestCase):
             for method, capability in method_capability.items():
                 if f"adapter.{method}(" in source and capability not in declared:
                     failures.append(f"{rid}: {method} requires capability {capability}")
+            for helper, capabilities in helper_capabilities.items():
+                if f"{helper}(" in source:
+                    for capability in capabilities:
+                        if capability not in declared:
+                            failures.append(f"{rid}: helper {helper} requires capability {capability}")
         self.assertEqual(failures, [])
 
 
