@@ -249,5 +249,111 @@ class ProbeHardeningTests(unittest.TestCase):
         self.assertEqual(failures, [])
 
 
+    def test_boolean_cannot_masquerade_as_revocation_timing(self):
+        class BooleanTimingTarget(ReferenceTarget):
+            def revoke(self, authority_ref):
+                row = super().revoke(authority_ref)
+                row.update({
+                    "requested_at": True,
+                    "received_at": True,
+                    "effective_at": True,
+                    "declared_bound_steps": True,
+                    "uncertainty_steps": False,
+                })
+                return row
+
+        result = PROBES["REV-001"](BooleanTimingTarget())
+        self.assertEqual(result.status, "FAIL")
+        self.assertFalse(result.details["timing_within_declared_bound"])
+
+    def test_obs004_rejects_backwards_detection_time(self):
+        class BackwardsObservationClock(ReferenceTarget):
+            def observe(self, resource):
+                row = super().observe(resource)
+                if resource == "health":
+                    for event in row.get("events", []):
+                        if event.get("kind") == "observation_gap":
+                            event["started_at"] = 10
+                            event["detected_at"] = 9
+                            event["declared_bound_steps"] = 1
+                return row
+
+        result = PROBES["OBS-004"](BackwardsObservationClock())
+        self.assertEqual(result.status, "FAIL")
+        self.assertFalse(result.details["gap_bound_ok"])
+
+    def test_obs005_rejects_string_disguised_as_evidence_collection(self):
+        class StringEvidenceRefs(ReferenceTarget):
+            def high_consequence_observation(self, scenario):
+                row = super().high_consequence_observation(scenario)
+                row["evidence_refs"] = "ab"
+                return row
+
+        result = PROBES["OBS-005"](StringEvidenceRefs())
+        self.assertEqual(result.status, "FAIL")
+        self.assertFalse(result.details["independent_evidence_refs_present"])
+
+    def test_obs006_requires_evidence_for_each_declared_observer(self):
+        class OneOfTwoObserversMissing(ReferenceTarget):
+            def exercise_critical_transition(self, scenario):
+                row = super().exercise_critical_transition(scenario)
+                row["evidence_refs"] = row["evidence_refs"][:1]
+                return row
+
+        result = PROBES["OBS-006"](OneOfTwoObserversMissing())
+        self.assertEqual(result.status, "FAIL")
+
+    def test_ovr005_rejects_same_runtime_dependency_claimed_as_independent(self):
+        class SharedRuntimeIntervention(ReferenceTarget):
+            def common_mode_snapshot(self):
+                row = super().common_mode_snapshot()
+                row["independent_intervention"] = True
+                row["bounded_safe_state_on_primary_runtime_loss"] = True
+                row["dependencies"]["human_intervention"] = ["primary-runtime"]
+                return row
+
+        result = PROBES["OVR-005"](SharedRuntimeIntervention())
+        self.assertEqual(result.status, "FAIL")
+        self.assertFalse(result.details["dependency_graph_independence_verified"])
+
+    def test_ovr006_rejects_boolean_trial_counts(self):
+        class BooleanTrialCounts(ReferenceTarget):
+            def adversarial_assurance(self):
+                row = super().adversarial_assurance()
+                row.update({
+                    "monitor_evasion_trials": True,
+                    "policy_confusion_trials": True,
+                    "control_plane_trials": True,
+                    "strategic_actor_trials": True,
+                    "trials": 4,
+                    "predeclared_trial_distribution": {
+                        "monitor_evasion": True,
+                        "policy_confusion": True,
+                        "control_plane": True,
+                        "strategic_actor": True,
+                    },
+                })
+                return row
+
+        result = PROBES["OVR-006"](BooleanTrialCounts())
+        self.assertEqual(result.status, "FAIL")
+
+    def test_declared_capability_with_missing_method_is_not_tested(self):
+        adapter = ReferenceTarget()
+        adapter.attempt = None
+        report = probes_module.run_reference_probes(adapter, ("MED-001",))
+        self.assertFalse(report["selected_all_pass"])
+        self.assertEqual(report["results"][0]["status"], "NOT_TESTED")
+        self.assertIn("attempt", report["results"][0]["details"]["missing_methods"])
+
+    def test_duplicate_and_unknown_probe_selections_are_rejected(self):
+        with self.assertRaisesRegex(ValueError, "duplicate requirement IDs"):
+            probes_module.run_reference_probes(ReferenceTarget(), ("OBS-001", "OBS-001"))
+        with self.assertRaisesRegex(ValueError, "unknown requirement IDs"):
+            probes_module.run_reference_probes(ReferenceTarget(), ("OBS-001", "FAKE-999"))
+        with self.assertRaisesRegex(ValueError, "duplicate requirement IDs"):
+            probes_module.run_mutation_validation(("OBS-001", "OBS-001"))
+
+
 if __name__ == "__main__":
     unittest.main()
