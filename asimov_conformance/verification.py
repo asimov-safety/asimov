@@ -391,6 +391,7 @@ def verify_public_report(
             "requested_profile": predicate.get("requestedProfile"),
             "reported_outcome": predicate.get("reportedOutcome"),
             "assessment_mode": predicate.get("assessmentMode"),
+            "assessor": predicate.get("assessor"),
             "assessment_created_at": predicate.get("assessmentCreatedAt"),
             "configuration_sha256": (predicate.get("system") or {}).get("configurationSha256"),
             "scope_manifest_sha256": predicate.get("scopeManifestSha256"),
