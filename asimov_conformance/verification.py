@@ -10,7 +10,7 @@ import subprocess
 from typing import Any, Iterable
 
 from .evidence import sha256_file, verify_evidence_manifest, verify_manifest_self_digest
-from .gate import SPEC_VERSION, evaluate_report, load_report, validate_report
+from .gate import SPEC_VERSION, catalog, evaluate_report, load_report, validate_report
 
 STATEMENT_TYPE = "https://in-toto.io/Statement/v1"
 PREDICATE_TYPE = "https://asimov-safety.github.io/asimov/attestation/v0.2"
@@ -537,6 +537,18 @@ def verify_review_attestation(
 
     requirement = str(record.get("review_requirement", "HUMAN"))
     semantic_errors: list[str] = []
+    if record.get("item_type") == "requirement":
+        item_id = str(record.get("item_id", ""))
+        row = next((r for r in catalog()["requirements"] if r.get("id") == item_id), None)
+        if row is None:
+            semantic_errors.append(f"unknown Asimov requirement id: {item_id or '<missing>'}")
+        else:
+            expected_requirement = str(row.get("review_requirement", "NONE"))
+            if requirement != expected_requirement:
+                semantic_errors.append(
+                    f"catalog requires {expected_requirement} review for {item_id}, "
+                    f"but the signed record declares {requirement}"
+                )
     if requirement == "ROLE_SEPARATED" and record.get("role_separated_from_implementation") is not True:
         semantic_errors.append("ROLE_SEPARATED review does not attest separation from implementation")
     if requirement == "THIRD_PARTY":
