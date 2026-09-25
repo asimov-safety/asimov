@@ -78,7 +78,6 @@ class AssessmentWorkflowTests(unittest.TestCase):
                 item["status"] = "PASS"
                 item["evidence_refs"] = [f"manual/{name}.txt"]
             path.write_text(json.dumps(record, indent=2) + "\n")
-            path.with_suffix(".sigstore.json").write_text("{}\n")
 
         for rid in plan["human_review_requirements"]:
             path = root / "reviews" / "requirements" / f"{rid}.json"
@@ -184,6 +183,22 @@ class AssessmentWorkflowTests(unittest.TestCase):
             self.assertTrue((root / "asimov-statement.json").exists())
             self.assertTrue((root / "public-verification.json").exists())
             self.assertTrue((root / "VERIFICATION-INSTRUCTIONS.md").exists())
+
+    def test_missing_family_review_attestation_keeps_profile_incomplete(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "assessment"
+            adapter = self._prepare(root, "A1")
+            self._acknowledge(root)
+            run_assessment(adapter, root)
+            self._complete_reviews(root)
+
+            bundle = root / "reviews" / "requirements" / "OBS-001.sigstore.json"
+            bundle.unlink()
+
+            result = finalize_assessment(root)
+            findings = {x["requirement_id"]: x for x in result["findings"]}
+            self.assertEqual(findings["OBS-001"]["status"], "INCONCLUSIVE")
+            self.assertEqual(result["profiles"]["A1"]["state"], "REPORTED_INCOMPLETE")
 
     def test_independence_required_review_rejects_self_assessment(self):
         with tempfile.TemporaryDirectory() as tmp:
