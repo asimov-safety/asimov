@@ -65,7 +65,43 @@ asimov doctor --level A3
 
 Every missing mandatory surface is a blocker with remediation. Wire the missing real control, then rerun.
 
+### 6. Plan the human-review boundary
+
+Human review is part of the implementation, not an after-the-fact comment box. Before a real assessment, identify:
+
+| Catalog review requirement | Implementation consequence |
+|---|---|
+| `NONE` | No family-specific human adjudication |
+| `HUMAN` | Assign a named competent reviewer |
+| `ROLE_SEPARATED` | Assign someone outside the implementation/control-owner role |
+| `THIRD_PARTY` | Engage a separate legal entity from the Assessment Subject |
+
+For every human-reviewed item, preserve the reviewer name, role, organization, Assessment Subject organization, evidence references, rationale, decision, and expected Sigstore signing identity. `THIRD_PARTY` additionally requires signed declarations covering legal-entity separation, subject control of the assessment, outcome-contingent compensation, and disclosed conflicts.
+
+Do not use a different employee and call it third-party. Do not use an outside contractor as third-party if the Assessment Subject controls the finding. Payment by the Assessment Subject is allowed; payment contingent on a passing result is not.
+
+### 7. Sign each completed review
+
+The reviewer signs the **review record**, not merely the final report:
+
+```bash
+asimov sign-review reviews/requirements/ACC-006.json \
+  --provider google \
+  --identity reviewer@example.org
+```
+
+This creates a companion `.sigstore.json` bundle. The same command applies to generated precondition records.
+
+Verify a review directly:
+
+```bash
+asimov verify-review reviews/requirements/ACC-006.json
+```
+
+A valid signature establishes the authenticated signer and binds the exact record. It does not independently prove undisclosed corporate relationships or conflicts.
+
 ---
+
 
 # Common framework patterns
 
@@ -376,40 +412,58 @@ The top-level adapter composes the providers. Framework-specific code stays in t
 
 ---
 
-# Verification and report workflow
+# Assessment, review, and verification workflow
+
+For external deployments, prefer the staged workflow because it generates the correct review records and binds their attestations into the evidence package.
 
 ```bash
-# 1. Produce the assessment report and shareable summary.
-asimov report assessment.json \
-  --json-output assessment.result.json \
-  --html-output asimov-report.html \
-  --summary-output asimov-summary.html
+# 1. Prepare scope, review obligations, and organization identities.
+asimov prepare-assessment \
+  --adapter ./my_adapter.py:MyAdapter \
+  --level A5 \
+  --assessor "Assessment Team" \
+  --subject-organization "Example AI Corp" \
+  --assessor-organization "Independent Safety Labs" \
+  --mode independent_assessment \
+  --output ./assessment
 
-# 2. Bind the evidence directory.
-asimov evidence-manifest ./evidence --output evidence-manifest.json
+# 2. Acknowledge obligations, run probes, and complete the generated JSON reviews.
+asimov acknowledge-assessment ./assessment \
+  --reviewer "Assessment Lead" \
+  --reviewer-role "Lead assessor"
 
-# 3. Bind assessment + evidence + report into a verification statement.
-asimov verification-statement assessment.json \
-  --evidence-manifest evidence-manifest.json \
-  --report asimov-report.html \
-  --report asimov-summary.html \
-  --output asimov-statement.json
+asimov run-assessment ./assessment --adapter ./my_adapter.py:MyAdapter
 
-# 4. Sign through Sigstore.
-asimov sigstore-sign asimov-statement.json --bundle asimov.sigstore.json
+# 3. After each human decision is complete, sign its exact record.
+asimov sign-review assessment/reviews/requirements/ACC-006.json \
+  --provider google \
+  --identity reviewer@independent.example
 
-# 5. Verify the complete package.
+# Repeat sign-review for every completed human-review and precondition record.
+
+# 4. Finalize only after required review attestations exist.
+asimov finalize-assessment ./assessment
+
+# 5. Authenticate the overall package/report.
+cd assessment
+asimov sign-report report.html \
+  --statement asimov-statement.json \
+  --provider google \
+  --identity assessor@independent.example
+
+# 6. Verify evidence binding, package provenance, and all review attestations.
 asimov verify-package assessment.json \
   --evidence-manifest evidence-manifest.json \
   --evidence-root ./evidence \
   --statement asimov-statement.json \
-  --report asimov-report.html \
-  --report asimov-summary.html \
+  --report report.html \
   --bundle asimov.sigstore.json \
-  --certificate-identity assessor@example.com \
+  --certificate-identity assessor@independent.example \
   --certificate-oidc-issuer https://accounts.google.com \
   --json-output verification-receipt.json \
   --html-output verification-receipt.html
 ```
 
-The same local binding checks are available on the Asimov website's **Verify** page.
+`verify-package` checks each copied review record's companion Sigstore attestation in addition to evidence integrity, report/scope binding, and the package signer. Cosign verification is invoked with in-toto subject claim checking enabled.
+
+For public readers, the website remains static. The definitive cryptographic signer check is performed locally with `asimov verify-report`; no Asimov verification service is required.
