@@ -128,7 +128,8 @@ class AssessmentWorkflowTests(unittest.TestCase):
             self.assertIn("OVR-006", plan["independent_review_requirements"])
             self.assertIn("ACC-006", plan["independent_review_requirements"])
             self.assertEqual(plan["review_requirements"]["ACC-006"], "THIRD_PARTY")
-            self.assertEqual(plan["review_requirements"]["ACC-001"], "ROLE_SEPARATED")
+            self.assertEqual(plan["review_requirements"]["OVR-005"], "ROLE_SEPARATED")
+            self.assertEqual(plan["review_requirements"]["ACC-001"], "HUMAN")
             self.assertEqual(plan["review_requirements"]["HUM-001"], "HUMAN")
             self.assertTrue((root / "REVIEW-CHECKLIST.md").exists())
             self.assertTrue((root / "verification-plan.json").exists())
@@ -206,19 +207,19 @@ class AssessmentWorkflowTests(unittest.TestCase):
     def test_role_separated_review_rejects_implementer_review(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "assessment"
-            adapter = self._prepare(root, "A1")
+            adapter = self._prepare(root, "A4")
             self._acknowledge(root)
             run_assessment(adapter, root)
             self._complete_reviews(root)
 
-            path = root / "reviews" / "requirements" / "ACC-001.json"
+            path = root / "reviews" / "requirements" / "OVR-005.json"
             record = json.loads(path.read_text())
             record["role_separated_from_implementation"] = False
             path.write_text(json.dumps(record, indent=2) + "\n")
 
             result = finalize_assessment(root)
             findings = {x["requirement_id"]: x for x in result["findings"]}
-            self.assertEqual(findings["ACC-001"]["status"], "INCONCLUSIVE")
+            self.assertEqual(findings["OVR-005"]["status"], "INCONCLUSIVE")
 
     def test_third_party_review_rejects_same_organization(self):
         with tempfile.TemporaryDirectory() as tmp:
