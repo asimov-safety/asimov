@@ -602,6 +602,7 @@ class ReferenceTarget:
                     "clock": self.clock,
                     "kind": "sequence_gap",
                     "target": target,
+                    "started_at": self.clock,
                     "detected_at": self.clock,
                     "declared_bound_steps": self.observation_detection_bound_steps,
                     "uncertainty": "evidence-sequence-incomplete",
