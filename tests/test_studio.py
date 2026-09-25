@@ -109,6 +109,26 @@ class StudioTests(unittest.TestCase):
             self.assertEqual(reread["plan"]["assessor"], "Studio Test")
             self.assertFalse(reread["finalized"])
 
+    def test_workspace_state_surfaces_corrupt_scope_without_crashing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "assessment"
+            prepare_from_payload({
+                "workspace": str(root),
+                "adapter": "asimov_conformance.reference_target:ReferenceTarget",
+                "adapter_kwargs": {},
+                "level": "A1",
+                "assessor": "Studio Test",
+                "subject_organization": "Target Org",
+                "assessor_organization": "Target Org",
+                "mode": "self_assessment",
+            })
+            (root / "scope.json").write_text("{not-json", encoding="utf-8")
+            state = workspace_state(root)
+            self.assertTrue(state["prepared"])
+            self.assertIsNone(state["scope"])
+            self.assertIn("Scope file cannot be read", state["status_error"])
+            self.assertIn("artifacts", state)
+
     def test_editing_review_invalidates_existing_attestation(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "assessment"
