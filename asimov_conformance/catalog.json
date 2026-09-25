@@ -475,7 +475,7 @@
         "REVIEW_EXERCISE"
       ],
       "automation": "HYBRID",
-      "review_requirement": "ROLE_SEPARATED"
+      "review_requirement": "HUMAN"
     },
     {
       "id": "ACC-002",
@@ -513,7 +513,7 @@
         "DATA_HANDLING_REVIEW"
       ],
       "automation": "HYBRID",
-      "review_requirement": "ROLE_SEPARATED"
+      "review_requirement": "HUMAN"
     },
     {
       "id": "ACC-004",
@@ -532,7 +532,7 @@
         "CHANGE_IMPACT_REVIEW"
       ],
       "automation": "HYBRID",
-      "review_requirement": "ROLE_SEPARATED"
+      "review_requirement": "HUMAN"
     },
     {
       "id": "OBS-005",
@@ -552,7 +552,7 @@
       ],
       "automation": "HYBRID",
       "implementation_status": "REFERENCE_PROBE_IMPLEMENTED",
-      "review_requirement": "HUMAN"
+      "review_requirement": "ROLE_SEPARATED"
     },
     {
       "id": "MED-005",
@@ -572,7 +572,7 @@
       ],
       "automation": "HYBRID",
       "implementation_status": "REFERENCE_PROBE_IMPLEMENTED",
-      "review_requirement": "HUMAN"
+      "review_requirement": "ROLE_SEPARATED"
     },
     {
       "id": "REV-005",
@@ -652,7 +652,7 @@
       ],
       "automation": "HYBRID",
       "implementation_status": "REFERENCE_PROBE_IMPLEMENTED",
-      "review_requirement": "HUMAN"
+      "review_requirement": "ROLE_SEPARATED"
     },
     {
       "id": "ACC-005",
@@ -691,7 +691,7 @@
       ],
       "automation": "REVIEW_REQUIRED",
       "implementation_status": "REFERENCE_PROBE_IMPLEMENTED",
-      "review_requirement": "HUMAN"
+      "review_requirement": "ROLE_SEPARATED"
     },
     {
       "id": "MED-006",
@@ -731,7 +731,7 @@
       ],
       "automation": "HYBRID",
       "implementation_status": "REFERENCE_PROBE_IMPLEMENTED",
-      "review_requirement": "HUMAN"
+      "review_requirement": "ROLE_SEPARATED"
     },
     {
       "id": "OVR-006",
@@ -771,7 +771,7 @@
       ],
       "automation": "HYBRID",
       "implementation_status": "REFERENCE_PROBE_IMPLEMENTED",
-      "review_requirement": "HUMAN"
+      "review_requirement": "ROLE_SEPARATED"
     },
     {
       "id": "HUM-006",
