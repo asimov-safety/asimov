@@ -10,14 +10,13 @@ For ordinary public, media, customer, procurement, or policy use, distribute **o
 report.html
 ```
 
-The HTML report contains a non-visible Asimov public verification capsule. The capsule is excluded from the report-content digest so it can carry the statement/signature without creating a cryptographic self-reference.
+The HTML report contains a non-visible verification record. In plain terms, that record lets Asimov answer:
 
-The embedded public verification record contains:
+- **Has this report been changed since it was issued?**
+- **Who signed this report?** when a signature is attached and successfully checked;
+- **Which assessment does this report belong to?**
 
-- the report SHA-256 digest;
-- the **exact bytes** of the Asimov verification statement;
-- the assessment/report binding carried by that statement;
-- optionally, the Sigstore bundle plus expected signer identity and OIDC issuer.
+The low-level hashes, statement bytes, Sigstore bundle, signer identity fields, and issuer fields are still retained for technical verification, but they are not the public-facing explanation.
 
 It does **not** contain the private evidence directory.
 
@@ -33,17 +32,11 @@ The public Verify page exposes the same one-file workflow.
 
 ### What public verification establishes
 
-If the report digest matches but no signature is present:
+If the report check succeeds but no signature is present, Asimov can say the report content is unchanged from the issued assessment record.
 
-- the report is byte-for-byte consistent with the supplied public verification record;
-- the statement binds the report to a specific report ID, system/configuration digest, scope digest, requested profile, reported outcome, assessment mode, assessor claim, and evidence-manifest commitment;
-- signer provenance is **not authenticated**.
+If the Sigstore signature also verifies, Asimov can additionally say which authenticated account signed the assessment record.
 
-If Sigstore verification also succeeds:
-
-- the exact statement bytes were signed by the expected authenticated OIDC identity;
-- the signature/certificate chain verifies;
-- the Sigstore transparency material provides an external checkpoint for that signed commitment.
+Those are deliberately separate claims. An unchanged report is not automatically a signed report, and a signed report is not automatically a correct assessment.
 
 ### What public verification does not establish
 
@@ -66,14 +59,40 @@ For a report intended for public distribution, install Sigstore's Cosign client 
 
 ### 1. Install Cosign
 
-On macOS with Homebrew:
+**macOS — Homebrew**
 
 ```bash
 brew install cosign
 cosign version
 ```
 
-For Linux, Windows, package managers, and verified binary installation, use Sigstore's official Cosign installation guide.
+**Windows**
+
+Download the latest `cosign-windows-amd64.exe` (or the build for your architecture) from the official Cosign releases page, rename it to `cosign.exe`, and place it in a directory on your `PATH`. Then:
+
+```powershell
+cosign version
+```
+
+**Linux**
+
+Homebrew/Linuxbrew works:
+
+```bash
+brew install cosign
+cosign version
+```
+
+Sigstore also publishes Linux binaries plus rpm/deb packages, and documents Arch, Alpine, Nix, and NixOS installation.
+
+**Any platform with Go 1.20+**
+
+```bash
+go install github.com/sigstore/cosign/v3/cmd/cosign@latest
+```
+
+Official installation guide: https://docs.sigstore.dev/cosign/system_config/installation/  
+Official releases: https://github.com/sigstore/cosign/releases
 
 ### 2. Sign the report
 
@@ -194,25 +213,16 @@ The verifier reports separately:
 
 **A5 / ACC-006:** independent assessment, durable evidence retention/escrow outside the assessed actor and ordinary mutable operator path, and successful reverification from a fresh environment are additionally mandatory.
 
-## Browser verification
+## Browser verification and zero-infrastructure operation
 
-The public Verify page prioritizes **one-file HTML report verification**.
+The public Verify page prioritizes **one-file HTML report verification**. The complete package verifier remains available in a collapsed **Auditor / advanced verification** section.
 
-The complete package verifier remains available in a collapsed **Auditor / advanced verification** section.
+The public site is static and can verify the report fingerprint entirely in the browser. No server, database, account, or paid hosting is required for that check.
 
-Browser-side checks use local SHA-256 and do not upload the private evidence directory. Full Sigstore cryptographic verification uses the optional verifier service or the official Cosign verifier.
+The authoritative signer check is currently available through local Cosign / `asimov verify-report`. The repository also contains an optional verifier service, but it is **not required** to use Asimov and does not need to be deployed for zero-cost/static operation.
 
-## Verifier service
-
-The optional service in `services/verifier/` receives only:
-
-- the public verification statement;
-- Sigstore bundle;
-- expected signer identity;
-- expected OIDC issuer.
-
-It does **not** need the private assessment evidence.
+Asimov intentionally does not label a signer as verified unless the cryptographic signature has actually been checked.
 
 ## Core principle
 
-> A hash proves which bytes were committed. A signature can prove who committed to them. Neither proves that the underlying assessment judgment was correct.
+> Verification can show that a report is unchanged and, when the signature is checked, who signed it. It cannot tell you whether the assessment judgment itself was correct.
