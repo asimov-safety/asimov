@@ -9,8 +9,10 @@ from unittest.mock import patch
 from asimov_conformance.evidence import build_evidence_manifest
 from asimov_conformance.__main__ import main
 from asimov_conformance.verification import (
+    build_public_verification_record,
     build_verification_statement,
     verify_package,
+    verify_public_report,
     verify_statement_binding,
 )
 
@@ -104,6 +106,67 @@ class VerificationTests(unittest.TestCase):
                 )
             self.assertEqual(full["overall"], "VERIFIED")
 
+
+    def test_public_report_sidecar_detects_tampering_and_preserves_statement_bytes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            evidence = root / "evidence"; evidence.mkdir()
+            (evidence / "event.json").write_text("{}", encoding="utf-8")
+            manifest_path = root / "evidence-manifest.json"
+            manifest_path.write_text(json.dumps(build_evidence_manifest(evidence), indent=2) + "\n", encoding="utf-8")
+            assessment_path = root / "assessment.json"
+            assessment_path.write_text(json.dumps(_assessment("e" * 64), indent=2) + "\n", encoding="utf-8")
+            report_path = root / "report.html"; report_path.write_text("<h1>public report</h1>", encoding="utf-8")
+            statement_path = root / "asimov-statement.json"
+            statement_path.write_text(
+                json.dumps(build_verification_statement(assessment_path, manifest_path, [report_path]), indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            record = build_public_verification_record(statement_path, report_path)
+            record_path = root / "public-verification.json"
+            record_path.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+            self.assertEqual(record["statement"]["text"], statement_path.read_text(encoding="utf-8"))
+
+            verified = verify_public_report(report_path, record_path)
+            self.assertEqual(verified["overall"], "LOCAL_MATCH_ONLY")
+            self.assertEqual(verified["report_integrity"]["state"], "VERIFIED")
+            self.assertEqual(verified["provenance"]["state"], "UNSIGNED")
+
+            report_path.write_text("<h1>tampered public report</h1>", encoding="utf-8")
+            tampered = verify_public_report(report_path, record_path)
+            self.assertEqual(tampered["overall"], "FAILED")
+            self.assertEqual(tampered["report_integrity"]["state"], "FAILED")
+
+    def test_public_record_cli_and_verify_report_cli(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            evidence = root / "evidence"; evidence.mkdir()
+            (evidence / "event.json").write_text("{}", encoding="utf-8")
+            manifest_path = root / "evidence-manifest.json"
+            manifest_path.write_text(json.dumps(build_evidence_manifest(evidence), indent=2) + "\n", encoding="utf-8")
+            assessment_path = root / "assessment.json"
+            assessment_path.write_text(json.dumps(_assessment("f" * 64), indent=2) + "\n", encoding="utf-8")
+            report_path = root / "report.html"; report_path.write_text("public report", encoding="utf-8")
+            statement_path = root / "asimov-statement.json"
+            statement_path.write_text(
+                json.dumps(build_verification_statement(assessment_path, manifest_path, [report_path]), indent=2) + "\n",
+                encoding="utf-8",
+            )
+            record_path = root / "public-verification.json"
+            self.assertEqual(main([
+                "public-record",
+                "--statement", str(statement_path),
+                "--report", str(report_path),
+                "--output", str(record_path),
+            ]), 0)
+            receipt_path = root / "public-receipt.json"
+            self.assertEqual(main([
+                "verify-report", str(report_path), str(record_path),
+                "--json-output", str(receipt_path),
+            ]), 0)
+            receipt = json.loads(receipt_path.read_text())
+            self.assertEqual(receipt["overall"], "LOCAL_MATCH_ONLY")
 
     def test_cli_statement_and_local_verification_receipt(self):
         with tempfile.TemporaryDirectory() as tmp:
