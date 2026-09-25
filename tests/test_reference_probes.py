@@ -255,6 +255,16 @@ class ReferenceProbeTests(unittest.TestCase):
         self.assertFalse(empty_mutations["all_mutations_detected"])
         self.assertEqual(empty_mutations["rows"], [])
 
+    def test_duplicate_or_unknown_requirement_selection_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "duplicate"):
+            run_reference_probes(ReferenceTarget(), ("MED-001", "MED-001"))
+        with self.assertRaisesRegex(ValueError, "unknown requirement"):
+            run_reference_probes(ReferenceTarget(), ("MED-001", "NOT-A-REQUIREMENT"))
+        with self.assertRaisesRegex(ValueError, "duplicate"):
+            run_mutation_validation(("REV-001", "REV-001"))
+        with self.assertRaisesRegex(ValueError, "unknown requirement"):
+            run_mutation_validation(("REV-001", "NOT-A-REQUIREMENT"))
+
     def test_missing_adapter_capabilities_never_become_passes(self):
         class SparseAdapter:
             adapter_id = "sparse"
