@@ -17,9 +17,9 @@ python -m pip install -e .
 Confirm the reference harness works:
 
 ```bash
-python -m asimov_conformance reference-probes
-python -m asimov_conformance reference-mutations
-python -m asimov_conformance doctor --level A3
+asimov reference-probes
+asimov reference-mutations
+asimov doctor --level A5
 ```
 
 ## 2. Map your existing architecture first
@@ -126,4 +126,4 @@ You may change your adapter implementation. You may **not** weaken an Asimov req
 
 Include the architecture mapping, capability list, disposable fixtures, independent-oracle description, supported families, known gaps, and tests proving both passing and deliberately broken controls.
 
-For detailed family mappings, see [ADAPTER-GUIDE.md](ADAPTER-GUIDE.md).
+For complete framework/cloud/resource recipes, see [IMPLEMENTATION-HANDBOOK.md](IMPLEMENTATION-HANDBOOK.md). For family-by-family semantics, see [ADAPTER-GUIDE.md](ADAPTER-GUIDE.md).
