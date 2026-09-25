@@ -54,10 +54,27 @@ See [Asimov Studio](docs/STUDIO.md).
 
 ## Build an adapter
 
-Asimov is framework-neutral. Adapters translate native infrastructure—agent frameworks, IAM, databases, lifecycle controls, supervisors, and audit systems—into the semantic operations used by the conformance probes.
+Asimov is framework-neutral. Adapters translate native infrastructure—agent runtimes, IAM, databases, lifecycle controls, supervisors, and audit systems—into the semantic operations used by the conformance probes.
+
+The fastest starting point is **Adapter Assistant** inside Studio:
+
+```bash
+asimov studio
+```
+
+Choose your agent runtime, hosting, authority system, protected resources, and evidence sources. Studio shows the recommended six-surface mapping and can generate a conservative starter adapter that claims **zero** capabilities until you wire real controls.
+
+The same workflow is available from the CLI:
+
+```bash
+asimov adapter-catalog
+asimov adapter-scaffold --runtime openai-agents-api --output ./asimov-adapter
+```
 
 **Start here:** [Adapter Quick Start](docs/ADAPTER-QUICKSTART.md)  
+**Current provider mappings:** [Provider & Stack Guide](docs/ADAPTER-PROVIDERS.md)  
 **Architecture walkthroughs:** [Implementation Handbook](docs/IMPLEMENTATION-HANDBOOK.md)  
+**Starter recipes:** [examples/adapters](examples/adapters/)  
 **Deep semantic reference:** [Adapter Guide](docs/ADAPTER-GUIDE.md)
 
 Missing mandatory control surfaces block the corresponding A-level.
@@ -102,6 +119,7 @@ An A5 run is cumulative and covers A1–A5. HYBRID and REVIEW_REQUIRED findings 
 - [Full A1–A5 Reference Harness](docs/FULL-REFERENCE-HARNESS.md)
 - [Verification](docs/VERIFICATION.md)
 - [Asimov Studio](docs/STUDIO.md)
+- [Provider & Stack Guide](docs/ADAPTER-PROVIDERS.md)
 - [Human review and reviewer attestations](docs/REVIEW-ATTESTATIONS.md)
 - [Professional Reports](docs/REPORTS.md)
 - [Implementation Handbook](docs/IMPLEMENTATION-HANDBOOK.md)
