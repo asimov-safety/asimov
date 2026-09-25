@@ -93,6 +93,18 @@ class VerificationTests(unittest.TestCase):
             )
             self.assertEqual(local["overall"], "LOCAL_BINDING_VERIFIED")
 
+            # Embedding the public verification capsule must not break the full-package binding.
+            public_record = build_public_verification_record(statement_path, report_path)
+            embed_public_verification_record(report_path, public_record)
+            embedded_local = verify_package(
+                assessment_path=assessment_path,
+                evidence_manifest_path=manifest_path,
+                evidence_root=evidence,
+                statement_path=statement_path,
+                report_paths=[report_path],
+            )
+            self.assertEqual(embedded_local["overall"], "LOCAL_BINDING_VERIFIED")
+
             bundle = root / "bundle.sigstore.json"; bundle.write_text("{}", encoding="utf-8")
             with patch("asimov_conformance.verification.sigstore_verify", return_value=(True, "verified")):
                 full = verify_package(
