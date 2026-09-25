@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+import re
 import shutil
 import subprocess
 from typing import Any, Iterable
@@ -15,6 +16,9 @@ STATEMENT_TYPE = "https://in-toto.io/Statement/v1"
 PREDICATE_TYPE = "https://asimov-safety.github.io/asimov/attestation/v0.2"
 RECEIPT_VERSION = "asimov-verification-receipt/0.2.0"
 PUBLIC_RECORD_VERSION = "asimov-public-verification/0.2.0"
+PUBLIC_CAPSULE_START = "<!-- ASIMOV-PUBLIC-VERIFICATION-START -->"
+PUBLIC_CAPSULE_END = "<!-- ASIMOV-PUBLIC-VERIFICATION-END -->"
+PUBLIC_CAPSULE_ID = "asimov-public-verification"
 
 
 class VerificationError(ValueError):
@@ -31,10 +35,95 @@ def _load_json(path: Path, label: str) -> dict[str, Any]:
     return value
 
 
-def _subject(name: str, path: Path) -> dict[str, Any]:
+def _strip_public_capsule(text: str) -> str:
+    pattern = re.compile(
+        re.escape(PUBLIC_CAPSULE_START) + r".*?" + re.escape(PUBLIC_CAPSULE_END),
+        re.DOTALL,
+    )
+    return pattern.sub("", text, count=1)
+
+
+def public_report_sha256(path: Path) -> str:
+    """Digest the public report content while excluding its embedded verification capsule.
+
+    This avoids the cryptographic self-reference problem: the capsule may contain
+    the statement and signature material that authenticate the report, while the
+    digest remains stable as that capsule is added or updated.
+    """
     if not path.is_file():
         raise VerificationError(f"artifact does not exist: {path}")
-    return {"name": name, "digest": {"sha256": sha256_file(path)}}
+    if path.suffix.lower() != ".html":
+        return sha256_file(path)
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as exc:
+        raise VerificationError(f"cannot read public HTML report: {exc}") from exc
+    unsigned = _strip_public_capsule(text)
+    return hashlib.sha256(unsigned.encode("utf-8")).hexdigest()
+
+
+def _subject(name: str, path: Path, *, public_report: bool = False) -> dict[str, Any]:
+    if not path.is_file():
+        raise VerificationError(f"artifact does not exist: {path}")
+    digest = public_report_sha256(path) if public_report else sha256_file(path)
+    return {"name": name, "digest": {"sha256": digest}}
+
+
+def embed_public_verification_record(report_path: Path, record: dict[str, Any]) -> None:
+    if report_path.suffix.lower() != ".html":
+        raise VerificationError("one-file embedded public verification currently requires an HTML report")
+    try:
+        text = report_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as exc:
+        raise VerificationError(f"cannot read public HTML report: {exc}") from exc
+
+    safe_json = json.dumps(record, separators=(",", ":"), ensure_ascii=False).replace("<", "\\u003c")
+    block = (
+        PUBLIC_CAPSULE_START
+        + f'<script type="application/json" id="{PUBLIC_CAPSULE_ID}">'
+        + safe_json
+        + "</script>"
+        + PUBLIC_CAPSULE_END
+    )
+    if PUBLIC_CAPSULE_START in text and PUBLIC_CAPSULE_END in text:
+        pattern = re.compile(
+            re.escape(PUBLIC_CAPSULE_START) + r".*?" + re.escape(PUBLIC_CAPSULE_END),
+            re.DOTALL,
+        )
+        text = pattern.sub(lambda _: block, text, count=1)
+    else:
+        marker = "</body>"
+        if marker not in text:
+            raise VerificationError("HTML report has no </body> marker for embedded verification")
+        text = text.replace(marker, block + marker, 1)
+    report_path.write_text(text, encoding="utf-8")
+
+
+def extract_public_verification_record(report_path: Path) -> dict[str, Any]:
+    if report_path.suffix.lower() != ".html":
+        raise VerificationError("embedded public verification currently requires an HTML report")
+    try:
+        text = report_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as exc:
+        raise VerificationError(f"cannot read public HTML report: {exc}") from exc
+    pattern = re.compile(
+        re.escape(PUBLIC_CAPSULE_START)
+        + r'\s*<script type="application/json" id="'
+        + re.escape(PUBLIC_CAPSULE_ID)
+        + r'">(.*?)</script>\s*'
+        + re.escape(PUBLIC_CAPSULE_END),
+        re.DOTALL,
+    )
+    match = pattern.search(text)
+    if match is None:
+        raise VerificationError("report does not contain an embedded Asimov public verification capsule")
+    try:
+        value = json.loads(match.group(1))
+    except json.JSONDecodeError as exc:
+        raise VerificationError("embedded public verification capsule is invalid JSON") from exc
+    if not isinstance(value, dict):
+        raise VerificationError("embedded public verification capsule must be a JSON object")
+    return value
 
 
 def build_verification_statement(
@@ -58,7 +147,7 @@ def build_verification_statement(
         name = f"report/{path.name}"
         if name in seen:
             raise VerificationError(f"duplicate report artifact name: {path.name}")
-        subjects.append(_subject(name, path))
+        subjects.append(_subject(name, path, public_report=path.suffix.lower() == ".html"))
         seen.add(name)
 
     return {
@@ -140,7 +229,7 @@ def build_public_verification_record(
     if statement.get("_type") != STATEMENT_TYPE or statement.get("predicateType") != PREDICATE_TYPE:
         raise VerificationError("verification statement has an unsupported type/predicate")
 
-    report_digest = sha256_file(report_path)
+    report_digest = public_report_sha256(report_path)
     report_name = f"report/{report_path.name}"
     matching = [
         row for row in statement.get("subject", [])
@@ -193,12 +282,16 @@ def build_public_verification_record(
 
 def verify_public_report(
     report_path: Path,
-    record_path: Path,
+    record_path: Path | None = None,
     *,
     cosign_bin: str = "cosign",
 ) -> dict[str, Any]:
-    """Verify a public report plus its one-file verification sidecar."""
-    record = _load_json(record_path, "public verification record")
+    """Verify a public report using its embedded capsule or an optional sidecar."""
+    record = (
+        _load_json(record_path, "public verification record")
+        if record_path is not None
+        else extract_public_verification_record(report_path)
+    )
     if record.get("version") != PUBLIC_RECORD_VERSION:
         raise VerificationError("unsupported public verification record version")
     report = record.get("report")
@@ -217,7 +310,7 @@ def verify_public_report(
     except json.JSONDecodeError as exc:
         raise VerificationError("embedded verification statement is invalid JSON") from exc
 
-    actual_digest = sha256_file(report_path)
+    actual_digest = public_report_sha256(report_path)
     expected_digest = report.get("sha256")
     subject_name = f"report/{report.get('name', '')}"
     subjects = {
