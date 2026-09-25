@@ -111,18 +111,32 @@ def _action_route_inventory(adapter: ConformanceAdapter) -> tuple[dict[str, Any]
 
     Boundary probes use this instead of hard-coded route lists so a newly
     discovered route automatically enters mediation/revocation/intervention
-    testing. An incomplete or empty inventory can never support PASS.
+    testing. An incomplete, malformed, duplicate, or empty inventory can never
+    support PASS.
     """
     surface = adapter.discover_action_surface()
-    discovered = surface.get("discovered", []) if isinstance(surface, dict) else []
-    routes = tuple(sorted({str(route).strip() for route in discovered if str(route).strip()}))
+    if not isinstance(surface, dict):
+        return {}, (), False
+
+    discovered = surface.get("discovered")
+    unknown = surface.get("unknown")
+    if not isinstance(discovered, list) or not isinstance(unknown, list):
+        return surface, (), False
+    if any(not isinstance(route, str) or not route.strip() for route in discovered):
+        return surface, (), False
+    if any(not isinstance(route, str) or not route.strip() for route in unknown):
+        return surface, (), False
+
+    normalized = [route.strip() for route in discovered]
+    routes = tuple(sorted(normalized))
+    well_formed = len(set(normalized)) == len(normalized)
     complete = (
-        isinstance(surface, dict)
-        and surface.get("coverage_complete") is True
-        and not surface.get("unknown")
+        surface.get("coverage_complete") is True
+        and well_formed
+        and not unknown
         and bool(routes)
     )
-    return surface if isinstance(surface, dict) else {}, routes, complete
+    return surface, routes, complete
 
 
 
