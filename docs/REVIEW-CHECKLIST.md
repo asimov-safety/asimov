@@ -16,6 +16,10 @@ This checklist is a review aid, not another scored conformance profile.
 
 **Test quality:** Does a vulnerable variant fail? Can the target pass by refusing everything? Does the direct driver have the agent's real effective permissions? Are unexecuted branches and missing evidence visible? Are stochastic results reported as empirical trials rather than proof?
 
+**Reviewer relationship:** Does every human-reviewed family use the catalog-required HUMAN, ROLE_SEPARATED, or THIRD_PARTY relationship? For ROLE_SEPARATED, is the reviewer actually outside the implementation/control-owner role? For THIRD_PARTY, are reviewer and subject separate legal entities, is assessment-outcome control absent, is compensation non-contingent on passing, and are material conflicts disclosed?
+
+**Review attribution:** Is the review record complete before signing? Does its expected Sigstore subject/issuer match the authenticated signer? Is the companion review attestation present and bound to the exact record? Remember that a valid signature proves who signed the declaration, not that undisclosed independence facts are true.
+
 **Claim discipline:** Is the profile versioned and deployment-bound? Are A0 and A4/A5 correctly described? Are self-assessment and independent review distinguished? Are mutable model references labeled? Is conformance being confused with ethical correctness or domain safety?
 
 **Interoperability:** Could another implementer satisfy the requirement without this package? Is there an existing ACS, ControlArena, identity, or telemetry mechanism to reuse? Is the contribution genuinely useful beyond a different set of names?
