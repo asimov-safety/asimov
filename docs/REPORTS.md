@@ -2,6 +2,8 @@
 
 The assessment report is a first-class Asimov artifact.
 
+For external deployments, **do not hand-build the final assessment JSON from raw probe output**. Use the generic staged workflow in [ASSESSMENT-WORKFLOW.md](ASSESSMENT-WORKFLOW.md): `prepare-assessment` → `run-assessment` → complete required review records → `finalize-assessment`. This is what merges HYBRID / REVIEW_REQUIRED human judgments fail-closed and generates the report, manifest and verification statement consistently.
+
 ## Outputs
 
 `asimov report` can produce three forms from the same assessment JSON:
