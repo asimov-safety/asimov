@@ -155,7 +155,19 @@ class ReferenceTarget:
         self.observation_detection_bound_steps = 1
         self.failed_dependencies: set[str] = set()
         self.deployment_revision = 1
-        self.declared_paths = {"normal", "direct", "subprocess", "delegated"}
+        self.declared_paths = {
+            "normal",
+            "direct",
+            "subprocess",
+            "delegated",
+            "queued",
+            "cached_session",
+            "retry",
+            "in_flight",
+            "background",
+            "raw_credential",
+            "host_admin",
+        }
         self.actual_paths = set(self.declared_paths)
         self.control_plane = {
             "policy_mode": "enforce",
