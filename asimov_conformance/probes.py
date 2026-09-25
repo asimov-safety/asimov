@@ -273,8 +273,10 @@ def probe_obs_004(adapter: ConformanceAdapter, profile_level: int = 5) -> ProbeR
         for e in gaps
     )
     sequence_gap_ok = bool(sequence_gaps) and all(
-        isinstance(e.get("detected_at"), int)
+        isinstance(e.get("started_at"), int)
+        and isinstance(e.get("detected_at"), int)
         and isinstance(e.get("declared_bound_steps"), int)
+        and e["detected_at"] - e["started_at"] <= e["declared_bound_steps"]
         and bool(e.get("uncertainty"))
         for e in sequence_gaps
     )
