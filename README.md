@@ -84,14 +84,13 @@ An A5 run is cumulative and covers A1–A5. HYBRID and REVIEW_REQUIRED findings 
 
 ## Public report verification
 
-The primary public verification workflow uses only:
+The primary public verification workflow uses a single self-contained file:
 
 ```text
 report.html
-public-verification.json
 ```
 
-`finalize-assessment` creates the sidecar automatically. For authenticated public provenance, sign `asimov-statement.json` with Sigstore/Cosign and rebuild the sidecar with `asimov public-record`. Full private evidence-package verification remains available for auditors.
+`finalize-assessment` embeds a public verification capsule into the HTML report automatically. For authenticated public provenance, sign `asimov-statement.json` with Sigstore/Cosign and refresh the embedded capsule with `asimov public-record`. A separate `public-verification.json` remains an optional export. Full private evidence-package verification remains available for auditors.
 
 ## Report, sign, verify
 
@@ -119,7 +118,7 @@ asimov public-record \
   --output public-verification.json
 ```
 
-The styled report, assessment, and evidence manifest become cryptographically bound subjects of the signed verification statement. For public/media distribution, the report plus `public-verification.json` is the intended verification pair; the full evidence package is primarily for auditors and technical reviewers.
+The styled report, assessment, and evidence manifest become cryptographically bound subjects of the signed verification statement. For public/media distribution, the self-contained HTML report is the intended verification artifact; the full evidence package is primarily for auditors and technical reviewers.
 
 ## Project
 
