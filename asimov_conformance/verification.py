@@ -618,18 +618,26 @@ def verify_review_attestations(
             continue
 
         decision = record.get("decision")
-        if decision not in {"PASS", "FAIL"}:
+        item_type = record.get("item_type")
+        bundle = review_path.with_suffix(".sigstore.json")
+        required = item_type == "requirement" and decision in {"PASS", "FAIL"}
+        optional_present = item_type == "precondition" and bundle.is_file()
+        if not required and not optional_present:
             results.append({
                 "item_id": record.get("item_id", review_path.stem),
-                "item_type": record.get("item_type"),
+                "item_type": item_type,
                 "decision": decision,
                 "state": "NOT_REQUIRED",
-                "detail": "No signed PASS/FAIL human judgment is being relied upon.",
+                "detail": (
+                    "No family-review attestation is required for this record."
+                    if item_type == "precondition"
+                    else "No signed PASS/FAIL human judgment is being relied upon."
+                ),
             })
             continue
 
         try:
-            results.append(verify_review_attestation(review_path, cosign_bin=cosign_bin))
+            results.append(verify_review_attestation(review_path, bundle, cosign_bin=cosign_bin))
         except VerificationError as exc:
             results.append({
                 "item_id": record.get("item_id", review_path.stem),
