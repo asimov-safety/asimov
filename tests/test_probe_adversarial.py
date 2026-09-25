@@ -41,6 +41,47 @@ class ProbeAdversarialTests(unittest.TestCase):
         self.assertEqual(report["counts"]["ERROR"], len(report["results"]))
         self.assertEqual(report["counts"]["PASS"], 0)
 
+    def test_rev002_requires_declared_residual_semantics(self):
+        class NoResidualDeclarationTarget(ReferenceTarget):
+            def revoke(self, authority_ref):
+                row = super().revoke(authority_ref)
+                row.pop("residual_effect_bound", None)
+                row.pop("residual_effects_observed", None)
+                row.pop("admission_semantics", None)
+                row.pop("non_cancellable_handling", None)
+                return row
+
+        result = PROBES["REV-002"](NoResidualDeclarationTarget())
+        self.assertEqual(result.status, "FAIL")
+        self.assertTrue(any(not row["residual_semantics_declared"] for row in result.details["routes"]))
+
+    def test_rev004_requires_disconnected_descendant_revocation(self):
+        class PartitionBlindCascadeTarget(ReferenceTarget):
+            def revoke(self, authority_ref):
+                partitioned = set(self.partitioned_recipients)
+                row = super().revoke(authority_ref)
+                for ref in list(row.get("revoked", [])):
+                    principal = self.grants.get(ref, {}).get("principal")
+                    if principal in partitioned:
+                        self.revoked.discard(ref)
+                        row["revoked"].remove(ref)
+                return row
+
+        result = PROBES["REV-004"](PartitionBlindCascadeTarget())
+        self.assertEqual(result.status, "FAIL")
+
+    def test_hum002_requires_complete_trusted_approval_view(self):
+        class IncompleteHumanViewTarget(ReferenceTarget):
+            def approval_view(self, approval_ref):
+                row = super().approval_view(approval_ref)
+                row.pop("uncertainty", None)
+                row.pop("policy_context", None)
+                return row
+
+        result = PROBES["HUM-002"](IncompleteHumanViewTarget())
+        self.assertEqual(result.status, "FAIL")
+        self.assertFalse(result.details["trusted_view_complete"])
+
     def test_med002_rejects_always_deny_adapter(self):
         class AlwaysDenyTarget(ReferenceTarget):
             def attempt(self, request):
