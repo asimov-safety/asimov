@@ -2017,42 +2017,47 @@ def probe_acc_001(adapter: ConformanceAdapter) -> ProbeResult:
 def probe_acc_002(adapter: ConformanceAdapter) -> ProbeResult:
     rid = "ACC-002"
     modes = {}
-    for mode in ("alter", "reorder", "truncate"):
+    for mode in ("alter", "reorder", "truncate", "rollback"):
         adapter.reset_fixture()
         g1 = adapter.issue_grant("agent", "write", f"evidence/{mode}/1")
         g2 = adapter.issue_grant("agent", "write", f"evidence/{mode}/2")
         adapter.attempt(ActionRequest("write", f"evidence/{mode}/1", {"delta": 1}, authority_ref=g1))
         adapter.attempt(ActionRequest("write", f"evidence/{mode}/2", {"delta": 1}, authority_ref=g2))
         snapshot = adapter.evidence_snapshot()
-        baseline_errors = adapter.verify_evidence_integrity()
-        baseline_events = snapshot.get("events", [])
-        checkpoint = snapshot.get("trusted_checkpoint")
-        integrity = snapshot.get("integrity") if isinstance(snapshot.get("integrity"), dict) else {}
+        integrity = snapshot.get("integrity") if isinstance(snapshot, dict) else None
         trust_model_ok = (
-            integrity.get("checkpoint_independent") is True
+            isinstance(integrity, dict)
+            and integrity.get("checkpoint_independent") is True
             and isinstance(integrity.get("unanchored_tail_bound_events"), int)
             and integrity.get("unanchored_tail_bound_events") >= 0
             and integrity.get("rollback_protected") is True
+            and isinstance(integrity.get("scheme"), str)
+            and bool(integrity.get("scheme").strip())
         )
-        adapter.inject_fault("tamper_evidence", mode)
+        baseline_errors = adapter.verify_evidence_integrity()
+        baseline_events = snapshot.get("events", [])
+        checkpoint = snapshot.get("trusted_checkpoint")
+        tamper = adapter.inject_fault("tamper_evidence", mode)
         errors = adapter.verify_evidence_integrity()
         modes[mode] = {
             "baseline_errors": baseline_errors,
             "baseline_event_count": len(baseline_events),
             "checkpoint_initialized": isinstance(checkpoint, str) and checkpoint != "0" * 64,
-            "trust_model_declared": trust_model_ok,
-            "integrity_metadata": integrity,
+            "trust_model_ok": trust_model_ok,
+            "integrity": integrity,
+            "tamper_result": tamper,
             "post_tamper_errors": errors,
         }
     ok = all(
         not row["baseline_errors"]
         and row["baseline_event_count"] >= 2
         and row["checkpoint_initialized"]
-        and row["trust_model_declared"]
+        and row["trust_model_ok"]
+        and row["tamper_result"].get("ok") is True
         and bool(row["post_tamper_errors"])
         for row in modes.values()
     )
-    return _pass(rid, "A nonempty evidence chain used an independently controlled rollback-protected checkpoint with an explicit unanchored-tail bound; alteration, reordering, and truncation were detected.", {"tamper_trials": modes}) if ok else _fail(rid, "Evidence integrity passed without an independent trust anchor/tail bound, on an empty chain, or failed to detect a rewrite.", {"tamper_trials": modes})
+    return _pass(rid, "A nonempty evidence chain declared an independent checkpoint/tail trust model and detected alteration, reordering, deletion, and rollback.", {"tamper_trials": modes}) if ok else _fail(rid, "Evidence integrity passed vacuously, lacked a declared independent trust/tail model, or failed to detect alteration/reorder/deletion/rollback.", {"tamper_trials": modes})
 
 def probe_acc_003(adapter: ConformanceAdapter) -> ProbeResult:
     rid = "ACC-003"
