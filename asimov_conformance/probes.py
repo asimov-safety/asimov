@@ -2418,6 +2418,53 @@ PROBE_CAPABILITIES: dict[str, set[str]] = {
 }
 
 
+CAPABILITY_METHODS: dict[str, tuple[str, ...]] = {
+    "action_surface": ("discover_action_surface",),
+    "attempt": ("attempt",),
+    "observe": ("observe",),
+    "issue_grant": ("issue_grant",),
+    "issue_approval": ("issue_approval",),
+    "approval_view": ("approval_view",),
+    "revoke": ("revoke",),
+    "refresh_grant": ("refresh_grant",),
+    "delegate": ("delegate",),
+    "stop": ("stop",),
+    "stop_reset": ("reset_stop",),
+    "restart": ("restart",),
+    "fault_injection": ("inject_fault",),
+    "external_events": ("evidence_snapshot",),
+    "evidence_integrity": ("verify_evidence_integrity",),
+    "evidence_access": ("evidence_report", "read_raw_evidence"),
+    "assessment_binding": ("assessment_binding", "validate_assessment_binding"),
+    "supervisor_auth": ("issue_supervisor_message", "deliver_supervisor_message"),
+    "independent_supervision": ("supervision_snapshot",),
+    "untrusted_content_isolation": ("ingest_untrusted",),
+    "delegation_lifecycle": ("delegation_snapshot",),
+    "cross_boundary_delegation": ("delegate_external",),
+    "intervention_exercise": ("intervention_plan", "exercise_intervention"),
+    "high_consequence_observation": ("high_consequence_observation",),
+    "common_mode_analysis": ("common_mode_snapshot",),
+    "delegation_churn": ("delegation_stress",),
+    "assessment_attestation": ("assessment_attestation", "verify_assessment_attestation"),
+    "critical_observation": ("critical_transition_plan", "exercise_critical_transition"),
+    "critical_barriers": ("critical_barrier_test",),
+    "secondary_containment": ("secondary_containment",),
+    "adversarial_assurance": ("adversarial_assurance",),
+    "emergency_recovery": ("emergency_recovery",),
+    "independent_assurance": ("independent_assurance_package", "verify_assurance_package"),
+}
+
+
+def unavailable_capability_methods(adapter: Any, capabilities: set[str]) -> tuple[str, ...]:
+    methods = {
+        method
+        for capability in capabilities
+        for method in CAPABILITY_METHODS.get(capability, ())
+        if not callable(getattr(adapter, method, None))
+    }
+    return tuple(sorted(methods))
+
+
 PROBES: dict[str, Callable[[ConformanceAdapter], ProbeResult]] = {
     "OBS-001": probe_obs_001, "OBS-002": probe_obs_002, "OBS-003": probe_obs_003, "OBS-004": probe_obs_004,
     "MED-001": probe_med_001, "MED-002": probe_med_002, "MED-003": probe_med_003, "MED-004": probe_med_004,
@@ -2429,8 +2476,27 @@ PROBES: dict[str, Callable[[ConformanceAdapter], ProbeResult]] = {
     "OBS-005": probe_obs_005, "MED-005": probe_med_005, "REV-005": probe_rev_005, "OVR-005": probe_ovr_005,
     "DEL-005": probe_del_005, "HUM-005": probe_hum_005, "ACC-005": probe_acc_005,
     "OBS-006": probe_obs_006, "MED-006": probe_med_006, "REV-006": probe_rev_006, "OVR-006": probe_ovr_006,
-    "DEL-006": probe_del_006, "HUM-006": probe_hum_006, "ACC-006": probe_acc_006,
-}
+    "DEL-006": probe_del_006, "HUM-006": probe_hum_006, "ACC-006": probe_acc_006,}
+ 
+
+def _validated_requirement_selection(requirements: Any) -> tuple[str, ...]:
+    if isinstance(requirements, (str, bytes)):
+        raise TypeError("requirements must be an iterable of requirement IDs, not a string")
+    selected = tuple(requirements)
+    if any(not isinstance(rid, str) or not rid.strip() for rid in selected):
+        raise TypeError("requirements must contain only nonblank requirement IDs")
+    unknown = sorted({rid for rid in selected if rid not in PROBES})
+    if unknown:
+        raise ValueError("unknown requirement IDs: " + ", ".join(unknown))
+    seen: set[str] = set()
+    duplicates: list[str] = []
+    for rid in selected:
+        if rid in seen and rid not in duplicates:
+            duplicates.append(rid)
+        seen.add(rid)
+    if duplicates:
+        raise ValueError("duplicate requirement IDs: " + ", ".join(duplicates))
+    return selected
 
 
 def _profile_level_for_requirements(requirements: tuple[str, ...]) -> int:
@@ -2449,6 +2515,7 @@ def _profile_level_for_requirements(requirements: tuple[str, ...]) -> int:
 
 
 def run_reference_probes(adapter: ConformanceAdapter | None = None, requirements: tuple[str, ...] = A5_REQUIREMENTS) -> dict[str, Any]:
+    requirements = _validated_requirement_selection(requirements)
     # Only omission selects the disposable reference target. A supplied adapter
     # may define falsey truth semantics; silently substituting ReferenceTarget
     # would test the toy deployment and could create a catastrophic false PASS.
@@ -2505,9 +2572,11 @@ def run_reference_probes(adapter: ConformanceAdapter | None = None, requirements
 
     results = []
     for rid in requirements:
-        missing = PROBE_CAPABILITIES[rid] - available
-        if missing:
-            result = _not_tested(rid, missing)
+        required_capabilities = PROBE_CAPABILITIES[rid]
+        missing = required_capabilities - available
+        missing_methods = unavailable_capability_methods(adapter, required_capabilities & available)
+        if missing or missing_methods:
+            result = _not_tested(rid, missing, missing_methods)
         else:
             try:
                 if rid == "OBS-004":
@@ -2540,6 +2609,7 @@ def run_initial_probes(adapter: ConformanceAdapter | None = None) -> dict[str, A
 
 
 def run_mutation_validation(requirements: tuple[str, ...] = A5_REQUIREMENTS) -> dict[str, Any]:
+    requirements = _validated_requirement_selection(requirements)
     rows = []
     for rid in requirements:
         field, description = MUTATIONS[rid]
