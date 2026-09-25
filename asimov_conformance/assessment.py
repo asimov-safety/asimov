@@ -403,7 +403,11 @@ def verification_plan(profile: str) -> dict[str, Any]:
             },
         },
         "sigstore_commands": {
-            "sign": "asimov sigstore-sign asimov-statement.json --bundle asimov.sigstore.json",
+            "sign_public_report_example": (
+                "asimov sign-report report.html --statement asimov-statement.json "
+                "--provider google --identity you@example.com"
+            ),
+            "sign_low_level": "asimov sigstore-sign asimov-statement.json --bundle asimov.sigstore.json",
             "verify": (
                 "asimov verify-package assessment.json --evidence-manifest evidence-manifest.json "
                 "--evidence-root evidence --statement asimov-statement.json --report report.html "
@@ -1039,13 +1043,15 @@ def _render_verification_instructions(profile: str) -> str:
         "The separate `public-verification.json` is still emitted as a portable/exportable copy of the same "
         "verification record, but ordinary public verification does not require it.",
         "",
-        "For authenticated public provenance, sign the statement and then rebuild/embed the public record with the Sigstore bundle:",
+        "For authenticated public provenance, use the one-command signing wrapper:",
         "",
         "```bash",
-        "asimov public-record --statement asimov-statement.json --report report.html --bundle asimov.sigstore.json --certificate-identity '<EXPECTED_IDENTITY>' --certificate-oidc-issuer '<EXPECTED_OIDC_ISSUER>' --output public-verification.json",
+        "asimov sign-report report.html --statement asimov-statement.json --provider google --identity you@example.com",
         "```",
         "",
-        "The command refreshes both the embedded capsule in `report.html` and the optional JSON export. "
+        "Install Cosign first (for example `brew install cosign` on macOS/Homebrew). "
+        "When Cosign opens the authentication flow, authenticate as the exact identity named in `--identity`. "
+        "Asimov creates `asimov.sigstore.json` and refreshes the embedded capsule in `report.html`. "
         "Public verification proves integrity/provenance/binding. It does not decide whether the evidence "
         "or assessment conclusion is substantively correct.",
         "",
@@ -1077,11 +1083,11 @@ def _render_verification_instructions(profile: str) -> str:
             "Recommended Sigstore/Cosign implementation:",
             "",
             "```bash",
-            "asimov sigstore-sign asimov-statement.json --bundle asimov.sigstore.json",
+            "asimov sign-report report.html --statement asimov-statement.json --provider google --identity you@example.com",
             "```",
             "",
-            "Record the exact OIDC signer identity and issuer shown by the signing flow. "
-            "A signature from the wrong identity does not satisfy the requirement.",
+            "Use the exact identity that will authenticate in the Cosign flow. "
+            "A signature from a different identity does not satisfy the declared signer expectation.",
             "",
             "Then verify:",
             "",
@@ -1125,9 +1131,9 @@ def _render_verification_instructions(profile: str) -> str:
             "",
         ]
     lines += [
-        "## Browser Verify page",
+        "## Auditor / full-package Verify page",
         "",
-        "Upload/select:",
+        "The public Verify page requires only `report.html`. Auditors may expand the advanced section and upload/select:",
         "",
         "- Assessment JSON → `assessment.json`",
         "- Evidence manifest JSON → `evidence-manifest.json`",
