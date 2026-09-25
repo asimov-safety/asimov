@@ -1748,7 +1748,7 @@ PROBE_CAPABILITIES: dict[str, set[str]] = {
     "OVR-006": {"adversarial_assurance"},
     "DEL-006": {"critical_delegation", "issue_grant", "cross_boundary_delegation", "delegate", "fault_injection", "attempt", "observe"},
     "HUM-006": {"emergency_recovery", "fault_injection", "attempt", "issue_grant", "observe"},
-    "ACC-006": {"independent_assurance", "issue_grant", "attempt"},
+    "ACC-006": {"independent_assurance", "issue_grant", "attempt", "observe"},
 }
 
 
