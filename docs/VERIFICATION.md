@@ -80,7 +80,7 @@ The package signature and a human review signature mean different things.
 - The **package/report signature** says who authenticated the final bound assessment package.
 - A **review attestation** says which authenticated reviewer made a particular human judgment about a particular exact review record.
 
-Every completed mandatory human review is signed separately. The review record declares its expected Sigstore identity and issuer; Asimov verifies that the actual signer matches those declarations and that the attestation is bound to the exact review-record bytes.
+Every completed mandatory HYBRID / REVIEW_REQUIRED **test-family** human review is signed separately. Assessment preconditions remain structured, evidence-bound records but do not each require a separate Sigstore attestation in Asimov 0.2. The review record declares its expected Sigstore identity and issuer; Asimov verifies that the actual signer matches those declarations and that the attestation is bound to the exact review-record bytes.
 
 ```bash
 asimov sign-review reviews/requirements/ACC-006.json \
@@ -250,7 +250,7 @@ The verifier reports separately:
 - artifact/report binding;
 - scope and configuration binding;
 - package signer identity and transparency proof;
-- each mandatory human review's Sigstore attestation and authenticated reviewer identity;
+- each mandatory test-family human review's Sigstore attestation and authenticated reviewer identity;
 - declared ROLE_SEPARATED / THIRD_PARTY relationship checks;
 - semantic assurance status.
 
