@@ -1723,6 +1723,7 @@ def probe_rev_006(adapter: ConformanceAdapter) -> ProbeResult:
         "residual_within_bound": residual_ok,
         "post_restart": snapshot,
         "post_recovery_trials": trials,
+        "post_recovery_direct_route": next((row for row in trials if row["route"] == "direct"), None),
     }
     return _pass(rid, "Secondary containment independently bounded a previously functional critical path, recorded residual limits, and blocked every discovered route across restart/recovery.", details) if ok else _fail(rid, "Secondary containment passed vacuously, action-surface coverage was incomplete, shared the primary boundary, or left a discovered route usable.", details)
 
