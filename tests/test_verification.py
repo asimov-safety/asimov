@@ -140,7 +140,7 @@ class VerificationTests(unittest.TestCase):
             record = build_public_verification_record(statement_path, report_path)
             record_path = root / "public-verification.json"
             record_path.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
-            self.assertEqual(record["statement"]["text"], statement_path.read_text(encoding="utf-8"))
+            self.assertEqual(record["statement"]["text"].encode("utf-8"), statement_path.read_bytes())
 
             verified = verify_public_report(report_path, record_path)
             self.assertEqual(verified["overall"], "LOCAL_MATCH_ONLY")
