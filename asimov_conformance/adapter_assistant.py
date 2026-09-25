@@ -77,7 +77,7 @@ def recommendation(
     integration_rows = _selected_many(catalog, "integration_options", integrations)
 
     gaps = [
-        "Generated scaffolds intentionally claim no Asimov capabilities until real deployment methods are implemented and tested.",
+        "Generated scaffolds intentionally claim zero Asimov capabilities until real deployment methods are implemented and tested.",
         "Framework/provider traces can support evidence but do not replace an independent resource oracle.",
         "For A3 and above, supervision must be outside the acting principal's effective authority.",
     ]
