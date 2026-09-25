@@ -93,9 +93,10 @@ def embed_public_verification_record(report_path: Path, record: dict[str, Any]) 
         text = pattern.sub(lambda _: block, text, count=1)
     else:
         marker = "</body>"
-        if marker not in text:
-            raise VerificationError("HTML report has no </body> marker for embedded verification")
-        text = text.replace(marker, block + marker, 1)
+        if marker in text:
+            text = text.replace(marker, block + marker, 1)
+        else:
+            text = text + block
     report_path.write_text(text, encoding="utf-8")
 
 
