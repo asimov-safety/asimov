@@ -639,6 +639,8 @@ def _render_review_checklist(plan: dict[str, Any], requirements: list[dict[str, 
         f"- Adapter: `{plan['adapter_id']}`",
         f"- Assessment mode: **{plan['assessment_mode']}**",
         f"- Assessor: **{plan['assessor']}**",
+        f"- Assessment Subject organization: **{plan.get('subject_organization') or 'not yet supplied'}**",
+        f"- Assessor organization: **{plan.get('assessor_organization') or 'not yet supplied'}**",
         "",
         "## Before technical execution",
         "",
@@ -647,9 +649,11 @@ def _render_review_checklist(plan: dict[str, Any], requirements: list[dict[str, 
         "`pre_run_acknowledged: true`. This acknowledgement does **not** mean PASS; "
         "it means the obligation was visible and assigned before execution.",
         "",
-        "For each record, name the reviewer, relationship/role, and planned evidence. "
-        "For requirements marked `independence_required: true`, a self-assessment "
-        "review cannot complete the requirement.",
+        "For each record, name the reviewer, reviewer organization, relationship/role, "
+        "Assessment Subject organization, planned evidence, and expected Sigstore signing identity. "
+        "The catalog review requirement is normative: HUMAN permits same-organization review; "
+        "ROLE_SEPARATED requires separation from implementation/control ownership; THIRD_PARTY "
+        "requires a separate legal entity plus the signed independence declaration.",
         "",
         "### Mandatory preconditions",
         "",
@@ -662,9 +666,14 @@ def _render_review_checklist(plan: dict[str, Any], requirements: list[dict[str, 
     lines += ["", "### HYBRID / REVIEW_REQUIRED families", ""]
     for rid in plan["human_review_requirements"]:
         r = req_by_id[rid]
-        independence = " **Independent reviewer required.**" if _requires_independence(r) else ""
+        review_requirement = _review_requirement(r)
+        relationship_note = {
+            "HUMAN": "Named human review.",
+            "ROLE_SEPARATED": "Reviewer must be separated from the implementation/control owner.",
+            "THIRD_PARTY": "Separate legal-entity third-party reviewer required.",
+        }[review_requirement]
         lines += [
-            f"- [ ] **{rid} — {r['title']}** ({r['automation']}, A{r['minimum_profile']}){independence}",
+            f"- [ ] **{rid} — {r['title']}** ({r['automation']}, A{r['minimum_profile']}, {review_requirement}) — {relationship_note}",
             f"  - Required property: {r['requirement']}",
             f"  - Evidence expected: {r['evidence']}",
             f"  - Record: `reviews/requirements/{rid}.json`",
@@ -675,16 +684,25 @@ def _render_review_checklist(plan: dict[str, Any], requirements: list[dict[str, 
         "",
         "Complete each checklist item against the actual probe/human-exercise evidence. "
         "Set `decision` to `PASS`, `FAIL`, or `INCONCLUSIVE`, add a rationale and evidence "
-        "references, and set `reviewed_at` to a timezone-qualified timestamp.",
+        "references, set `reviewed_at` to a timezone-qualified timestamp, satisfy the declared "
+        "review relationship, and set the reviewer's expected Sigstore subject/issuer.",
         "",
         "**A human review cannot override a technical FAIL, ERROR, NOT_TESTED, or "
         "INCONCLUSIVE result.** It can only complete a technical PASS.",
+        "",
+        "## Sign completed reviews",
+        "",
+        "Before finalization, each completed PASS/FAIL human review must have a companion "
+        "Sigstore attestation. Use `asimov sign-review <record.json> --provider <provider> "
+        "--identity <reviewer-identity>` and optionally confirm it with `asimov verify-review`.",
         "",
         "## Finalization",
         "",
         "Run `asimov finalize-assessment <workspace>`. A PASS review is accepted only "
         "when every checklist item is PASS, reviewer/rationale/timestamp are present, "
-        "required evidence references are present, and independence requirements are met.",
+        "required evidence references are present, the required relationship declarations are met, "
+        "and the companion review-attestation bundle exists. Full cryptographic validity is checked "
+        "by `asimov verify-package`.",
         "",
         "Read `verification-plan.json` before distributing the result. A4 requires "
         "authenticated signing plus an external checkpoint; A5 additionally requires "
