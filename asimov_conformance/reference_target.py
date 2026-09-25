@@ -546,6 +546,10 @@ class ReferenceTarget:
             "effective_at": effective_at,
             "declared_bound_steps": 1,
             "uncertainty_steps": 0,
+            "admission_semantics": "deny-new-admissions-after-effective_at",
+            "residual_effect_bound": 0,
+            "residual_effects_observed": 0,
+            "non_cancellable_handling": "no-non-cancellable-effects-in-reference-fixture",
         }
 
 
