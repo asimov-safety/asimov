@@ -2455,6 +2455,16 @@ CAPABILITY_METHODS: dict[str, tuple[str, ...]] = {
 }
 
 
+def declared_capabilities(adapter: Any) -> set[str]:
+    declared = adapter.capabilities()
+    if isinstance(declared, (str, bytes)):
+        raise TypeError("capabilities() must return an iterable of capability names, not a string")
+    available = set(declared)
+    if any(not isinstance(item, str) or not item.strip() for item in available):
+        raise TypeError("capabilities() must contain only nonblank strings")
+    return available
+
+
 def unavailable_capability_methods(adapter: Any, capabilities: set[str]) -> tuple[str, ...]:
     methods = {
         method
@@ -2538,12 +2548,7 @@ def run_reference_probes(adapter: ConformanceAdapter | None = None, requirements
     )
 
     try:
-        declared = adapter.capabilities()
-        if isinstance(declared, (str, bytes)):
-            raise TypeError("capabilities() must return an iterable of capability names, not a string")
-        available = set(declared)
-        if any(not isinstance(item, str) or not item.strip() for item in available):
-            raise TypeError("capabilities() must contain only nonblank strings")
+        available = declared_capabilities(adapter)
     except Exception as exc:
         results = [
             ProbeResult(
