@@ -44,8 +44,9 @@ h3{font:400 22px/1.15 Baskerville,"Iowan Old Style",Georgia,serif;margin:0}
 .meta{display:grid;grid-template-columns:repeat(3,1fr);gap:25px}.meta>div{border-top:1px solid var(--line);padding-top:11px}.meta .value{margin-top:5px;word-break:break-word}
 .profile-table{width:100%;border-collapse:collapse}.profile-table td{border-top:1px solid var(--line);padding:12px 6px}.profile-table td:first-child{font:italic 20px Baskerville,Georgia,serif}.profile-table td:last-child{text-align:right}
 .finding-group{page-break-inside:avoid;margin:30px 0}.finding-head{display:grid;grid-template-columns:65px 1fr;gap:18px;align-items:baseline;margin-bottom:12px}
-.finding{display:grid;grid-template-columns:82px 92px 1fr;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
-.finding-id{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px}.finding-reason{color:var(--muted)}
+.finding{display:grid;grid-template-columns:82px 92px minmax(0,1fr);gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+.finding>div{min-width:0}.finding-id{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px;overflow-wrap:anywhere}.finding-reason{color:var(--muted)}
+.precondition{grid-template-columns:minmax(178px,1.15fr) 118px minmax(0,3fr);gap:22px}.precondition .status{text-align:left}
 .evidence{font-size:10px;color:var(--muted);margin-top:4px;word-break:break-all}
 .limits{padding-left:18px}.limits li{margin:8px 0}.hash{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:10px;word-break:break-all}
 .footer{display:flex;justify-content:space-between;border-top:1px solid var(--line);padding-top:15px;margin-top:45px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
@@ -125,7 +126,7 @@ def render_html(result: dict[str, Any]) -> str:
         )
 
     preconditions = "".join(
-        f'<div class="finding"><div class="finding-id">{escape(name)}</div><div class="status {escape(row["status"])}">{escape(row["status"])}</div><div><div class="finding-reason">{escape(row["reason"])}</div><div class="evidence">Evidence: {escape(", ".join(row.get("evidence_refs", [])) or "—")}</div></div></div>'
+        f'<div class="finding precondition"><div class="finding-id">{escape(name)}</div><div class="status {escape(row["status"])}">{escape(row["status"])}</div><div><div class="finding-reason">{escape(row["reason"])}</div><div class="evidence">Evidence: {escape(", ".join(row.get("evidence_refs", [])) or "—")}</div></div></div>'
         for name, row in result.get("preconditions", {}).items()
     )
     limitations = "".join(f"<li>{escape(x)}</li>" for x in result.get("limitations", [])) or "<li>None stated.</li>"
