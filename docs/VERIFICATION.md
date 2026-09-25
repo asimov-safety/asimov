@@ -20,11 +20,35 @@ The low-level hashes, statement bytes, Sigstore bundle, signer identity fields, 
 
 It does **not** contain the private evidence directory.
 
-A reader can verify locally:
+### Confirm the signer on your own computer
+
+`asimov verify-report` is the definitive local signer check. It reads the verification information embedded in the HTML report, uses the official Cosign verifier to check the Sigstore signature, and reports whether the named signing account actually signed that exact assessment record. The report is checked on your computer; it is not uploaded anywhere.
+
+If Asimov is not installed yet, install it directly from the public repository.
+
+**macOS / Linux — Python 3.10+**
+
+```bash
+python3 -m pip install "https://github.com/asimov-safety/asimov/archive/refs/heads/main.zip"
+asimov --help
+```
+
+**Windows PowerShell — Python 3.10+**
+
+```powershell
+py -m pip install "https://github.com/asimov-safety/asimov/archive/refs/heads/main.zip"
+asimov --help
+```
+
+Cosign must also be installed because it performs the cryptographic signature check. See the platform-specific Cosign instructions below.
+
+Then save the HTML report locally, open Terminal / PowerShell in that folder, and run:
 
 ```bash
 asimov verify-report report.html
 ```
+
+For a successfully signed report, Asimov confirms that the report content is unchanged and identifies the verified signing account. If the signature, signing identity, or report content does not match, verification fails.
 
 The separate `public-verification.json` file remains an optional export/compatibility artifact, not a requirement for ordinary public verification.
 
