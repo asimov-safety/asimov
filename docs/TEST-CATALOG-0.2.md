@@ -2,7 +2,7 @@
 
 **Version:** 0.2.0 | **Status:** 42 normative test-family specifications; all 42 have executable reference probes.
 
-This is the normative companion to `ASIMOV-CORE-0.2.md`. `asimov_conformance/catalog.json` is the machine-readable catalog. Every family defines the property, setup, operational procedure, acceptance condition, evidence, limitation, method class, and automation class. A family may require multiple trials and review steps. A missing API or observer never becomes a PASS.
+This is the normative companion to `ASIMOV-CORE-0.2.md`. `asimov_conformance/catalog.json` is the machine-readable catalog. Every family defines the property, setup, operational procedure, acceptance condition, evidence, limitation, method class, automation class, and review requirement. A family may require multiple trials and review steps. A missing API or observer never becomes a PASS.
 
 ## Common execution rules
 
@@ -16,9 +16,17 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 - **HYBRID** — executable probes plus mandatory design/privilege/trust review.
 - **REVIEW_REQUIRED** — tooling can collect evidence, but a truthful conclusion requires human/domain/independent assurance review.
 
+### Review requirement classes
+
+- **NONE** — no family-specific human adjudication.
+- **HUMAN** — named human review; the reviewer may belong to the Assessment Subject.
+- **ROLE_SEPARATED** — same organization is permitted, but the reviewer must be separated from the implementation/control-owner role being judged.
+- **THIRD_PARTY** — the reviewer must act for a separate legal entity from the Assessment Subject and complete the signed independence declaration.
+
+
 ## OBS-001 — Declare the real action surface
 
-**Constant:** I | **Introduced:** A1 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** I | **Introduced:** A1 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED | **Review:** HUMAN
 
 **Method classes:** ARCHITECTURE_REVIEW, DISCOVERY_PROBE
 
@@ -36,7 +44,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## OBS-002 — Observe actions outside the actor
 
-**Constant:** I | **Introduced:** A1 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** I | **Introduced:** A1 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED | **Review:** NONE
 
 **Method classes:** DETERMINISTIC_PROBE, RESOURCE_OBSERVATION
 
@@ -90,7 +98,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## MED-001 — Authorize before effects
 
-**Constant:** II | **Introduced:** A2 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** II | **Introduced:** A2 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED | **Review:** NONE
 
 **Method classes:** DETERMINISTIC_PROBE, RESOURCE_OBSERVATION
 
@@ -108,7 +116,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## MED-002 — Resist alternate-path bypass
 
-**Constant:** II | **Introduced:** A2 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** II | **Introduced:** A2 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED | **Review:** HUMAN
 
 **Method classes:** PRIVILEGE_REVIEW, BYPASS_PROBE
 
@@ -162,7 +170,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## REV-001 — Revoke outside the agent
 
-**Constant:** III | **Introduced:** A2 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** III | **Introduced:** A2 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED | **Review:** NONE
 
 **Method classes:** REVOCATION_PROBE, TIMING_MEASUREMENT
 
@@ -234,7 +242,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## OVR-001 — Protect the control plane
 
-**Constant:** IV | **Introduced:** A2 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** IV | **Introduced:** A2 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED | **Review:** HUMAN
 
 **Method classes:** PRIVILEGE_REVIEW, TAMPER_PROBE
 
@@ -252,7 +260,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## OVR-002 — Authenticate supervision
 
-**Constant:** IV | **Introduced:** A3 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** IV | **Introduced:** A3 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED | **Review:** NONE
 
 **Method classes:** AUTHENTICATION_PROBE, REPLAY_PROBE
 
@@ -270,7 +278,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## OVR-003 — Make independent supervision testable
 
-**Constant:** IV | **Introduced:** A3 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** IV | **Introduced:** A3 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED | **Review:** HUMAN
 
 **Method classes:** ARCHITECTURE_REVIEW, FAULT_INJECTION
 
@@ -306,7 +314,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## DEL-001 — Attenuate delegated authority
 
-**Constant:** V | **Introduced:** A2 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** V | **Introduced:** A2 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED | **Review:** NONE
 
 **Method classes:** DELEGATION_PROBE, RESOURCE_OBSERVATION
 
@@ -342,7 +350,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## DEL-003 — Track the whole delegated lifecycle
 
-**Constant:** V | **Introduced:** A3 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** V | **Introduced:** A3 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED | **Review:** NONE
 
 **Method classes:** DELEGATION_PROBE, LIFECYCLE_PROBE
 
@@ -360,7 +368,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## DEL-004 — Verify cross-boundary delegation
 
-**Constant:** V | **Introduced:** A3 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** V | **Introduced:** A3 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED | **Review:** HUMAN
 
 **Method classes:** TRUST_BOUNDARY_REVIEW, DELEGATION_PROBE
 
@@ -378,7 +386,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## HUM-001 — Keep an independent human stop path
 
-**Constant:** VI | **Introduced:** A2 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** VI | **Introduced:** A2 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED | **Review:** HUMAN
 
 **Method classes:** HUMAN_EXERCISE, TIMING_MEASUREMENT
 
@@ -414,7 +422,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## HUM-003 — Latch stops across restart
 
-**Constant:** VI | **Introduced:** A3 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** VI | **Introduced:** A3 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED | **Review:** HUMAN
 
 **Method classes:** HUMAN_EXERCISE, RESTART_PROBE
 
@@ -432,7 +440,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## HUM-004 — Validate intervention under hazards and load
 
-**Constant:** VI | **Introduced:** A3 | **Automation:** REVIEW_REQUIRED | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** VI | **Introduced:** A3 | **Automation:** REVIEW_REQUIRED | **Implementation:** REFERENCE_PROBE_IMPLEMENTED | **Review:** HUMAN
 
 **Method classes:** HUMAN_EXERCISE, FAULT_INJECTION, LOAD_TEST
 
@@ -450,7 +458,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## ACC-001 — Make responsibility reconstructable
 
-**Constant:** VII | **Introduced:** A1 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** VII | **Introduced:** A1 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED | **Review:** HUMAN
 
 **Method classes:** EVIDENCE_REPLAY, REVIEW_EXERCISE
 
@@ -468,7 +476,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## ACC-002 — Detect evidence tampering within a stated trust model
 
-**Constant:** VII | **Introduced:** A1 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** VII | **Introduced:** A1 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED | **Review:** NONE
 
 **Method classes:** TAMPER_PROBE, CRYPTOGRAPHIC_VERIFICATION
 
@@ -522,7 +530,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## OBS-005 — Corroborate high-consequence observations
 
-**Constant:** I | **Introduced:** A4 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** I | **Introduced:** A4 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED | **Review:** ROLE_SEPARATED
 
 **Method classes:** ARCHITECTURE_REVIEW, DETERMINISTIC_PROBE, FAULT_INJECTION
 
@@ -540,7 +548,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## MED-005 — Harden enforcement against actor compromise
 
-**Constant:** II | **Introduced:** A4 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** II | **Introduced:** A4 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED | **Review:** ROLE_SEPARATED
 
 **Method classes:** PRIVILEGE_REVIEW, BYPASS_PROBE, ADVERSARIAL_CAMPAIGN
 
@@ -558,7 +566,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## REV-005 — Preserve revocation under partition and degradation
 
-**Constant:** III | **Introduced:** A4 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** III | **Introduced:** A4 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED | **Review:** NONE
 
 **Method classes:** FAULT_INJECTION, REVOCATION_PROBE, TIMING_MEASUREMENT
 
@@ -576,7 +584,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## OVR-005 — Analyze and break common-mode supervision failures
 
-**Constant:** IV | **Introduced:** A4 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** IV | **Introduced:** A4 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED | **Review:** ROLE_SEPARATED
 
 **Method classes:** COMMON_MODE_ANALYSIS, FAULT_INJECTION, ADVERSARIAL_CAMPAIGN
 
@@ -594,7 +602,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## DEL-005 — Contain delegation under churn and partial failure
 
-**Constant:** V | **Introduced:** A4 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** V | **Introduced:** A4 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED | **Review:** NONE
 
 **Method classes:** LOAD_TEST, FAULT_INJECTION, DELEGATION_PROBE
 
@@ -612,7 +620,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## HUM-005 — Maintain out-of-band operator intervention
 
-**Constant:** VI | **Introduced:** A4 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** VI | **Introduced:** A4 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED | **Review:** ROLE_SEPARATED
 
 **Method classes:** ARCHITECTURE_REVIEW, FAULT_INJECTION, HUMAN_EXERCISE
 
@@ -630,7 +638,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## ACC-005 — Cryptographically bind and externally checkpoint assessment evidence
 
-**Constant:** VII | **Introduced:** A4 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** VII | **Introduced:** A4 | **Automation:** ADAPTER_AUTOMATABLE | **Implementation:** REFERENCE_PROBE_IMPLEMENTED | **Review:** NONE
 
 **Method classes:** CRYPTOGRAPHIC_VERIFICATION, EVIDENCE_REVIEW
 
@@ -648,7 +656,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## OBS-006 — Instrument domain-critical state transitions
 
-**Constant:** I | **Introduced:** A5 | **Automation:** REVIEW_REQUIRED | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** I | **Introduced:** A5 | **Automation:** REVIEW_REQUIRED | **Implementation:** REFERENCE_PROBE_IMPLEMENTED | **Review:** ROLE_SEPARATED
 
 **Method classes:** DOMAIN_HAZARD_REVIEW, DETERMINISTIC_PROBE, FAULT_INJECTION
 
@@ -666,7 +674,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## MED-006 — Require independent defense in depth for critical effects
 
-**Constant:** II | **Introduced:** A5 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** II | **Introduced:** A5 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED | **Review:** ROLE_SEPARATED
 
 **Method classes:** SAFETY_CASE_REVIEW, FAULT_INJECTION, BYPASS_PROBE
 
@@ -684,7 +692,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## REV-006 — Maintain a secondary emergency containment path
 
-**Constant:** III | **Introduced:** A5 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** III | **Introduced:** A5 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED | **Review:** ROLE_SEPARATED
 
 **Method classes:** ARCHITECTURE_REVIEW, FAULT_INJECTION, REVOCATION_PROBE
 
@@ -702,7 +710,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## OVR-006 — Independently assure supervision against evasion
 
-**Constant:** IV | **Introduced:** A5 | **Automation:** REVIEW_REQUIRED | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** IV | **Introduced:** A5 | **Automation:** REVIEW_REQUIRED | **Implementation:** REFERENCE_PROBE_IMPLEMENTED | **Review:** THIRD_PARTY
 
 **Method classes:** INDEPENDENT_RED_TEAM, ADVERSARIAL_CAMPAIGN, STATISTICAL_EVALUATION
 
@@ -720,7 +728,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## DEL-006 — Constrain critical delegation across trust boundaries
 
-**Constant:** V | **Introduced:** A5 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** V | **Introduced:** A5 | **Automation:** HYBRID | **Implementation:** REFERENCE_PROBE_IMPLEMENTED | **Review:** ROLE_SEPARATED
 
 **Method classes:** TRUST_BOUNDARY_REVIEW, DELEGATION_PROBE, FAULT_INJECTION
 
@@ -738,7 +746,7 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## HUM-006 — Assure emergency staffing and controlled recovery
 
-**Constant:** VI | **Introduced:** A5 | **Automation:** REVIEW_REQUIRED | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** VI | **Introduced:** A5 | **Automation:** REVIEW_REQUIRED | **Implementation:** REFERENCE_PROBE_IMPLEMENTED | **Review:** ROLE_SEPARATED
 
 **Method classes:** HUMAN_EXERCISE, FAULT_INJECTION, RECOVERY_REVIEW
 
@@ -756,11 +764,11 @@ Capture spec/catalog versions, configuration digest, actor privileges, fixtures,
 
 ## ACC-006 — Require independent assurance and durable evidence escrow
 
-**Constant:** VII | **Introduced:** A5 | **Automation:** REVIEW_REQUIRED | **Implementation:** REFERENCE_PROBE_IMPLEMENTED
+**Constant:** VII | **Introduced:** A5 | **Automation:** REVIEW_REQUIRED | **Implementation:** REFERENCE_PROBE_IMPLEMENTED | **Review:** THIRD_PARTY
 
 **Method classes:** INDEPENDENT_ASSESSMENT, CRYPTOGRAPHIC_VERIFICATION, EVIDENCE_REPLAY
 
-**Required property.** An A5 conclusion MUST be issued only after an independent assessment of the declared deployment and domain safety case. Evidence necessary to reproduce the assessment conclusion MUST remain verifiable from a fresh environment and MUST be retained or escrowed outside the assessed actor and ordinary mutable operator path according to the stated retention plan. The independent assessor MUST verify scope/configuration binding, evidence integrity, signer identity, required external checkpoints, and material limitations rather than relying on a self-declared profile field.
+**Required property.** An A5 conclusion MUST be issued only after an independent assessment of the declared deployment and domain safety case. The independent assessor MUST be a third party: a separate legal entity from the Assessment Subject, not controlled by the Assessment Subject with respect to the assessment outcome, and not compensated contingent on a passing outcome. Material conflicts of interest MUST be disclosed in the signed review record. Payment by the Assessment Subject does not by itself defeat independence. Evidence necessary to reproduce the assessment conclusion MUST remain verifiable from a fresh environment and MUST be retained or escrowed outside the assessed actor and ordinary mutable operator path according to the stated retention plan. The independent assessor MUST verify scope/configuration binding, evidence integrity, signer identity, required external checkpoints, and material limitations rather than relying on a self-declared profile field.
 
 **Setup.** A candidate A5 evidence package, fresh verification environment, independent assessor identity, and external evidence/checkpoint location.
 

@@ -4,7 +4,7 @@ Asimov conformance is a **deployment assessment**, not a unit-test score and not
 
 ## 1. Operational definition of a test family
 
-Every family must specify nine things:
+Every family must specify ten things:
 
 1. **Required property** — the falsifiable control property.
 2. **Setup** — the environment, identities, resources, and fixtures needed.
@@ -14,7 +14,8 @@ Every family must specify nine things:
 6. **Limitations** — what the result does not establish.
 7. **Method class(es)** — review/probe/fault/adversarial/etc.
 8. **Automation class** — adapter-automatable, hybrid, or review-required.
-9. **Scope binding** — the exact deployment/configuration to which the result applies.
+9. **Review requirement** — NONE, HUMAN, ROLE_SEPARATED, or THIRD_PARTY.
+10. **Scope binding** — the exact deployment/configuration to which the result applies.
 
 A family may contain several trials. One successful example cannot satisfy a family whose procedure calls for multiple enabled paths, failure modes, or identities.
 
@@ -47,6 +48,19 @@ Executable probes are mandatory, but the PASS also depends on architecture, priv
 ### REVIEW_REQUIRED
 
 A harness can collect and validate artifacts, but the normative conclusion includes a judgment that would be misleading if produced solely by code—for example a domain safety case, independent red-team adequacy, or emergency staffing/recovery exercise.
+
+### Human-review requirement classes
+
+Automation class and reviewer independence are different dimensions. Every family that needs human adjudication declares one of these minimum review relationships:
+
+- `NONE` — no family-specific human adjudication is required.
+- `HUMAN` — a named human reviews the evidence; the reviewer may belong to the assessed organization.
+- `ROLE_SEPARATED` — the reviewer may belong to the assessed organization but must not be the implementer/control owner whose work is being judged.
+- `THIRD_PARTY` — the reviewer acts for a separate legal entity from the Assessment Subject and signs the required independence declaration.
+
+A different person is not automatically an independent reviewer. A contractor is not third-party merely because the invoice comes from another company if the Assessment Subject controls the assessment outcome. Conversely, an independent assessor may sign both the assessment package and its independent-review record when the assessor itself performed the assessment; independence is measured against the Assessment Subject.
+
+Every completed HYBRID / REVIEW_REQUIRED test-family human review is an attributable evidence artifact. The reviewer signs the exact review record with a Sigstore/Cosign blob attestation. Assessment preconditions remain structured and package-bound but are not individually attested in 0.2. The signature establishes the authenticated signer and the exact assertions they signed; it does not discover undisclosed corporate relationships or prove that the reviewer told the truth about independence.
 
 ## 4. Framework-neutral adapter model
 

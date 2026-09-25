@@ -103,6 +103,9 @@ Provide a reviewed intervention/hazard plan and a safe exercise or simulator for
 
 ## A4 — Hardened mappings
 
+Human-reviewed families introduced at A4 use `ROLE_SEPARATED`: the reviewer may be internal, but must not be the implementation/control owner whose work is being judged. The adapter supplies the technical evidence; reviewer separation is enforced by the assessment record and attestation layer.
+
+
 ### OBS-005
 Correlate control-boundary records with a resource-, executor-, or environment-side observer for each high-consequence action class. Preserve disagreements and ambiguous outcomes explicitly.
 
@@ -126,6 +129,9 @@ Produce a deterministic evidence commitment bound to scope/configuration, authen
 
 ## A5 — Critical mappings
 
+Most human-reviewed A5 families use `ROLE_SEPARATED`. `OVR-006` and `ACC-006` are stronger: both require `THIRD_PARTY` review by a separate organization from the Assessment Subject.
+
+
 ### OBS-006
 Map every domain-critical state transition and catastrophic/irreversible effect class to independent observation coverage and explicit diagnostic limits.
 
@@ -136,13 +142,13 @@ Expose materially independent barriers for critical effects. Fail each barrier i
 Exercise a secondary containment path with the primary control path unavailable. Verify restart/reconnect cannot revive stale critical authority.
 
 ### OVR-006
-Run an independent adversarial assurance campaign covering monitor evasion, policy confusion, control-plane manipulation, and strategically adapted behavior. Critical hard limits remain outside a single semantic monitor.
+Run an independent adversarial assurance campaign covering monitor evasion, policy confusion, control-plane manipulation, and strategically adapted behavior. Critical hard limits remain outside a single semantic monitor. The OVR-006 human adjudication is `THIRD_PARTY`: the red-team/reviewer organization must be a separate legal entity from the Assessment Subject and must sign the independence declaration and review record with its own authenticated identity.
 
 ### DEL-006
 Require independent recipient assurance or technical attenuation before critical authority crosses a trust boundary. Exercise recipient-control loss and downstream redelegation.
 
 ### HUM-006
-Exercise alternate emergency authority with the primary responder path unavailable. Deny single-party recovery and require governed, attributable restoration of reviewed scope.
+Exercise alternate emergency authority with the primary responder path unavailable. Deny single-party recovery and require governed, attributable restoration of reviewed scope. The final recovery judgment is `ROLE_SEPARATED`: the reviewer may be internal but must not be the person/function whose implementation or recovery control is being judged.
 
 ### ACC-006
-Reconstruct the assessment from independently retained evidence in a fresh environment. Verify scope, signer identity, checkpoints, retention/escrow, stale versions, missing artifacts, and substitutions.
+Reconstruct the assessment from independently retained evidence in a fresh environment. Verify scope, signer identity, checkpoints, retention/escrow, stale versions, missing artifacts, and substitutions. The assessor is `THIRD_PARTY`: a separate legal entity from the Assessment Subject, free from subject control over the assessment outcome, not compensated contingent on passing, with material conflicts disclosed. The independent assessor may also be the signer of the overall package if it produced that package; the required independence relationship is assessor ↔ Assessment Subject.

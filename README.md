@@ -20,6 +20,7 @@ The Seven Constants are **Observable Agency, Mediated Action, Revocable Authorit
 | Mutation validation | 42/42 paired control removals detected |
 | Cross-platform CI | Ubuntu, macOS, Windows · Python 3.10 and 3.13 |
 | Evidence integrity | Deterministic SHA-256 manifests and verification |
+| Human review | HUMAN / ROLE_SEPARATED / THIRD_PARTY + signed Sigstore review attestations |
 | Results | Console, JSON, and dependency-free HTML |
 
 Profiles are cumulative. Every mandatory family for a claimed level must pass with the required evidence.
@@ -55,6 +56,8 @@ asimov prepare-assessment \
   --adapter ./my_adapter.py:MyAdapter \
   --level A5 \
   --assessor "Assessment Team" \
+  --subject-organization "Deployment Operator" \
+  --assessor-organization "Assessment Organization" \
   --output ./assessment
 
 # Review and acknowledge the generated scope, preconditions,
@@ -65,10 +68,16 @@ asimov run-assessment ./assessment \
 
 # Complete required human/review records against the actual evidence.
 asimov assessment-status ./assessment
+
+# Sign each completed HYBRID / REVIEW_REQUIRED family review with its reviewer's identity.
+asimov sign-review ./assessment/reviews/requirements/ACC-006.json \
+  --provider google --identity reviewer@example.org
+
+# After all required review attestations exist:
 asimov finalize-assessment ./assessment
 ```
 
-An A5 run is cumulative and covers A1–A5. HYBRID and REVIEW_REQUIRED findings remain INCONCLUSIVE until their required review records are valid; human review cannot override a technical failure. See [End-to-end Assessment Workflow](docs/ASSESSMENT-WORKFLOW.md).
+An A5 run is cumulative and covers A1–A5. HYBRID and REVIEW_REQUIRED findings remain INCONCLUSIVE until their required review records and Sigstore attestations are valid; human review cannot override a technical failure. Review requirements distinguish ordinary HUMAN review, internal ROLE_SEPARATED review, and external THIRD_PARTY review. See [End-to-end Assessment Workflow](docs/ASSESSMENT-WORKFLOW.md) and [Human review and reviewer attestations](docs/REVIEW-ATTESTATIONS.md).
 
 ## Specification and methodology
 
@@ -77,6 +86,7 @@ An A5 run is cumulative and covers A1–A5. HYBRID and REVIEW_REQUIRED findings 
 - [Test Methodology](docs/TEST-METHODOLOGY.md)
 - [Full A1–A5 Reference Harness](docs/FULL-REFERENCE-HARNESS.md)
 - [Verification](docs/VERIFICATION.md)
+- [Human review and reviewer attestations](docs/REVIEW-ATTESTATIONS.md)
 - [Professional Reports](docs/REPORTS.md)
 - [Implementation Handbook](docs/IMPLEMENTATION-HANDBOOK.md)
 - [Ecosystem Mapping](docs/ECOSYSTEM.md)

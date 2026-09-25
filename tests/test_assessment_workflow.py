@@ -64,6 +64,14 @@ class AssessmentWorkflowTests(unittest.TestCase):
             record["decision"] = "PASS"
             record["reviewed_at"] = "2026-09-24T22:00:00Z"
             record["rationale"] = f"Completed test review for {name}."
+            record["reviewer_organization"] = "Workflow Test Org"
+            record["subject_organization"] = "Reference Target Org"
+            record["party_class"] = "FIRST_PARTY"
+            record["signing_identity"] = {
+                "type": "sigstore",
+                "expected_subject": "reviewer@example.com",
+                "expected_issuer": "https://accounts.google.com",
+            }
             (manual / f"{name}.txt").write_text(f"evidence for {name}\n")
             record["evidence_refs"] = [f"manual/{name}.txt"]
             for item in record["checklist"]:
@@ -74,11 +82,30 @@ class AssessmentWorkflowTests(unittest.TestCase):
         for rid in plan["human_review_requirements"]:
             path = root / "reviews" / "requirements" / f"{rid}.json"
             record = json.loads(path.read_text())
+            record["subject_organization"] = "Reference Target Org"
+            record["reviewer_organization"] = "Reference Target Org"
+            record["party_class"] = "FIRST_PARTY"
+            record["signing_identity"] = {
+                "type": "sigstore",
+                "expected_subject": "reviewer@example.com",
+                "expected_issuer": "https://accounts.google.com",
+            }
+            if record.get("review_requirement") == "ROLE_SEPARATED":
+                record["role_separated_from_implementation"] = True
             if rid in plan["independent_review_requirements"] and independent:
                 record["review_type"] = "independent_assessment"
                 record["relationship_to_target"] = "Independent test fixture reviewer"
                 record["reviewer"] = "Independent Test"
                 record["reviewer_role"] = "Independent reviewer"
+                record["reviewer_organization"] = "Independent Test Org"
+                record["party_class"] = "THIRD_PARTY"
+                record["independence"] = {
+                    "separate_legal_entity": True,
+                    "subject_controls_assessment": False,
+                    "outcome_contingent_compensation": False,
+                    "conflicts_disclosed": [],
+                    "attested": True,
+                }
             record["decision"] = "PASS"
             record["reviewed_at"] = "2026-09-24T22:00:00Z"
             record["rationale"] = f"Completed test review for {rid}."
@@ -88,6 +115,7 @@ class AssessmentWorkflowTests(unittest.TestCase):
                 item["status"] = "PASS"
                 item["evidence_refs"] = [f"manual/{rid}.txt"]
             path.write_text(json.dumps(record, indent=2) + "\n")
+            path.with_suffix(".sigstore.json").write_text("{}\n")
 
     def test_prepare_generates_all_profile_obligations_before_run(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -98,6 +126,10 @@ class AssessmentWorkflowTests(unittest.TestCase):
             self.assertEqual(len(plan["human_review_requirements"]), 24)
             self.assertIn("OVR-006", plan["independent_review_requirements"])
             self.assertIn("ACC-006", plan["independent_review_requirements"])
+            self.assertEqual(plan["review_requirements"]["ACC-006"], "THIRD_PARTY")
+            self.assertEqual(plan["review_requirements"]["OVR-005"], "ROLE_SEPARATED")
+            self.assertEqual(plan["review_requirements"]["ACC-001"], "HUMAN")
+            self.assertEqual(plan["review_requirements"]["HUM-001"], "HUMAN")
             self.assertTrue((root / "REVIEW-CHECKLIST.md").exists())
             self.assertTrue((root / "verification-plan.json").exists())
 
@@ -152,6 +184,22 @@ class AssessmentWorkflowTests(unittest.TestCase):
             self.assertTrue((root / "public-verification.json").exists())
             self.assertTrue((root / "VERIFICATION-INSTRUCTIONS.md").exists())
 
+    def test_missing_family_review_attestation_keeps_profile_incomplete(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "assessment"
+            adapter = self._prepare(root, "A1")
+            self._acknowledge(root)
+            run_assessment(adapter, root)
+            self._complete_reviews(root)
+
+            bundle = root / "reviews" / "requirements" / "OBS-001.sigstore.json"
+            bundle.unlink()
+
+            result = finalize_assessment(root)
+            findings = {x["requirement_id"]: x for x in result["findings"]}
+            self.assertEqual(findings["OBS-001"]["status"], "INCONCLUSIVE")
+            self.assertEqual(result["profiles"]["A1"]["state"], "REPORTED_INCOMPLETE")
+
     def test_independence_required_review_rejects_self_assessment(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "assessment"
@@ -164,6 +212,60 @@ class AssessmentWorkflowTests(unittest.TestCase):
             record = json.loads(path.read_text())
             record["review_type"] = "self_assessment"
             record["relationship_to_target"] = ""
+            path.write_text(json.dumps(record, indent=2) + "\n")
+
+            result = finalize_assessment(root)
+            findings = {x["requirement_id"]: x for x in result["findings"]}
+            self.assertEqual(findings["ACC-006"]["status"], "INCONCLUSIVE")
+            self.assertEqual(result["profiles"]["A5"]["state"], "REPORTED_INCOMPLETE")
+
+    def test_role_separated_review_rejects_implementer_review(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "assessment"
+            adapter = self._prepare(root, "A4")
+            self._acknowledge(root)
+            run_assessment(adapter, root)
+            self._complete_reviews(root)
+
+            path = root / "reviews" / "requirements" / "OVR-005.json"
+            record = json.loads(path.read_text())
+            record["role_separated_from_implementation"] = False
+            path.write_text(json.dumps(record, indent=2) + "\n")
+
+            result = finalize_assessment(root)
+            findings = {x["requirement_id"]: x for x in result["findings"]}
+            self.assertEqual(findings["OVR-005"]["status"], "INCONCLUSIVE")
+
+    def test_role_separated_review_cannot_downgrade_to_human(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "assessment"
+            adapter = self._prepare(root, "A4")
+            self._acknowledge(root)
+            run_assessment(adapter, root)
+            self._complete_reviews(root)
+
+            path = root / "reviews" / "requirements" / "OVR-005.json"
+            record = json.loads(path.read_text())
+            record["review_requirement"] = "HUMAN"
+            record["role_separated_from_implementation"] = False
+            path.write_text(json.dumps(record, indent=2) + "\n")
+
+            result = finalize_assessment(root)
+            findings = {x["requirement_id"]: x for x in result["findings"]}
+            self.assertEqual(findings["OVR-005"]["status"], "INCONCLUSIVE")
+            self.assertIn("downgrade/mismatch", findings["OVR-005"]["reason"])
+
+    def test_third_party_review_rejects_same_organization(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "assessment"
+            adapter = self._prepare(root, "A5")
+            self._acknowledge(root, independent=True)
+            run_assessment(adapter, root)
+            self._complete_reviews(root, independent=True)
+
+            path = root / "reviews" / "requirements" / "ACC-006.json"
+            record = json.loads(path.read_text())
+            record["reviewer_organization"] = record["subject_organization"]
             path.write_text(json.dumps(record, indent=2) + "\n")
 
             result = finalize_assessment(root)

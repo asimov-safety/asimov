@@ -10,10 +10,11 @@ import subprocess
 from typing import Any, Iterable
 
 from .evidence import sha256_file, verify_evidence_manifest, verify_manifest_self_digest
-from .gate import SPEC_VERSION, evaluate_report, load_report, validate_report
+from .gate import SPEC_VERSION, catalog, evaluate_report, load_report, validate_report
 
 STATEMENT_TYPE = "https://in-toto.io/Statement/v1"
 PREDICATE_TYPE = "https://asimov-safety.github.io/asimov/attestation/v0.2"
+REVIEW_PREDICATE_TYPE = "https://asimov-safety.github.io/attestations/review/v1"
 RECEIPT_VERSION = "asimov-verification-receipt/0.2.0"
 PUBLIC_RECORD_VERSION = "asimov-public-verification/0.2.0"
 PUBLIC_CAPSULE_START = "<!-- ASIMOV-PUBLIC-VERIFICATION-START -->"
@@ -165,6 +166,8 @@ def build_verification_statement(
             "reportId": assessment["report_id"],
             "assessmentMode": assessment["assessment"]["mode"],
             "assessor": assessment["assessment"]["assessor"],
+            "subjectOrganization": assessment["assessment"].get("subject_organization", ""),
+            "assessorOrganization": assessment["assessment"].get("assessor_organization", ""),
             "assessmentCreatedAt": assessment["created_at"],
             "system": {
                 "id": assessment["system"]["id"],
@@ -403,6 +406,8 @@ def verify_public_report(
             "reported_outcome": predicate.get("reportedOutcome"),
             "assessment_mode": predicate.get("assessmentMode"),
             "assessor": predicate.get("assessor"),
+            "subject_organization": predicate.get("subjectOrganization"),
+            "assessor_organization": predicate.get("assessorOrganization"),
             "assessment_created_at": predicate.get("assessmentCreatedAt"),
             "configuration_sha256": (predicate.get("system") or {}).get("configurationSha256"),
             "scope_manifest_sha256": predicate.get("scopeManifestSha256"),
@@ -460,6 +465,211 @@ def sigstore_verify(
     return proc.returncode == 0, message
 
 
+def sigstore_attest_blob(
+    subject_path: Path,
+    predicate_path: Path,
+    bundle_path: Path,
+    *,
+    predicate_type: str = REVIEW_PREDICATE_TYPE,
+    cosign_bin: str = "cosign",
+    yes: bool = False,
+) -> int:
+    """Create a DSSE/in-toto-style Sigstore attestation for a local blob."""
+    binary = _resolve_cosign(cosign_bin)
+    cmd = [
+        binary,
+        "attest-blob",
+        str(subject_path),
+        "--predicate",
+        str(predicate_path),
+        "--type",
+        predicate_type,
+        "--bundle",
+        str(bundle_path),
+    ]
+    if yes:
+        cmd.append("--yes")
+    return subprocess.run(cmd, check=False).returncode
+
+
+def sigstore_verify_blob_attestation(
+    subject_path: Path,
+    bundle_path: Path,
+    *,
+    certificate_identity: str,
+    certificate_oidc_issuer: str,
+    predicate_type: str = REVIEW_PREDICATE_TYPE,
+    cosign_bin: str = "cosign",
+) -> tuple[bool, str]:
+    """Verify a local blob attestation and its authenticated Sigstore identity."""
+    binary = _resolve_cosign(cosign_bin)
+    cmd = [
+        binary,
+        "verify-blob-attestation",
+        str(subject_path),
+        "--bundle",
+        str(bundle_path),
+        f"--type={predicate_type}",
+        "--check-claims=true",
+        f"--certificate-identity={certificate_identity}",
+        f"--certificate-oidc-issuer={certificate_oidc_issuer}",
+    ]
+    proc = subprocess.run(cmd, check=False, capture_output=True, text=True)
+    message = (proc.stdout + "\n" + proc.stderr).strip()
+    return proc.returncode == 0, message
+
+
+def verify_review_attestation(
+    review_path: Path,
+    bundle_path: Path | None = None,
+    *,
+    cosign_bin: str = "cosign",
+) -> dict[str, Any]:
+    """Verify one review record's companion Sigstore attestation."""
+    record = _load_json(review_path, "review record")
+    signing = record.get("signing_identity")
+    if not isinstance(signing, dict) or signing.get("type") != "sigstore":
+        raise VerificationError("review record does not declare a Sigstore signing_identity")
+    identity = str(signing.get("expected_subject", "")).strip()
+    issuer = str(signing.get("expected_issuer", "")).strip()
+    if not identity or not issuer:
+        raise VerificationError("review record is missing expected Sigstore subject/issuer")
+
+    requirement = str(record.get("review_requirement", "HUMAN"))
+    semantic_errors: list[str] = []
+    if record.get("item_type") == "requirement":
+        item_id = str(record.get("item_id", ""))
+        row = next((r for r in catalog()["requirements"] if r.get("id") == item_id), None)
+        if row is None:
+            semantic_errors.append(f"unknown Asimov requirement id: {item_id or '<missing>'}")
+        else:
+            expected_requirement = str(row.get("review_requirement", "NONE"))
+            if requirement != expected_requirement:
+                semantic_errors.append(
+                    f"catalog requires {expected_requirement} review for {item_id}, "
+                    f"but the signed record declares {requirement}"
+                )
+    if requirement == "ROLE_SEPARATED" and record.get("role_separated_from_implementation") is not True:
+        semantic_errors.append("ROLE_SEPARATED review does not attest separation from implementation")
+    if requirement == "THIRD_PARTY":
+        reviewer_org = str(record.get("reviewer_organization", "")).strip()
+        subject_org = str(record.get("subject_organization", "")).strip()
+        independence = record.get("independence")
+        if record.get("party_class") != "THIRD_PARTY":
+            semantic_errors.append("THIRD_PARTY review does not declare party_class THIRD_PARTY")
+        if not reviewer_org or not subject_org or reviewer_org.casefold() == subject_org.casefold():
+            semantic_errors.append("THIRD_PARTY reviewer organization must be named and differ from the subject")
+        if not isinstance(independence, dict):
+            semantic_errors.append("THIRD_PARTY review is missing independence declaration")
+        else:
+            if independence.get("separate_legal_entity") is not True:
+                semantic_errors.append("reviewer did not attest separate legal entity")
+            if independence.get("subject_controls_assessment") is not False:
+                semantic_errors.append("reviewer did not attest freedom from subject control")
+            if independence.get("outcome_contingent_compensation") is not False:
+                semantic_errors.append("reviewer did not attest non-contingent compensation")
+            if independence.get("attested") is not True:
+                semantic_errors.append("reviewer did not attest the independence declaration")
+
+    bundle = bundle_path or review_path.with_suffix(".sigstore.json")
+    if not bundle.is_file():
+        raise VerificationError(f"review attestation bundle does not exist: {bundle}")
+
+    ok, detail = sigstore_verify_blob_attestation(
+        review_path,
+        bundle,
+        certificate_identity=identity,
+        certificate_oidc_issuer=issuer,
+        cosign_bin=cosign_bin,
+    )
+    if semantic_errors:
+        ok = False
+        detail = ("; ".join(semantic_errors) + ("; " + detail if detail else "")).strip()
+    return {
+        "item_id": record.get("item_id"),
+        "item_type": record.get("item_type"),
+        "decision": record.get("decision"),
+        "review_requirement": requirement,
+        "state": "VERIFIED" if ok else "FAILED",
+        "signer_identity": identity,
+        "oidc_issuer": issuer,
+        "reviewer_organization": record.get("reviewer_organization"),
+        "subject_organization": record.get("subject_organization"),
+        "detail": detail,
+    }
+
+
+def verify_review_attestations(
+    evidence_root: Path,
+    *,
+    cosign_bin: str = "cosign",
+) -> dict[str, Any]:
+    review_root = evidence_root / "reviews"
+    if not review_root.is_dir():
+        return {"state": "NOT_APPLICABLE", "reviews": []}
+
+    paths = sorted(
+        p
+        for group in ("requirements", "preconditions")
+        for p in (review_root / group).glob("*.json")
+        if not p.name.endswith(".sigstore.json")
+    )
+    if not paths:
+        return {"state": "NOT_APPLICABLE", "reviews": []}
+
+    results = []
+    for review_path in paths:
+        try:
+            record = _load_json(review_path, "review record")
+        except VerificationError as exc:
+            results.append({
+                "item_id": review_path.stem,
+                "state": "FAILED",
+                "detail": str(exc),
+            })
+            continue
+
+        decision = record.get("decision")
+        item_type = record.get("item_type")
+        bundle = review_path.with_suffix(".sigstore.json")
+        required = item_type == "requirement" and decision in {"PASS", "FAIL"}
+        optional_present = item_type == "precondition" and bundle.is_file()
+        if not required and not optional_present:
+            results.append({
+                "item_id": record.get("item_id", review_path.stem),
+                "item_type": item_type,
+                "decision": decision,
+                "state": "NOT_REQUIRED",
+                "detail": (
+                    "No family-review attestation is required for this record."
+                    if item_type == "precondition"
+                    else "No signed PASS/FAIL human judgment is being relied upon."
+                ),
+            })
+            continue
+
+        try:
+            results.append(verify_review_attestation(review_path, bundle, cosign_bin=cosign_bin))
+        except VerificationError as exc:
+            results.append({
+                "item_id": record.get("item_id", review_path.stem),
+                "item_type": record.get("item_type"),
+                "decision": decision,
+                "state": "FAILED",
+                "detail": str(exc),
+            })
+
+    relied_upon = [row for row in results if row.get("state") != "NOT_REQUIRED"]
+    state = (
+        "NOT_APPLICABLE"
+        if not relied_upon
+        else "VERIFIED"
+        if all(row.get("state") == "VERIFIED" for row in relied_upon)
+        else "FAILED"
+    )
+    return {"state": state, "reviews": results}
+
+
 def verify_package(
     *,
     assessment_path: Path,
@@ -479,6 +689,8 @@ def verify_package(
     binding_errors = verify_statement_binding(
         statement, assessment_path, evidence_manifest_path, report_paths
     )
+
+    review_attestations = verify_review_attestations(evidence_root, cosign_bin=cosign_bin)
 
     sigstore_state = "NOT_CHECKED"
     sigstore_message = ""
@@ -501,7 +713,7 @@ def verify_package(
                 sigstore_message = str(exc)
 
     local_ok = not integrity_errors and not binding_errors
-    if not local_ok or sigstore_state == "FAILED":
+    if not local_ok or sigstore_state == "FAILED" or review_attestations["state"] == "FAILED":
         overall = "FAILED"
     elif sigstore_state == "VERIFIED":
         overall = "VERIFIED"
@@ -532,6 +744,7 @@ def verify_package(
                 "oidc_issuer": certificate_oidc_issuer,
                 "detail": sigstore_message,
             },
+            "review_attestations": review_attestations,
             "semantic_assurance": {
                 "state": "REVIEW_REQUIRED",
                 "detail": "Cryptographic verification does not replace review of whether evidence supports each Constant.",

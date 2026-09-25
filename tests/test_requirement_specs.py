@@ -19,6 +19,11 @@ def make_test(row):
         self.assertIn(row['minimum_profile'],range(1,6))
         self.assertTrue(row['methods'])
         self.assertIn(row['automation'],{'ADAPTER_AUTOMATABLE','HYBRID','REVIEW_REQUIRED'})
+        self.assertIn(row['review_requirement'],{'NONE','HUMAN','ROLE_SEPARATED','THIRD_PARTY'})
+        if row['automation'] == 'ADAPTER_AUTOMATABLE':
+            self.assertEqual(row['review_requirement'], 'NONE')
+        else:
+            self.assertNotEqual(row['review_requirement'], 'NONE')
         for field in ('requirement','setup','procedure','expected','evidence','limitation'):
             self.assertGreater(len(row[field].strip()),20)
     return test

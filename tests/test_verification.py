@@ -267,6 +267,220 @@ class VerificationTests(unittest.TestCase):
             )
             self.assertTrue((root / "asimov.sigstore.json").exists())
 
+    def _write_review_fixture(self, evidence: Path) -> Path:
+        reviews = evidence / "reviews" / "requirements"
+        reviews.mkdir(parents=True, exist_ok=True)
+        review_path = reviews / "ACC-001.json"
+        review = {
+            "schema_version": "1",
+            "item_type": "requirement",
+            "item_id": "ACC-001",
+            "title": "Review fixture",
+            "review_requirement": "HUMAN",
+            "reviewer": "Review Test",
+            "reviewer_role": "Evidence reviewer",
+            "reviewer_organization": "Example Org",
+            "subject_organization": "Example Org",
+            "party_class": "FIRST_PARTY",
+            "role_separated_from_implementation": False,
+            "review_type": "self_assessment",
+            "relationship_to_target": "Internal independent reviewer",
+            "independence": {
+                "separate_legal_entity": None,
+                "subject_controls_assessment": None,
+                "outcome_contingent_compensation": None,
+                "conflicts_disclosed": [],
+                "attested": False,
+            },
+            "signing_identity": {
+                "type": "sigstore",
+                "expected_subject": "reviewer@example.com",
+                "expected_issuer": "https://accounts.google.com",
+            },
+            "decision": "PASS",
+            "reviewed_at": "2026-09-25T01:00:00Z",
+            "rationale": "Fixture review.",
+            "evidence_refs": ["event.json"],
+            "checklist": [],
+        }
+        review_path.write_text(json.dumps(review, indent=2) + "\n", encoding="utf-8")
+        review_path.with_suffix(".sigstore.json").write_text("{}\n", encoding="utf-8")
+        return review_path
+
+    def test_verify_package_checks_human_review_attestations(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            evidence = root / "evidence"; evidence.mkdir()
+            (evidence / "event.json").write_text("{}", encoding="utf-8")
+            self._write_review_fixture(evidence)
+            manifest_path = root / "evidence-manifest.json"
+            manifest_path.write_text(json.dumps(build_evidence_manifest(evidence), indent=2) + "\n", encoding="utf-8")
+            assessment_path = root / "assessment.json"
+            assessment_path.write_text(json.dumps(_assessment("7" * 64), indent=2) + "\n", encoding="utf-8")
+            report_path = root / "report.html"; report_path.write_text("<h1>review attestation</h1>", encoding="utf-8")
+            statement_path = root / "statement.json"
+            statement_path.write_text(
+                json.dumps(build_verification_statement(assessment_path, manifest_path, [report_path]), indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            with patch(
+                "asimov_conformance.verification.sigstore_verify_blob_attestation",
+                return_value=(True, "verified"),
+            ):
+                receipt = verify_package(
+                    assessment_path=assessment_path,
+                    evidence_manifest_path=manifest_path,
+                    evidence_root=evidence,
+                    statement_path=statement_path,
+                    report_paths=[report_path],
+                )
+            self.assertEqual(receipt["overall"], "LOCAL_BINDING_VERIFIED")
+            self.assertEqual(receipt["checks"]["review_attestations"]["state"], "VERIFIED")
+            self.assertEqual(
+                receipt["checks"]["review_attestations"]["reviews"][0]["signer_identity"],
+                "reviewer@example.com",
+            )
+
+    def test_verify_review_rejects_catalog_review_requirement_downgrade(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            review_path = root / "OVR-005.json"
+            review = {
+                "schema_version": "1",
+                "item_type": "requirement",
+                "item_id": "OVR-005",
+                "title": "Common-mode review fixture",
+                "review_requirement": "HUMAN",
+                "reviewer": "Review Test",
+                "reviewer_role": "Reviewer",
+                "reviewer_organization": "Example Org",
+                "subject_organization": "Example Org",
+                "party_class": "FIRST_PARTY",
+                "role_separated_from_implementation": False,
+                "review_type": "self_assessment",
+                "relationship_to_target": "",
+                "independence": {
+                    "separate_legal_entity": None,
+                    "subject_controls_assessment": None,
+                    "outcome_contingent_compensation": None,
+                    "conflicts_disclosed": [],
+                    "attested": False,
+                },
+                "signing_identity": {
+                    "type": "sigstore",
+                    "expected_subject": "reviewer@example.com",
+                    "expected_issuer": "https://accounts.google.com",
+                },
+                "decision": "PASS",
+                "reviewed_at": "2026-09-25T01:00:00Z",
+                "rationale": "Fixture review.",
+                "evidence_refs": ["external:test"],
+                "checklist": [],
+            }
+            review_path.write_text(json.dumps(review, indent=2) + "\n", encoding="utf-8")
+            review_path.with_suffix(".sigstore.json").write_text("{}\n", encoding="utf-8")
+
+            with patch(
+                "asimov_conformance.verification.sigstore_verify_blob_attestation",
+                return_value=(True, "verified"),
+            ):
+                from asimov_conformance.verification import verify_review_attestation
+                result = verify_review_attestation(review_path)
+            self.assertEqual(result["state"], "FAILED")
+            self.assertIn("catalog requires ROLE_SEPARATED", result["detail"])
+
+    def test_failed_review_attestation_fails_package_verification(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            evidence = root / "evidence"; evidence.mkdir()
+            (evidence / "event.json").write_text("{}", encoding="utf-8")
+            self._write_review_fixture(evidence)
+            manifest_path = root / "evidence-manifest.json"
+            manifest_path.write_text(json.dumps(build_evidence_manifest(evidence), indent=2) + "\n", encoding="utf-8")
+            assessment_path = root / "assessment.json"
+            assessment_path.write_text(json.dumps(_assessment("6" * 64), indent=2) + "\n", encoding="utf-8")
+            report_path = root / "report.html"; report_path.write_text("<h1>review attestation</h1>", encoding="utf-8")
+            statement_path = root / "statement.json"
+            statement_path.write_text(
+                json.dumps(build_verification_statement(assessment_path, manifest_path, [report_path]), indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            with patch(
+                "asimov_conformance.verification.sigstore_verify_blob_attestation",
+                return_value=(False, "identity mismatch"),
+            ):
+                receipt = verify_package(
+                    assessment_path=assessment_path,
+                    evidence_manifest_path=manifest_path,
+                    evidence_root=evidence,
+                    statement_path=statement_path,
+                    report_paths=[report_path],
+                )
+            self.assertEqual(receipt["overall"], "FAILED")
+            self.assertEqual(receipt["checks"]["review_attestations"]["state"], "FAILED")
+
+    def test_sign_review_cli_records_and_verifies_reviewer_identity(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            review_path = root / "ACC-001.json"
+            review_path.write_text(json.dumps({
+                "schema_version": "1",
+                "item_type": "requirement",
+                "item_id": "ACC-001",
+                "title": "Review fixture",
+                "review_requirement": "HUMAN",
+                "reviewer": "Review Test",
+                "reviewer_role": "Reviewer",
+                "reviewer_organization": "Example Org",
+                "subject_organization": "Example Org",
+                "party_class": "FIRST_PARTY",
+                "role_separated_from_implementation": False,
+                "review_type": "self_assessment",
+                "relationship_to_target": "",
+                "independence": {
+                    "separate_legal_entity": None,
+                    "subject_controls_assessment": None,
+                    "outcome_contingent_compensation": None,
+                    "conflicts_disclosed": [],
+                    "attested": False,
+                },
+                "signing_identity": {
+                    "type": "sigstore",
+                    "expected_subject": "",
+                    "expected_issuer": "",
+                },
+                "decision": "PASS",
+                "reviewed_at": "2026-09-25T01:00:00Z",
+                "rationale": "Fixture review.",
+                "evidence_refs": ["event.json"],
+                "checklist": [],
+            }, indent=2) + "\n", encoding="utf-8")
+
+            def fake_attest(subject, predicate, bundle, **kwargs):
+                bundle.write_text("{}\n", encoding="utf-8")
+                return 0
+
+            with patch("asimov_conformance.__main__.sigstore_attest_blob", side_effect=fake_attest), \
+                 patch(
+                     "asimov_conformance.verification.sigstore_verify_blob_attestation",
+                     return_value=(True, "verified"),
+                 ):
+                code = main([
+                    "sign-review", str(review_path),
+                    "--provider", "google",
+                    "--identity", "reviewer@example.com",
+                ])
+            self.assertEqual(code, 0)
+            signed = json.loads(review_path.read_text())
+            self.assertEqual(signed["signing_identity"]["expected_subject"], "reviewer@example.com")
+            self.assertEqual(
+                signed["signing_identity"]["expected_issuer"],
+                "https://accounts.google.com",
+            )
+            self.assertTrue(review_path.with_suffix(".sigstore.json").exists())
+
     def test_cli_statement_and_local_verification_receipt(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

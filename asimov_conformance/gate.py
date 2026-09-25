@@ -117,11 +117,19 @@ def validate_report(report: Any) -> dict[str, Any]:
     if when.utcoffset() is None:
         raise ReportError("created_at needs a timezone")
 
-    assessment = _object(report["assessment"], {"mode", "assessor"}, {"mode", "assessor"}, "assessment")
+    assessment = _object(
+        report["assessment"],
+        {"mode", "assessor", "subject_organization", "assessor_organization"},
+        {"mode", "assessor"},
+        "assessment",
+    )
     _text(assessment["mode"], "assessment.mode")
     if assessment["mode"] not in MODES:
         raise ReportError("unknown assessment mode")
     _text(assessment["assessor"], "assessment.assessor")
+    for key in ("subject_organization", "assessor_organization"):
+        if key in assessment and not isinstance(assessment[key], str):
+            raise ReportError(f"assessment.{key} must be a string")
 
     system = _object(report["system"], {"id", "configuration_sha256"}, {"id", "configuration_sha256"}, "system")
     _text(system["id"], "system.id")
@@ -184,6 +192,8 @@ def evaluate_report(report: Any) -> dict[str, Any]:
         "created_at": report["created_at"],
         "assessment_mode": report["assessment"]["mode"],
         "assessor": report["assessment"]["assessor"],
+        "subject_organization": report["assessment"].get("subject_organization", ""),
+        "assessor_organization": report["assessment"].get("assessor_organization", ""),
         "system": report["system"],
         "scope_manifest_sha256": report["scope_manifest_sha256"],
         "requested_profile": requested,

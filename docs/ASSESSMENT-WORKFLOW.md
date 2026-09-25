@@ -43,6 +43,9 @@ run-assessment
 complete required human/review records
     |
     v
+sign-review / verify-review
+    |
+    v
 finalize-assessment
     |
     +--> assessment.json
@@ -72,6 +75,8 @@ asimov prepare-assessment \
   --adapter-kwargs '{"endpoint":"http://127.0.0.1:8000"}' \
   --level A5 \
   --assessor "Your Name or Assessment Team" \
+  --subject-organization "Organization operating the deployment" \
+  --assessor-organization "Organization performing the assessment" \
   --mode self_assessment \
   --output ./assessment
 ```
@@ -145,29 +150,21 @@ A human reviewer cannot override a technical failure.
 
 The same fail-closed merge applies, but the human judgment is an explicit part of the normative method and may include domain, human-factors, independent-assurance, red-team, recovery, or safety-case judgment that code cannot truthfully reduce to an assertion.
 
-### Independent review
+### Human, role-separated, and third-party review
 
-When a requirement's method includes an `INDEPENDENT_*` method, its review record has:
+Each human-reviewed family declares a `review_requirement`:
 
-```json
-"independence_required": true
-```
+| Requirement | Who may review? |
+|---|---|
+| `HUMAN` | A named competent human; same organization is allowed |
+| `ROLE_SEPARATED` | Same organization is allowed, but not the implementer/control owner being judged |
+| `THIRD_PARTY` | A separate legal entity from the Assessment Subject |
 
-A self-assessment record cannot complete that requirement.
+For `THIRD_PARTY`, the record must identify both organizations, set `party_class: "THIRD_PARTY"`, use `review_type: "independent_assessment"`, describe `relationship_to_target`, and explicitly attest that the reviewer is a separate legal entity, the subject does not control the assessment outcome, compensation is not contingent on passing, and material conflicts are disclosed.
 
-The reviewer must use:
+The assessment's overall file signer does **not** have to be a different organization from the independent assessor. If an independent assessment firm performs and signs the whole assessment, it can also sign its own review record. The required separation is between the independent assessor and the **Assessment Subject**.
 
-```json
-"review_type": "independent_assessment"
-```
-
-and state:
-
-```json
-"relationship_to_target": "..."
-```
-
-The relationship/conflicts must be reviewable from retained evidence.
+An outside contractor does not automatically qualify as third-party when the Assessment Subject controls the findings or outcome.
 
 ## 3. Run all A1-A5 technical probes in one cumulative run
 
@@ -209,16 +206,32 @@ assessment/reviews/requirements/
 
 A completed PASS review must contain:
 
-- named reviewer;
-- reviewer role;
-- valid review type;
-- independent relationship information where required;
+- named reviewer and reviewer role;
+- reviewer organization and Assessment Subject organization;
+- the catalog-required `review_requirement`;
+- `role_separated_from_implementation: true` where ROLE_SEPARATED is required;
+- the complete independence declaration where THIRD_PARTY is required;
 - timezone-qualified `reviewed_at`;
 - nonblank rationale;
 - cited underlying evidence;
-- every checklist item marked PASS.
+- every checklist item marked PASS;
+- for test-family human reviews, a declared Sigstore signing subject and OIDC issuer.
 
-Do not mark an item PASS merely because the model/agent said it behaved correctly.
+Then the reviewer signs **their exact review record**. For example:
+
+```bash
+asimov sign-review reviews/requirements/ACC-006.json \
+  --provider google \
+  --identity reviewer@example.org
+```
+
+That creates `ACC-006.sigstore.json` beside the review. Verify it directly with:
+
+```bash
+asimov verify-review reviews/requirements/ACC-006.json
+```
+
+Repeat for every completed mandatory HYBRID / REVIEW_REQUIRED **family review**. A completed PASS/FAIL family review without its companion attestation remains incomplete. Mandatory precondition records still need complete evidence and decisions, but Asimov 0.2 does not require a separate Sigstore attestation for each precondition. Do not mark an item PASS merely because the model/agent said it behaved correctly.
 
 ## 5. Finalize
 
@@ -229,7 +242,8 @@ asimov finalize-assessment ./assessment
 Finalization:
 
 - merges technical and human results fail-closed;
-- copies completed review records into the bound evidence set;
+- requires companion review-attestation bundles before a completed human review can contribute PASS/FAIL;
+- copies completed review records and their attestation bundles into the bound evidence set;
 - builds `assessment.json`;
 - computes cumulative A1-A5 outcomes;
 - renders the full report and summary;
@@ -336,14 +350,15 @@ Signing proves who committed to the bound bytes and scope. It does **not** prove
 
 ACC-006 requires all of the following before an A5 conclusion can be complete:
 
-1. independent assessment of the declared deployment and domain safety case;
-2. independent verification of scope/configuration binding;
-3. evidence-integrity verification;
-4. signer-identity and external-checkpoint verification;
-5. explicit review of material limitations;
-6. durable evidence retention/escrow outside the assessed actor and ordinary mutable operator path;
-7. successful reverification from a fresh environment;
-8. retained evidence of the independent assessment and fresh-environment verification.
+1. independent assessment of the declared deployment and domain safety case by a separate legal entity from the Assessment Subject;
+2. a signed independence declaration covering organizational separation, subject control, outcome-contingent compensation, and disclosed conflicts;
+3. independent verification of scope/configuration binding;
+4. evidence-integrity verification;
+5. signer-identity and external-checkpoint verification;
+6. explicit review of material limitations;
+7. durable evidence retention/escrow outside the assessed actor and ordinary mutable operator path;
+8. successful reverification from a fresh environment;
+9. retained evidence of the independent assessment and fresh-environment verification.
 
 A founder/operator reviewing their own deployment may produce useful self-assessment evidence but does not satisfy an independence-required A5 family.
 
@@ -366,7 +381,7 @@ Select:
 
 Browser verification recomputes local hashes and artifact/scope binding.
 
-Full Sigstore verification must use the official verifier/service or `cosign verify-blob`.
+Full Sigstore verification is performed locally by `asimov verify-report`, `asimov verify-review`, or `asimov verify-package`, which invoke Cosign.
 
 ## 11. What a final outcome means
 

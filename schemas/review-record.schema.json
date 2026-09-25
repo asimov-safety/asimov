@@ -1,7 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:asimov:0.2.0:review-record",
-  "title": "Asimov human/review record",
+  "title": "Asimov human review record",
+  "description": "Structured human adjudication record. Cryptographic verification of the companion Sigstore attestation is separate from JSON Schema validation.",
   "type": "object",
   "required": [
     "schema_version",
@@ -11,6 +12,13 @@
     "pre_run_acknowledged",
     "reviewer",
     "reviewer_role",
+    "reviewer_organization",
+    "subject_organization",
+    "review_requirement",
+    "party_class",
+    "role_separated_from_implementation",
+    "independence",
+    "signing_identity",
     "review_type",
     "decision",
     "reviewed_at",
@@ -19,40 +27,263 @@
     "checklist"
   ],
   "properties": {
-    "schema_version": {"const": "1"},
-    "item_type": {"enum": ["requirement", "precondition"]},
-    "item_id": {"type": "string", "minLength": 1},
-    "title": {"type": "string", "minLength": 1},
-    "minimum_profile": {"type": "string"},
-    "automation": {"enum": ["HYBRID", "REVIEW_REQUIRED"]},
-    "methods": {"type": "array", "items": {"type": "string"}},
-    "normative_requirement": {"type": "string"},
-    "required_evidence": {"type": "string"},
-    "guidance": {"type": "string"},
-    "independence_required": {"type": "boolean"},
-    "pre_run_acknowledged": {"type": "boolean"},
-    "reviewer": {"type": "string"},
-    "reviewer_role": {"type": "string"},
-    "review_type": {"enum": ["self_assessment", "independent_assessment"]},
-    "relationship_to_target": {"type": "string"},
-    "decision": {"enum": ["PENDING", "PASS", "FAIL", "INCONCLUSIVE"]},
-    "reviewed_at": {"type": "string"},
-    "rationale": {"type": "string"},
-    "evidence_refs": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "schema_version": {
+      "const": "1"
+    },
+    "item_type": {
+      "enum": [
+        "requirement",
+        "precondition"
+      ]
+    },
+    "item_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "minimum_profile": {
+      "type": "string"
+    },
+    "automation": {
+      "enum": [
+        "HYBRID",
+        "REVIEW_REQUIRED"
+      ]
+    },
+    "methods": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "normative_requirement": {
+      "type": "string"
+    },
+    "required_evidence": {
+      "type": "string"
+    },
+    "guidance": {
+      "type": "string"
+    },
+    "independence_required": {
+      "type": "boolean"
+    },
+    "review_requirement": {
+      "enum": [
+        "HUMAN",
+        "ROLE_SEPARATED",
+        "THIRD_PARTY"
+      ]
+    },
+    "pre_run_acknowledged": {
+      "type": "boolean"
+    },
+    "reviewer": {
+      "type": "string"
+    },
+    "reviewer_role": {
+      "type": "string"
+    },
+    "reviewer_organization": {
+      "type": "string"
+    },
+    "subject_organization": {
+      "type": "string"
+    },
+    "party_class": {
+      "enum": [
+        "FIRST_PARTY",
+        "SECOND_PARTY",
+        "THIRD_PARTY"
+      ]
+    },
+    "role_separated_from_implementation": {
+      "type": "boolean"
+    },
+    "review_type": {
+      "enum": [
+        "self_assessment",
+        "independent_assessment"
+      ]
+    },
+    "relationship_to_target": {
+      "type": "string"
+    },
+    "independence": {
+      "type": "object",
+      "required": [
+        "separate_legal_entity",
+        "subject_controls_assessment",
+        "outcome_contingent_compensation",
+        "conflicts_disclosed",
+        "attested"
+      ],
+      "properties": {
+        "separate_legal_entity": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "subject_controls_assessment": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "outcome_contingent_compensation": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "conflicts_disclosed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "attested": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "signing_identity": {
+      "type": "object",
+      "required": [
+        "type",
+        "expected_subject",
+        "expected_issuer"
+      ],
+      "properties": {
+        "type": {
+          "const": "sigstore"
+        },
+        "expected_subject": {
+          "type": "string"
+        },
+        "expected_issuer": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "decision": {
+      "enum": [
+        "PENDING",
+        "PASS",
+        "FAIL",
+        "INCONCLUSIVE"
+      ]
+    },
+    "reviewed_at": {
+      "type": "string"
+    },
+    "rationale": {
+      "type": "string"
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
     "checklist": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "instruction", "status", "evidence_refs"],
+        "required": [
+          "id",
+          "instruction",
+          "status",
+          "evidence_refs"
+        ],
         "properties": {
-          "id": {"type": "string", "minLength": 1},
-          "instruction": {"type": "string", "minLength": 1},
-          "status": {"enum": ["PENDING", "PASS", "FAIL", "INCONCLUSIVE"]},
-          "evidence_refs": {"type": "array", "items": {"type": "string", "minLength": 1}}
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "instruction": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "PENDING",
+              "PASS",
+              "FAIL",
+              "INCONCLUSIVE"
+            ]
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
         },
         "additionalProperties": false
       }
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "review_requirement": {
+            "const": "ROLE_SEPARATED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "role_separated_from_implementation": {
+            "const": true
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "review_requirement": {
+            "const": "THIRD_PARTY"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "party_class": {
+            "const": "THIRD_PARTY"
+          },
+          "review_type": {
+            "const": "independent_assessment"
+          },
+          "independence": {
+            "properties": {
+              "separate_legal_entity": {
+                "const": true
+              },
+              "subject_controls_assessment": {
+                "const": false
+              },
+              "outcome_contingent_compensation": {
+                "const": false
+              },
+              "attested": {
+                "const": true
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
   "additionalProperties": true
 }
