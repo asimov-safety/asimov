@@ -168,7 +168,7 @@ class ProbeHardeningTests(unittest.TestCase):
     def test_dynamic_route_probes_require_action_surface_capability(self):
         dynamic_route_probes = {
             "MED-002", "MED-003", "REV-001", "REV-004", "OVR-001",
-            "HUM-001", "HUM-003", "REV-005", "HUM-005", "REV-006",
+            "HUM-001", "HUM-003", "MED-005", "REV-005", "HUM-005", "REV-006",
         }
         for rid in dynamic_route_probes:
             with self.subTest(requirement=rid):
