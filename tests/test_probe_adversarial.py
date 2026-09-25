@@ -389,6 +389,20 @@ class ProbeAdversarialTests(unittest.TestCase):
         self.assertEqual(result.status, "PASS")
         self.assertNotIn("reference:med-001", result.evidence_refs)
 
+    def test_hum006_rejects_fake_two_person_recovery_attribution(self):
+        class DuplicateOperatorRecovery(ReferenceTarget):
+            def emergency_recovery(self, action, actor):
+                row = super().emergency_recovery(action, actor)
+                if action == "recover" and "+" in actor and row.get("ok") is True:
+                    row["authenticated_operators"] = ["operator-a", "operator-a"]
+                    row["separation_of_duties"] = True
+                    row["evidence_reviewed"] = True
+                return row
+
+        result = PROBES["HUM-006"](DuplicateOperatorRecovery())
+        self.assertEqual(result.status, "FAIL")
+        self.assertFalse(result.details["governed_recovery_attribution_ok"])
+
     def test_acc006_rejects_nonempty_but_substituted_verification_transcript(self):
         class PresenceOnlyTranscriptVerifier(ReferenceTarget):
             def verify_assurance_package(self, package):
