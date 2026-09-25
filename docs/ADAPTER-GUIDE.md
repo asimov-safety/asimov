@@ -103,6 +103,9 @@ Provide a reviewed intervention/hazard plan and a safe exercise or simulator for
 
 ## A4 — Hardened mappings
 
+Human-reviewed families introduced at A4 use `ROLE_SEPARATED`: the reviewer may be internal, but must not be the implementation/control owner whose work is being judged. The adapter supplies the technical evidence; reviewer separation is enforced by the assessment record and attestation layer.
+
+
 ### OBS-005
 Correlate control-boundary records with a resource-, executor-, or environment-side observer for each high-consequence action class. Preserve disagreements and ambiguous outcomes explicitly.
 
@@ -125,6 +128,9 @@ Invoke operator restriction while the normal UI, actor, and primary orchestrator
 Produce a deterministic evidence commitment bound to scope/configuration, authenticated signer identity, and an external timestamp/transparency/append-only checkpoint. Verify substitution and rollback failures.
 
 ## A5 — Critical mappings
+
+Most human-reviewed A5 families use `ROLE_SEPARATED`. `OVR-006` and `ACC-006` are stronger: both require `THIRD_PARTY` review by a separate organization from the Assessment Subject.
+
 
 ### OBS-006
 Map every domain-critical state transition and catastrophic/irreversible effect class to independent observation coverage and explicit diagnostic limits.
