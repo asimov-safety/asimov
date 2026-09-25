@@ -1215,6 +1215,10 @@ class ReferenceTarget:
             self._events[0], self._events[1] = self._events[1], self._events[0]
         elif mode == "truncate":
             self._events.pop()
+        elif mode == "rollback":
+            # Present an older internally valid prefix as if it were current.
+            # An independent checkpoint must make this detectable.
+            self._events.pop()
         else:
             return {"ok": False, "reason": f"unsupported tamper mode: {mode}"}
         if not self.config.tamper_evident_evidence:
