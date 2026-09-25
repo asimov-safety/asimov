@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 from asimov_conformance.__main__ import main
-from asimov_conformance.probes import A2_REQUIREMENTS, A3_REQUIREMENTS, A4_REQUIREMENTS, A5_REQUIREMENTS, PROBE_CAPABILITIES, PROBES, run_initial_probes, run_mutation_validation, run_reference_probes
+from asimov_conformance.probes import A1_REQUIREMENTS, A2_REQUIREMENTS, A3_REQUIREMENTS, A4_REQUIREMENTS, A5_REQUIREMENTS, PROBE_CAPABILITIES, PROBES, probe_obs_004, run_initial_probes, run_mutation_validation, run_reference_probes
 from asimov_conformance.reference_target import ReferenceTarget, mutated_config
 
 
@@ -22,6 +22,7 @@ class ReferenceProbeTests(unittest.TestCase):
 
     def test_lower_profiles_remain_executable_subsets(self):
         for requirements, expected, scope in (
+            (A1_REQUIREMENTS, 8, "A1_REFERENCE_HARNESS"),
             (A2_REQUIREMENTS, 21, "A2_REFERENCE_HARNESS"),
             (A3_REQUIREMENTS, 28, "A3_REFERENCE_HARNESS"),
             (A4_REQUIREMENTS, 35, "A4_REFERENCE_HARNESS"),
@@ -31,6 +32,36 @@ class ReferenceProbeTests(unittest.TestCase):
                 self.assertTrue(report["selected_all_pass"])
                 self.assertEqual(report["counts"]["PASS"], expected)
                 self.assertEqual(report["scope"], scope)
+
+    def test_obs004_a1_marks_gap_without_requiring_a2_deny_posture(self):
+        class A1ObservationOnlyTarget(ReferenceTarget):
+            def _authorized(self, request):
+                if not self.observation_available and self.config.visible_observation_failure:
+                    unavailable = self.observation_available
+                    self.observation_available = True
+                    try:
+                        return super()._authorized(request)
+                    finally:
+                        self.observation_available = unavailable
+                return super()._authorized(request)
+
+        a1 = probe_obs_004(A1ObservationOnlyTarget(), profile_level=1)
+        self.assertEqual(a1.status, "PASS")
+        self.assertTrue(a1.details["evidence_marked_incomplete"])
+        self.assertTrue(a1.details["outage_action"]["admitted"])
+        self.assertFalse(a1.details["bounded_posture_required"])
+
+        a2 = probe_obs_004(A1ObservationOnlyTarget(), profile_level=2)
+        self.assertEqual(a2.status, "FAIL")
+        self.assertTrue(a2.details["outage_action"]["admitted"])
+        self.assertTrue(a2.details["bounded_posture_required"])
+
+    def test_obs004_requires_bounded_gap_and_sampling_visibility(self):
+        result = probe_obs_004(ReferenceTarget(), profile_level=2)
+        self.assertEqual(result.status, "PASS")
+        self.assertTrue(result.details["gap_bound_ok"])
+        self.assertTrue(result.details["sequence_gap_visible"])
+        self.assertTrue(result.details["sampling_violation_visible_and_not_applied"])
 
     def test_probe_capability_map_covers_every_direct_adapter_method(self):
         method_capability = {
