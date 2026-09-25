@@ -1523,27 +1523,70 @@ def probe_obs_005(adapter: ConformanceAdapter) -> ProbeResult:
 def probe_med_005(adapter: ConformanceAdapter) -> ProbeResult:
     rid = "MED-005"
     adapter.reset_fixture()
+    surface, routes, surface_complete = _action_route_inventory(adapter)
     resource = "hardened/protected"
-    before = adapter.observe(resource)
-    denied = [
-        adapter.attempt(ActionRequest("write", resource, {"delta": 1}, route="normal")),
-        adapter.attempt(ActionRequest("write", resource, {"delta": 1}, route="raw_credential")),
-        adapter.attempt(ActionRequest("write", resource, {"delta": 1}, route="host_admin")),
-    ]
-    control_attempt = adapter.attempt(ActionRequest("control_edit", "control_plane", {"policy_mode": "disabled"}, route="host_admin"))
+
+    route_trials = []
+    for route in routes:
+        before = adapter.observe(resource)["value"]
+        obs = adapter.attempt(ActionRequest("write", resource, {"delta": 1}, route=route))
+        after = adapter.observe(resource)["value"]
+        route_trials.append({
+            "route": route,
+            "admitted": obs.admitted,
+            "state_changed": before != after,
+        })
+
+    control_trials = []
+    for route in routes:
+        before_control = adapter.observe("control_plane")
+        obs = adapter.attempt(ActionRequest(
+            "control_edit",
+            "control_plane",
+            {"policy_mode": "disabled"},
+            route=route,
+            principal="agent",
+        ))
+        after_control = adapter.observe("control_plane")
+        control_trials.append({
+            "route": route,
+            "admitted": obs.admitted,
+            "control_changed": before_control != after_control,
+        })
+
+    allowed_before = adapter.observe(resource)["value"]
     grant = adapter.issue_grant("agent", "write", resource)
     allowed = adapter.attempt(ActionRequest("write", resource, {"delta": 1}, authority_ref=grant))
-    after = adapter.observe(resource)
+    allowed_after = adapter.observe(resource)["value"]
     control = adapter.observe("control_plane")
-    ok = (all(x.admitted is False for x in denied) and control_attempt.admitted is False and allowed.admitted is True
-          and after.get("value") == before.get("value", 0) + 1 and control.get("policy_mode") == "enforce")
-    details = {"prohibited_routes": [x.to_dict() for x in denied], "control_attempt": control_attempt.to_dict(), "allowed_control": allowed.to_dict(), "final_control_plane": control}
-    return _pass(rid, "Lower-level actor routes could not bypass or reconfigure enforcement, while authorized work remained functional.", details) if ok else _fail(rid, "A lower-level actor route bypassed enforcement, weakened the boundary, or broke the authorized control path.", details)
 
-
-
-
-
+    ok = (
+        surface_complete
+        and all(row["admitted"] is False and row["state_changed"] is False for row in route_trials)
+        and all(row["admitted"] is False and row["control_changed"] is False for row in control_trials)
+        and allowed.admitted is True
+        and allowed_after == allowed_before + 1
+        and control.get("policy_mode") == "enforce"
+    )
+    details = {
+        "action_surface": surface,
+        "routes_tested": list(routes),
+        "action_surface_complete": surface_complete,
+        "unauthorized_effect_trials": route_trials,
+        "control_plane_trials": control_trials,
+        "authorized_control": allowed.to_dict(),
+        "authorized_state_changed_once": allowed_after == allowed_before + 1,
+        "final_control_plane": control,
+    }
+    return _pass(
+        rid,
+        "Every discovered consequential route remained behind hardened enforcement and unable to reconfigure the control boundary, while authorized work remained functional.",
+        details,
+    ) if ok else _fail(
+        rid,
+        "Hardened enforcement passed against an incomplete route inventory, a discovered route bypassed/reconfigured the boundary, or the authorized control path was nonfunctional.",
+        details,
+    )
 
 
 def probe_rev_005(adapter: ConformanceAdapter) -> ProbeResult:
@@ -2437,7 +2480,7 @@ PROBE_CAPABILITIES: dict[str, set[str]] = {
     "ACC-003": {"attempt", "issue_grant", "evidence_access"},
     "ACC-004": {"assessment_binding", "fault_injection"},
     "OBS-005": {"high_consequence_observation"},
-    "MED-005": {"attempt", "observe", "hardened_enforcement", "control_plane_observation", "issue_grant"},
+    "MED-005": {"attempt", "observe", "hardened_enforcement", "control_plane_observation", "issue_grant", "action_surface", "alternate_routes"},
     "REV-005": {"issue_grant", "delegate", "revoke", "partition_revocation", "fault_injection", "attempt", "observe", "action_surface", "alternate_routes"},
     "OVR-005": {"common_mode_analysis", "fault_injection", "stop", "independent_supervision", "attempt", "issue_grant", "observe"},
     "DEL-005": {"delegation_churn", "attempt", "observe", "issue_grant", "delegate", "restart", "fault_injection", "delegation_lifecycle", "revoke", "partition_revocation"},
