@@ -149,6 +149,8 @@ class ReferenceTarget:
         self.actor_ignores_revocation = False
         self.actor_busy = False
         self.observation_available = True
+        self.observation_outage_started: int | None = None
+        self.observation_detection_bound_steps = 1
         self.failed_dependencies: set[str] = set()
         self.deployment_revision = 1
         self.declared_paths = {"normal", "direct", "subprocess", "delegated"}
@@ -369,7 +371,7 @@ class ReferenceTarget:
         if expires_at is not None and self.clock >= expires_at:
             return False
         if ref in self.revoked:
-            if request.route in {"queued", "cached_session"} and not self.config.revoke_cached_queued:
+            if request.route in {"queued", "cached_session", "retry", "in_flight"} and not self.config.revoke_cached_queued:
                 pass
             elif self.config.external_revocation:
                 return False
@@ -415,7 +417,16 @@ class ReferenceTarget:
         before = self.resources.get(request.resource, 0)
 
         if not self.observation_available and self.config.visible_observation_failure:
-            self._health_events.append({"clock": self.clock, "kind": "observation_gap", "resource": request.resource})
+            started = self.observation_outage_started if self.observation_outage_started is not None else self.clock
+            self._health_events.append({
+                "clock": self.clock,
+                "kind": "observation_gap",
+                "resource": request.resource,
+                "started_at": started,
+                "detected_at": self.clock,
+                "declared_bound_steps": self.observation_detection_bound_steps,
+                "uncertainty": "consequential-outcome-unobserved",
+            })
 
         authorized = self._authorized(request)
         premature_effect = request.action == "write" and not self.config.authorize_before_effects and not authorized
@@ -550,8 +561,20 @@ class ReferenceTarget:
             self.actor_busy = True
         elif fault == "observation_outage":
             self.observation_available = False
+            self.observation_outage_started = self.clock
         elif fault == "observation_restore":
             self.observation_available = True
+            self.observation_outage_started = None
+        elif fault == "sequence_gap":
+            if self.config.visible_observation_failure:
+                self._health_events.append({
+                    "clock": self.clock,
+                    "kind": "sequence_gap",
+                    "target": target,
+                    "detected_at": self.clock,
+                    "declared_bound_steps": self.observation_detection_bound_steps,
+                    "uncertainty": "evidence-sequence-incomplete",
+                })
         elif fault == "dependency_failure":
             self.failed_dependencies.add(target)
         elif fault == "dependency_restore":
