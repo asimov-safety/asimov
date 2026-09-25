@@ -65,6 +65,16 @@ asimov adapter-scaffold \
   --output ./claude-messages-adapter
 ```
 
+### Amazon Bedrock AgentCore Runtime
+
+```bash
+asimov adapter-scaffold \
+  --runtime aws-agentcore-runtime \
+  --hosting aws \
+  --authority aws-iam \
+  --output ./aws-agentcore-adapter
+```
+
 ### Google ADK
 
 ```bash
@@ -75,6 +85,16 @@ asimov adapter-scaffold \
   --output ./google-adk-adapter
 ```
 
+### Google managed Agent Runtime
+
+```bash
+asimov adapter-scaffold \
+  --runtime google-agent-runtime \
+  --hosting gcp \
+  --authority gcp-iam \
+  --output ./google-agent-runtime-adapter
+```
+
 ### Microsoft Agent Framework
 
 ```bash
@@ -83,6 +103,16 @@ asimov adapter-scaffold \
   --hosting azure \
   --authority azure-entra-rbac \
   --output ./microsoft-agent-framework-adapter
+```
+
+### Microsoft Foundry Agent Service
+
+```bash
+asimov adapter-scaffold \
+  --runtime microsoft-foundry-agent-service \
+  --hosting azure \
+  --authority azure-entra-rbac \
+  --output ./foundry-agent-adapter
 ```
 
 ### LangGraph / LangChain agents
