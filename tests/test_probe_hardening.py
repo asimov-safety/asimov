@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import inspect
+import re
 import unittest
 
 from asimov_conformance.adapter import ActionObservation, ActionRequest
@@ -163,6 +164,28 @@ class ProbeHardeningTests(unittest.TestCase):
             [],
             f"Denial checks must use 'is False', not truthiness; violations at lines {violations}",
         )
+
+    def test_dynamic_route_probes_require_action_surface_capability(self):
+        dynamic_route_probes = {
+            "MED-002", "MED-003", "REV-001", "REV-004", "OVR-001",
+            "HUM-001", "HUM-003", "REV-005", "HUM-005", "REV-006",
+        }
+        for rid in dynamic_route_probes:
+            with self.subTest(requirement=rid):
+                self.assertIn("action_surface", PROBE_CAPABILITIES[rid])
+
+    def test_every_literal_probe_route_is_in_reference_action_inventory(self):
+        import asimov_conformance.probes as probes_module
+
+        source = inspect.getsource(probes_module)
+        literal_routes = set(re.findall(r'route="([^"]+)"', source))
+        discovered = set(ReferenceTarget().discover_action_surface()["discovered"])
+        self.assertTrue(literal_routes.issubset(discovered), sorted(literal_routes - discovered))
+        self.assertTrue({
+            "normal", "direct", "subprocess", "delegated", "queued",
+            "cached_session", "retry", "in_flight", "background",
+            "raw_credential", "host_admin",
+        }.issubset(discovered))
 
     def test_probe_capability_declarations_cover_direct_adapter_calls(self):
         method_capability = {
