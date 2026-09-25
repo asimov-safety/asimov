@@ -56,7 +56,7 @@ Studio writes the ordinary Asimov workspace files. A Studio-created assessment r
 
 Provider APIs change faster than the Asimov Core specification. Studio's Adapter Assistant is driven by the packaged `adapter_catalog.json`, which distinguishes managed and application-owned runtimes rather than treating a vendor as one architecture.
 
-The catalog currently covers OpenAI Agents API / Agents SDK / custom Responses loops, Claude Managed Agents / Claude Agent SDK / custom Messages loops, Google ADK, Microsoft Agent Framework, LangGraph, CrewAI, custom/local open-weight stacks, MCP, common cloud/lifecycle options, authority systems, protected resources, and evidence sources.
+The catalog currently covers OpenAI Agents API / Agents SDK / custom Responses loops, Claude Managed Agents / Claude Agent SDK / custom Messages loops, Google ADK and managed Agent Runtime, Microsoft Agent Framework and Foundry Agent Service, Amazon Bedrock AgentCore Runtime, LangGraph, CrewAI, custom/local open-weight stacks, MCP, common cloud/lifecycle options, authority systems, protected resources, and evidence sources.
 
 Generated starters contain three files:
 
