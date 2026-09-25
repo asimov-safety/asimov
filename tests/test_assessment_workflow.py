@@ -236,6 +236,25 @@ class AssessmentWorkflowTests(unittest.TestCase):
             findings = {x["requirement_id"]: x for x in result["findings"]}
             self.assertEqual(findings["OVR-005"]["status"], "INCONCLUSIVE")
 
+    def test_role_separated_review_cannot_downgrade_to_human(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "assessment"
+            adapter = self._prepare(root, "A4")
+            self._acknowledge(root)
+            run_assessment(adapter, root)
+            self._complete_reviews(root)
+
+            path = root / "reviews" / "requirements" / "OVR-005.json"
+            record = json.loads(path.read_text())
+            record["review_requirement"] = "HUMAN"
+            record["role_separated_from_implementation"] = False
+            path.write_text(json.dumps(record, indent=2) + "\n")
+
+            result = finalize_assessment(root)
+            findings = {x["requirement_id"]: x for x in result["findings"]}
+            self.assertEqual(findings["OVR-005"]["status"], "INCONCLUSIVE")
+            self.assertIn("downgrade/mismatch", findings["OVR-005"]["reason"])
+
     def test_third_party_review_rejects_same_organization(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "assessment"
