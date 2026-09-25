@@ -2,6 +2,10 @@
 
 Asimov verification is a chain, not a badge.
 
+For a real external assessment, begin with [ASSESSMENT-WORKFLOW.md](ASSESSMENT-WORKFLOW.md). `finalize-assessment` generates the assessment, full report, evidence manifest, verification statement and an exact `VERIFICATION-INSTRUCTIONS.md` file for the requested profile.
+
+**Profile expectations are not implicit:** ACC-002 applies from A1 and requires trusted integrity state outside the actor's unauthorized mutation authority; A4/ACC-005 additionally requires authenticated signing plus an external transparency/timestamp/append-only (or equivalent independent) checkpoint; A5/ACC-006 additionally requires independent assessment, durable external retention/escrow, and successful reverification from a fresh environment.
+
 ```text
 evidence files
      |
