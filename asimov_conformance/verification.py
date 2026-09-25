@@ -13,6 +13,7 @@ from .gate import SPEC_VERSION, evaluate_report, load_report, validate_report
 STATEMENT_TYPE = "https://in-toto.io/Statement/v1"
 PREDICATE_TYPE = "https://asimov-safety.github.io/asimov/attestation/v0.2"
 RECEIPT_VERSION = "asimov-verification-receipt/0.2.0"
+PUBLIC_RECORD_VERSION = "asimov-public-verification/0.2.0"
 
 
 class VerificationError(ValueError):
@@ -116,6 +117,179 @@ def verify_statement_binding(
     if statement.get("predicate") != expected["predicate"]:
         errors.append("assessment/scope predicate does not match")
     return errors
+
+
+def build_public_verification_record(
+    statement_path: Path,
+    report_path: Path,
+    *,
+    bundle_path: Path | None = None,
+    certificate_identity: str | None = None,
+    certificate_oidc_issuer: str | None = None,
+) -> dict[str, Any]:
+    """Build the small sidecar intended to travel with a public report.
+
+    The record deliberately embeds the verification statement and, when
+    supplied, the Sigstore bundle. Public readers therefore need only the
+    report plus this one JSON file. Full/private evidence is not included.
+    """
+    statement = _load_json(statement_path, "verification statement")
+    if statement.get("_type") != STATEMENT_TYPE or statement.get("predicateType") != PREDICATE_TYPE:
+        raise VerificationError("verification statement has an unsupported type/predicate")
+
+    report_digest = sha256_file(report_path)
+    report_name = f"report/{report_path.name}"
+    matching = [
+        row for row in statement.get("subject", [])
+        if isinstance(row, dict) and row.get("name") == report_name
+    ]
+    if len(matching) != 1 or (matching[0].get("digest") or {}).get("sha256") != report_digest:
+        raise VerificationError("report is not bound by the supplied verification statement")
+
+    signed = any(x is not None for x in (bundle_path, certificate_identity, certificate_oidc_issuer))
+    if signed and not (bundle_path and certificate_identity and certificate_oidc_issuer):
+        raise VerificationError(
+            "bundle, certificate identity, and OIDC issuer must be supplied together"
+        )
+
+    sigstore: dict[str, Any] | None = None
+    if signed:
+        bundle = _load_json(bundle_path, "Sigstore bundle")
+        sigstore = {
+            "bundle": bundle,
+            "certificate_identity": certificate_identity,
+            "certificate_oidc_issuer": certificate_oidc_issuer,
+        }
+
+    return {
+        "version": PUBLIC_RECORD_VERSION,
+        "report": {
+            "name": report_path.name,
+            "sha256": report_digest,
+        },
+        "statement": statement,
+        "sigstore": sigstore,
+        "meaning": {
+            "local_report_match": (
+                "The supplied report bytes match the digest bound in the verification statement."
+            ),
+            "signed_provenance": (
+                "When Sigstore verifies, the exact verification statement was signed by the "
+                "expected authenticated identity and externally checkpointed."
+            ),
+            "semantic_limit": (
+                "Cryptographic verification does not determine whether the assessment evidence "
+                "or conclusion is substantively correct."
+            ),
+        },
+    }
+
+
+def verify_public_report(
+    report_path: Path,
+    record_path: Path,
+    *,
+    cosign_bin: str = "cosign",
+) -> dict[str, Any]:
+    """Verify a public report plus its one-file verification sidecar."""
+    record = _load_json(record_path, "public verification record")
+    if record.get("version") != PUBLIC_RECORD_VERSION:
+        raise VerificationError("unsupported public verification record version")
+    report = record.get("report")
+    statement = record.get("statement")
+    if not isinstance(report, dict) or not isinstance(statement, dict):
+        raise VerificationError("public verification record is missing report/statement data")
+
+    actual_digest = sha256_file(report_path)
+    expected_digest = report.get("sha256")
+    subject_name = f"report/{report.get('name', '')}"
+    subjects = {
+        row.get("name"): (row.get("digest") or {}).get("sha256")
+        for row in statement.get("subject", [])
+        if isinstance(row, dict)
+    }
+    local_errors = []
+    if actual_digest != expected_digest:
+        local_errors.append("report digest does not match the public verification record")
+    if subjects.get(subject_name) != actual_digest:
+        local_errors.append("verification statement does not bind the supplied report digest")
+    if statement.get("_type") != STATEMENT_TYPE:
+        local_errors.append("unexpected statement type")
+    if statement.get("predicateType") != PREDICATE_TYPE:
+        local_errors.append("unexpected predicate type")
+
+    sig = record.get("sigstore")
+    sigstore_state = "UNSIGNED"
+    sigstore_detail = ""
+    signer_identity = None
+    oidc_issuer = None
+    if isinstance(sig, dict):
+        signer_identity = sig.get("certificate_identity")
+        oidc_issuer = sig.get("certificate_oidc_issuer")
+        bundle = sig.get("bundle")
+        if not signer_identity or not oidc_issuer or not isinstance(bundle, dict):
+            sigstore_state = "FAILED"
+            sigstore_detail = "embedded Sigstore material is incomplete"
+        else:
+            import tempfile
+            with tempfile.TemporaryDirectory(prefix="asimov-public-verify-") as tmp:
+                root = Path(tmp)
+                statement_path = root / "statement.json"
+                bundle_path = root / "bundle.sigstore.json"
+                statement_path.write_text(
+                    json.dumps(statement, separators=(",", ":"), ensure_ascii=False),
+                    encoding="utf-8",
+                )
+                bundle_path.write_text(json.dumps(bundle), encoding="utf-8")
+                try:
+                    ok, sigstore_detail = sigstore_verify(
+                        statement_path,
+                        bundle_path,
+                        certificate_identity=signer_identity,
+                        certificate_oidc_issuer=oidc_issuer,
+                        cosign_bin=cosign_bin,
+                    )
+                    sigstore_state = "VERIFIED" if ok else "FAILED"
+                except VerificationError as exc:
+                    sigstore_state = "FAILED"
+                    sigstore_detail = str(exc)
+
+    local_state = "VERIFIED" if not local_errors else "FAILED"
+    if local_errors or sigstore_state == "FAILED":
+        overall = "FAILED"
+    elif sigstore_state == "VERIFIED":
+        overall = "AUTHENTICATED"
+    else:
+        overall = "LOCAL_MATCH_ONLY"
+
+    predicate = statement.get("predicate") or {}
+    return {
+        "version": PUBLIC_RECORD_VERSION,
+        "overall": overall,
+        "report_integrity": {
+            "state": local_state,
+            "errors": local_errors,
+            "sha256": actual_digest,
+        },
+        "provenance": {
+            "state": sigstore_state,
+            "signer_identity": signer_identity,
+            "oidc_issuer": oidc_issuer,
+            "detail": sigstore_detail,
+        },
+        "assessment_binding": {
+            "report_id": predicate.get("reportId"),
+            "system_id": (predicate.get("system") or {}).get("id"),
+            "requested_profile": predicate.get("requestedProfile"),
+            "reported_outcome": predicate.get("reportedOutcome"),
+            "assessment_mode": predicate.get("assessmentMode"),
+            "assessment_created_at": predicate.get("assessmentCreatedAt"),
+            "configuration_sha256": (predicate.get("system") or {}).get("configurationSha256"),
+            "scope_manifest_sha256": predicate.get("scopeManifestSha256"),
+            "evidence_manifest_sha256": predicate.get("evidenceManifestSha256"),
+        },
+        "semantic_assurance": "NOT_ESTABLISHED_BY_CRYPTOGRAPHY",
+    }
 
 
 def _resolve_cosign(cosign_bin: str) -> str:
