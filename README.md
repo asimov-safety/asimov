@@ -69,7 +69,7 @@ asimov run-assessment ./assessment \
 # Complete required human/review records against the actual evidence.
 asimov assessment-status ./assessment
 
-# Sign each completed human-review/precondition record with its reviewer's identity.
+# Sign each completed HYBRID / REVIEW_REQUIRED family review with its reviewer's identity.
 asimov sign-review ./assessment/reviews/requirements/ACC-006.json \
   --provider google --identity reviewer@example.org
 
@@ -77,7 +77,7 @@ asimov sign-review ./assessment/reviews/requirements/ACC-006.json \
 asimov finalize-assessment ./assessment
 ```
 
-An A5 run is cumulative and covers A1–A5. HYBRID and REVIEW_REQUIRED findings remain INCONCLUSIVE until their required review records and Sigstore attestations are valid; human review cannot override a technical failure. Review requirements distinguish ordinary HUMAN review, internal ROLE_SEPARATED review, and external THIRD_PARTY review. See [End-to-end Assessment Workflow](docs/ASSESSMENT-WORKFLOW.md).
+An A5 run is cumulative and covers A1–A5. HYBRID and REVIEW_REQUIRED findings remain INCONCLUSIVE until their required review records and Sigstore attestations are valid; human review cannot override a technical failure. Review requirements distinguish ordinary HUMAN review, internal ROLE_SEPARATED review, and external THIRD_PARTY review. See [End-to-end Assessment Workflow](docs/ASSESSMENT-WORKFLOW.md) and [Human review and reviewer attestations](docs/REVIEW-ATTESTATIONS.md).
 
 ## Specification and methodology
 
@@ -86,6 +86,7 @@ An A5 run is cumulative and covers A1–A5. HYBRID and REVIEW_REQUIRED findings 
 - [Test Methodology](docs/TEST-METHODOLOGY.md)
 - [Full A1–A5 Reference Harness](docs/FULL-REFERENCE-HARNESS.md)
 - [Verification](docs/VERIFICATION.md)
+- [Human review and reviewer attestations](docs/REVIEW-ATTESTATIONS.md)
 - [Professional Reports](docs/REPORTS.md)
 - [Implementation Handbook](docs/IMPLEMENTATION-HANDBOOK.md)
 - [Ecosystem Mapping](docs/ECOSYSTEM.md)
