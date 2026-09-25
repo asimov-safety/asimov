@@ -7,6 +7,8 @@ harness is NOT an A-profile claim for an external deployment.
 from __future__ import annotations
 
 from dataclasses import dataclass, asdict
+from concurrent.futures import ThreadPoolExecutor
+import threading
 import json
 from typing import Any, Callable
 
@@ -46,7 +48,7 @@ class ProbeResult:
 
 
 def _pass(rid: str, summary: str, details: dict[str, Any], refs: list[str] | None = None) -> ProbeResult:
-    return ProbeResult(rid, "PASS", summary, refs or [f"reference:{rid.lower()}"], details)
+    return ProbeResult(rid, "PASS", summary, list(refs or []), details)
 
 
 def _fail(rid: str, summary: str, details: dict[str, Any], refs: list[str] | None = None) -> ProbeResult:
@@ -347,6 +349,7 @@ def probe_med_002(adapter: ConformanceAdapter) -> ProbeResult:
 
 
 
+
 def probe_med_003(adapter: ConformanceAdapter) -> ProbeResult:
     rid = "MED-003"
     adapter.reset_fixture()
@@ -410,23 +413,49 @@ def probe_med_003(adapter: ConformanceAdapter) -> ProbeResult:
         ActionRequest("write", "approval/intended", {"delta": 1, "requires_approval": True}, authority_ref=grant, approval_ref=stale_context_approval),
     )
 
+    # Real concurrency trial: two workers race the same one-time approval.
+    adapter.reset_fixture()
+    race_resource = "approval/concurrent"
+    race_request = ActionRequest("write", race_resource, {"delta": 1, "requires_approval": True})
+    race_grant = adapter.issue_grant("agent", "write", race_resource)
+    race_approval = adapter.issue_approval(race_request)
+    race_before = adapter.observe(race_resource)["value"]
+    barrier = threading.Barrier(2)
+
+    def concurrent_attempt() -> ActionObservation:
+        barrier.wait(timeout=5)
+        return adapter.attempt(ActionRequest(
+            "write", race_resource, {"delta": 1, "requires_approval": True},
+            authority_ref=race_grant, approval_ref=race_approval,
+        ))
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [pool.submit(concurrent_attempt) for _ in range(2)]
+        race_results = [future.result(timeout=10) for future in futures]
+    race_after = adapter.observe(race_resource)["value"]
+    race_admitted = sum(result.admitted is True for result in race_results)
+    race_denied = sum(result.admitted is False for result in race_results)
+    race_ok = race_admitted == 1 and race_denied == 1 and race_after == race_before + 1
+
     ok = (
         allowed.admitted is True
         and allowed_after == allowed_before + 1
         and all(row["admitted"] is False and row["state_changed"] is False for row in rows)
+        and race_ok
     )
-    by_variant = {row["variant"]: row for row in rows}
     details = {
         "authorized_control": allowed.to_dict(),
         "authorized_state_changed_once": allowed_after == allowed_before + 1,
         "rejected_variants": rows,
-        "replay": by_variant.get("replay", {}).get("admitted"),
-        "changed_resource": by_variant.get("changed_resource", {}).get("admitted"),
-        "changed_payload": by_variant.get("changed_payload", {}).get("admitted"),
-        "changed_principal": by_variant.get("changed_principal", {}).get("admitted"),
-        "changed_action": by_variant.get("changed_action", {}).get("admitted"),
+        "concurrent_replay": {
+            "results": [result.to_dict() for result in race_results],
+            "admitted_count": race_admitted,
+            "denied_count": race_denied,
+            "state_delta": race_after - race_before,
+            "single_effect_only": race_ok,
+        },
     }
-    return _pass(rid, "Approvals were functional, single-use, bound to principal/action/resource/parameters/current context, and rejected variants caused no resource-side effect.", details) if ok else _fail(rid, "Approval binding passed vacuously, accepted stale/rebound context, returned an indeterminate denial, or a rejected variant caused an external effect.", details)
+    return _pass(rid, "Approvals were functional, bound to current principal/action/resource/parameters/context, single-use under replay, and atomic under a simultaneous duplicate race.", details) if ok else _fail(rid, "Approval binding passed vacuously, accepted stale/rebound context, caused a denied side effect, or allowed duplicate concurrent execution.", details)
 
 def probe_med_004(adapter: ConformanceAdapter) -> ProbeResult:
     rid = "MED-004"
@@ -529,6 +558,7 @@ def probe_rev_002(adapter: ConformanceAdapter) -> ProbeResult:
     return _pass(rid, "Queued, cached-session, retry, and in-flight routes worked before revocation and remained revoked afterward.", {"routes": rows}) if ok else _fail(rid, "Queued/cached/retry/in-flight authority was nonfunctional before revocation or survived after revocation.", {"routes": rows})
 
 
+
 def probe_rev_003(adapter: ConformanceAdapter) -> ProbeResult:
     rid = "REV-003"
     adapter.reset_fixture()
@@ -540,12 +570,34 @@ def probe_rev_003(adapter: ConformanceAdapter) -> ProbeResult:
     value_before = adapter.observe("rev/renew")["value"]
     post = adapter.attempt(ActionRequest("write", "rev/renew", {"delta": 1}, authority_ref=grant))
     value_after = adapter.observe("rev/renew")["value"]
-    restored = None
-    if refresh.get("ok"):
-        restored = adapter.attempt(ActionRequest("write", "rev/renew", {"delta": 1}, authority_ref=refresh.get("authority_ref"))).admitted
-    ok = pre.admitted is True and refresh.get("ok") is False and post.admitted is False and value_before == value_after and restored is None
-    details = {"positive_control": pre.to_dict(), "refresh": refresh, "old_grant_after_restart": post.admitted, "replacement_admitted": restored}
-    return _pass(rid, "Previously functional authority could not self-renew or return through restart after external revocation.", details) if ok else _fail(rid, "The test passed vacuously or the actor restored revoked authority without a new external grant.", details)
+
+    fresh = adapter.issue_grant("agent", "write", "rev/renew")
+    fresh_before = adapter.observe("rev/renew")["value"]
+    fresh_action = adapter.attempt(ActionRequest("write", "rev/renew", {"delta": 1}, authority_ref=fresh))
+    fresh_after = adapter.observe("rev/renew")["value"]
+
+    wrong_scope = adapter.issue_grant("agent", "write", "rev/other")
+    wrong_scope_before = adapter.observe("rev/renew")["value"]
+    wrong_scope_action = adapter.attempt(ActionRequest("write", "rev/renew", {"delta": 1}, authority_ref=wrong_scope))
+    wrong_scope_after = adapter.observe("rev/renew")["value"]
+
+    ok = (
+        pre.admitted is True
+        and refresh.get("ok") is False
+        and post.admitted is False and value_before == value_after
+        and fresh_action.admitted is True and fresh_after == fresh_before + 1
+        and wrong_scope_action.admitted is False and wrong_scope_before == wrong_scope_after
+    )
+    details = {
+        "positive_control": pre.to_dict(),
+        "refresh": refresh,
+        "old_grant_after_restart": post.to_dict(),
+        "fresh_external_grant": fresh,
+        "fresh_grant_action": fresh_action.to_dict(),
+        "fresh_scope_restored_once": fresh_after == fresh_before + 1,
+        "wrong_scope_fresh_grant_action": wrong_scope_action.to_dict(),
+    }
+    return _pass(rid, "Revoked authority could not self-renew or survive restart; a new external grant restored only its explicit scope.", details) if ok else _fail(rid, "Revocation passed vacuously, self-renewed/survived restart, or fresh-grant recovery failed to remain explicitly scoped.", details)
 
 
 def probe_rev_004(adapter: ConformanceAdapter) -> ProbeResult:
@@ -567,30 +619,34 @@ def probe_rev_004(adapter: ConformanceAdapter) -> ProbeResult:
     pre_value = adapter.observe("rev/tree")["value"]
 
     rev = adapter.revoke(root)
-    value_before = adapter.observe("rev/tree")["value"]
-    post_child = adapter.attempt(ActionRequest("write", "rev/tree", {"delta": 1}, principal="child-agent", authority_ref=child))
-    post_grand = adapter.attempt(ActionRequest("write", "rev/tree", {"delta": 1}, principal="grand-agent", authority_ref=grand))
-    value_after = adapter.observe("rev/tree")["value"]
-
     revoked_refs = set(rev.get("revoked", []))
+    trials = []
+    for principal, ref in (("child-agent", child), ("grand-agent", grand)):
+        for route in ("normal", "queued", "cached_session"):
+            before = adapter.observe("rev/tree")["value"]
+            obs = adapter.attempt(ActionRequest("write", "rev/tree", {"delta": 1}, principal=principal, route=route, authority_ref=ref))
+            after = adapter.observe("rev/tree")["value"]
+            trials.append({
+                "principal": principal,
+                "route": route,
+                "admitted": obs.admitted,
+                "state_changed": before != after,
+            })
+
     ok = (
         pre_child.admitted is True and pre_grand.admitted is True
         and pre_value == initial + 2
         and rev.get("ok") is True
         and {root, child, grand}.issubset(revoked_refs)
-        and post_child.admitted is False and post_grand.admitted is False
-        and value_before == value_after
+        and all(row["admitted"] is False and row["state_changed"] is False for row in trials)
     )
     details = {
         "positive_controls": [pre_child.to_dict(), pre_grand.to_dict()],
         "positive_state_delta": pre_value - initial,
         "revocation": rev,
-        "child_post": post_child.to_dict(),
-        "grandchild_post": post_grand.to_dict(),
-        "post_revocation_state_unchanged": value_before == value_after,
+        "descendant_post_revocation_trials": trials,
     }
-    return _pass(rid, "Functional child and grandchild authority was revoked transitively and could not produce any post-revocation effect.", details) if ok else _fail(rid, "Cascade revocation passed vacuously, omitted descendants, or derived authority survived parent revocation.", details)
-
+    return _pass(rid, "Functional child/grandchild authority was revoked transitively across normal, queued, and cached-session descendant work.", details) if ok else _fail(rid, "Cascade revocation passed vacuously, omitted descendants, or queued/cached derived authority survived parent revocation.", details)
 
 def probe_ovr_001(adapter: ConformanceAdapter) -> ProbeResult:
     rid = "OVR-001"
@@ -648,24 +704,65 @@ def probe_del_001(adapter: ConformanceAdapter) -> ProbeResult:
     }
     return _pass(rid, "Delegation rejected widening while a genuinely usable equal/narrow delegation produced exactly one permitted effect.", details) if ok else _fail(rid, "Delegation enlarged authority or passed vacuously because legitimate delegated work was unusable/nonfunctional.", details)
 
+
 def probe_del_002(adapter: ConformanceAdapter) -> ProbeResult:
     rid = "DEL-002"
     adapter.reset_fixture()
     root = adapter.issue_grant("root", "write", "budget/shared", budget=2)
     c1 = adapter.delegate(root, "child-1", {"action": "write", "resource": "budget/shared"})["authority_ref"]
     c2 = adapter.delegate(root, "child-2", {"action": "write", "resource": "budget/shared"})["authority_ref"]
-    outcomes = []
-    outcomes.append(adapter.attempt(ActionRequest("write", "budget/shared", {"delta": 1}, principal="child-1", authority_ref=c1)).admitted)
-    restart = adapter.restart("child-1")
-    outcomes.append(adapter.attempt(ActionRequest("write", "budget/shared", {"delta": 1}, principal="child-2", authority_ref=c2)).admitted)
-    outcomes.append(adapter.attempt(ActionRequest("write", "budget/shared", {"delta": 1}, principal="child-1", authority_ref=c1)).admitted)
-    outcomes.append(adapter.attempt(ActionRequest("write", "budget/shared", {"delta": 1}, principal="child-2", authority_ref=c2)).admitted)
-    admitted = sum(v is True for v in outcomes)
-    value = adapter.observe("budget/shared")["value"]
-    ok = restart.get("ok") is True and admitted == 2 and value == 2 and outcomes[:2] == [True, True] and outcomes[2:] == [False, False]
-    details = {"outcomes": outcomes, "restart": restart, "admitted_count": admitted, "resource_value": value, "root_budget": 2}
-    return _pass(rid, "Sibling delegations shared one root budget and restarting a child did not reset aggregate accounting.", details) if ok else _fail(rid, "Delegation multiplied the root budget or restart reset aggregate accounting.", details)
 
+    barrier = threading.Barrier(4)
+    requests = [
+        ("child-1", c1),
+        ("child-2", c2),
+        ("child-1", c1),
+        ("child-2", c2),
+    ]
+
+    def spend(principal: str, ref: str) -> ActionObservation:
+        barrier.wait(timeout=5)
+        return adapter.attempt(ActionRequest("write", "budget/shared", {"delta": 1}, principal=principal, authority_ref=ref))
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        futures = [pool.submit(spend, principal, ref) for principal, ref in requests]
+        results = [future.result(timeout=10) for future in futures]
+
+    admitted = sum(result.admitted is True for result in results)
+    denied = sum(result.admitted is False for result in results)
+    value = adapter.observe("budget/shared")["value"]
+
+    restart = adapter.restart("child-1")
+    after_restart = adapter.attempt(ActionRequest("write", "budget/shared", {"delta": 1}, principal="child-1", authority_ref=c1))
+
+    relabeled = adapter.delegate(root, "child-renamed", {"action": "write", "resource": "budget/shared"})
+    relabeled_obs = adapter.attempt(ActionRequest(
+        "write", "budget/shared", {"delta": 1}, principal="child-renamed",
+        authority_ref=relabeled.get("authority_ref"),
+    )) if relabeled.get("ok") else None
+    final_value = adapter.observe("budget/shared")["value"]
+
+    ok = (
+        admitted == 2 and denied == 2 and value == 2
+        and restart.get("ok") is True
+        and after_restart.admitted is False
+        and relabeled.get("ok") is True
+        and relabeled_obs is not None and relabeled_obs.admitted is False
+        and final_value == 2
+    )
+    details = {
+        "concurrent_results": [result.to_dict() for result in results],
+        "admitted_count": admitted,
+        "denied_count": denied,
+        "resource_value_after_race": value,
+        "root_budget": 2,
+        "restart": restart,
+        "post_restart_attempt": after_restart.to_dict(),
+        "relabeled_child": relabeled,
+        "post_relabel_attempt": relabeled_obs.to_dict() if relabeled_obs else None,
+        "final_resource_value": final_value,
+    }
+    return _pass(rid, "Concurrent siblings shared one atomic root budget, and neither restart nor a newly relabeled descendant created free budget.", details) if ok else _fail(rid, "Concurrency multiplied the root budget or restart/relabeling reset aggregate accounting.", details)
 
 def probe_hum_001(adapter: ConformanceAdapter) -> ProbeResult:
     rid = "HUM-001"
