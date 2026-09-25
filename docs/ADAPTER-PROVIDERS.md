@@ -171,6 +171,43 @@ https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview
 
 ---
 
+## Amazon Bedrock AgentCore Runtime
+
+AgentCore Runtime is AWS's framework-agnostic managed runtime for hosting agent
+or tool code. It supports isolated sessions and can be combined with AgentCore
+Identity, Gateway, Memory, Browser, Code Interpreter, MCP, and A2A.
+
+**Asimov mapping**
+
+- **Action:** the real `InvokeAgentRuntime` endpoint and every Gateway/tool/MCP/A2A path.
+- **Authority:** AWS IAM/STS, AgentCore Identity/Gateway policy, and downstream
+  resource authorization.
+- **Resource truth:** the protected AWS/application/database/API resource.
+- **Lifecycle:** AgentCore endpoint/session controls and AWS infrastructure
+  control plane, including long-running/background work.
+- **Supervision:** authenticated AWS/operator controls outside the deployed
+  agent code and downstream credentials.
+- **Evidence:** AgentCore/CloudWatch events + CloudTrail/IAM + Gateway/tool
+  events + resource-side audit.
+
+Session microVM isolation is useful containment, but it does not automatically
+make downstream authorization, supervision, or resource truth independent.
+
+Official docs:
+https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/agents-tools-runtime.html
+
+Starter:
+
+```bash
+asimov adapter-scaffold \
+  --runtime aws-agentcore-runtime \
+  --hosting aws \
+  --authority aws-iam \
+  --output ./agentcore-adapter
+```
+
+---
+
 ## Google Agent Development Kit (ADK)
 
 ADK can run locally or in Google-hosted infrastructure. Current Google agent
@@ -189,6 +226,43 @@ sessions/events, and sandboxed code-execution options.
 Callbacks are orchestration hooks, not automatically independent enforcement.
 
 Official docs: https://google.github.io/adk-docs/
+
+---
+
+## Google managed Agent Runtime
+
+Google's managed agent runtime—previously **Vertex AI Agent Engine** and now
+surfaced as **Agent Runtime** within the Gemini Enterprise Agent Platform naming
+transition—hosts and scales custom agents with managed sessions, memory,
+observability, evaluation, and code-execution/sandbox capabilities.
+
+**Asimov mapping**
+
+- **Action:** the production Agent Runtime endpoint plus hosted tools, code
+  execution, MCP, A2A, and downstream APIs as distinct paths.
+- **Authority:** service accounts/workload identity and resource IAM.
+- **Resource truth:** the target Google Cloud/application/database/API state.
+- **Lifecycle:** managed runtime deployment/session controls plus Google Cloud
+  control plane.
+- **Supervision:** authenticated Agent Platform/Google Cloud/operator path
+  outside the agent service identity.
+- **Evidence:** runtime/session observability + Cloud Audit Logs + IAM +
+  resource-side audit.
+
+Managed session/trace data remains orchestration evidence; it is not a
+substitute for resource truth.
+
+Official docs: https://docs.cloud.google.com/agent-builder
+
+Starter:
+
+```bash
+asimov adapter-scaffold \
+  --runtime google-agent-runtime \
+  --hosting gcp \
+  --authority gcp-iam \
+  --output ./google-agent-runtime-adapter
+```
 
 ---
 
@@ -211,6 +285,43 @@ also developing under preview/current feature constraints.
 - **Evidence:** framework events/checkpoints + Azure/resource audit.
 
 Official docs: https://learn.microsoft.com/en-us/agent-framework/
+
+---
+
+## Microsoft Foundry Agent Service
+
+Foundry Agent Service is Microsoft's managed agent platform. Prompt Agents keep
+the model, instructions, hosted tools, and version as server-side agent
+definitions; Hosted Agents let custom agent applications run behind managed
+agent endpoints. Microsoft Agent Framework can connect to those definitions.
+
+**Asimov mapping**
+
+- **Action:** the actual Prompt Agent or Hosted Agent endpoint used by production.
+- **Authority:** Foundry/Azure RBAC plus workload/managed identity and
+  resource-side authorization.
+- **Resource truth:** protected Azure/application/SaaS resource state.
+- **Lifecycle:** Foundry version/deployment controls plus the hosting control
+  plane for Hosted Agents and connected services.
+- **Supervision:** authenticated Foundry/Azure/operator controls outside the
+  agent's downstream authority.
+- **Evidence:** Foundry runtime telemetry + Azure activity/resource logs +
+  RBAC/IAM + destination-resource audit.
+
+Conversation/response state does not itself prove an external effect, and
+hosted tools remain consequential provider-side action paths.
+
+Official docs: https://learn.microsoft.com/en-us/azure/foundry/agents/
+
+Starter:
+
+```bash
+asimov adapter-scaffold \
+  --runtime microsoft-foundry-agent-service \
+  --hosting azure \
+  --authority azure-entra-rbac \
+  --output ./foundry-agent-adapter
+```
 
 ---
 
