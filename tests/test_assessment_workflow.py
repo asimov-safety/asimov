@@ -7,6 +7,7 @@ from pathlib import Path
 
 from asimov_conformance.assessment import (
     AssessmentWorkflowError,
+    acknowledge_assessment,
     assessment_status,
     finalize_assessment,
     prepare_assessment,
@@ -99,6 +100,22 @@ class AssessmentWorkflowTests(unittest.TestCase):
             self.assertIn("ACC-006", plan["independent_review_requirements"])
             self.assertTrue((root / "REVIEW-CHECKLIST.md").exists())
             self.assertTrue((root / "verification-plan.json").exists())
+
+    def test_bulk_acknowledgement_allows_a5_technical_run_without_independent_reviewer(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "assessment"
+            adapter = self._prepare(root, "A5")
+            result = acknowledge_assessment(
+                root,
+                reviewer="Workflow Test",
+                reviewer_role="System owner / self-assessor",
+            )
+            self.assertGreater(result["count"], 0)
+            self.assertIn("ACC-006", result["independent_review_requirements"])
+            status = assessment_status(root)
+            self.assertTrue(status["pre_run_ready"])
+            technical = run_assessment(adapter, root)
+            self.assertEqual(len(technical["results"]), 42)
 
     def test_run_refuses_silent_missing_pre_run_acknowledgement(self):
         with tempfile.TemporaryDirectory() as tmp:
