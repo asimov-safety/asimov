@@ -1642,7 +1642,7 @@ def probe_ovr_005(adapter: ConformanceAdapter) -> ProbeResult:
         and bool(actor_dependencies)
         and bool(intervention_dependencies)
         and all(_nonblank_text(item) for item in actor_dependencies + intervention_dependencies)
-        and set(actor_dependencies).isdisjoint(set(intervention_dependencies))
+        and bool(set(intervention_dependencies) - set(actor_dependencies))
     )
 
     ok = (
