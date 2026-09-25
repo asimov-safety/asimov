@@ -439,7 +439,8 @@ asimov sign-review assessment/reviews/requirements/ACC-006.json \
   --provider google \
   --identity reviewer@independent.example
 
-# Repeat sign-review for every completed human-review and precondition record.
+# Repeat sign-review for every completed HYBRID / REVIEW_REQUIRED family review.
+# Preconditions remain structured records but do not each require a separate Sigstore attestation in 0.2.
 
 # 4. Finalize only after required review attestations exist.
 asimov finalize-assessment ./assessment
@@ -464,6 +465,8 @@ asimov verify-package assessment.json \
   --html-output verification-receipt.html
 ```
 
-`verify-package` checks each copied review record's companion Sigstore attestation in addition to evidence integrity, report/scope binding, and the package signer. Cosign verification is invoked with in-toto subject claim checking enabled.
+`verify-package` checks each copied **test-family** review record's companion Sigstore attestation in addition to evidence integrity, report/scope binding, and the package signer. Planning/precondition records remain bound by the evidence manifest but do not each require a separate review signature in 0.2.
+
+See [Human review and reviewer attestations](REVIEW-ATTESTATIONS.md) for the field-by-field implementation contract and THIRD_PARTY examples.
 
 For public readers, the website remains static. The definitive cryptographic signer check is performed locally with `asimov verify-report`; no Asimov verification service is required.
