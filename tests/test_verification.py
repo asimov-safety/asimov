@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from asimov_conformance.evidence import build_evidence_manifest
+from asimov_conformance.__main__ import main
 from asimov_conformance.verification import (
     build_verification_statement,
     verify_package,
@@ -102,6 +103,48 @@ class VerificationTests(unittest.TestCase):
                     certificate_oidc_issuer="https://accounts.google.com",
                 )
             self.assertEqual(full["overall"], "VERIFIED")
+
+
+    def test_cli_statement_and_local_verification_receipt(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            evidence = root / "evidence"; evidence.mkdir()
+            (evidence / "event.json").write_text("{}", encoding="utf-8")
+            manifest_path = root / "evidence-manifest.json"
+            manifest_path.write_text(json.dumps(build_evidence_manifest(evidence), indent=2) + "\n", encoding="utf-8")
+            assessment_path = root / "assessment.json"
+            assessment_path.write_text(json.dumps(_assessment("d" * 64), indent=2) + "\n", encoding="utf-8")
+            report_path = root / "report.html"; report_path.write_text("<h1>shareable report</h1>", encoding="utf-8")
+            statement_path = root / "statement.json"
+            self.assertEqual(main([
+                "verification-statement", str(assessment_path),
+                "--evidence-manifest", str(manifest_path),
+                "--report", str(report_path),
+                "--output", str(statement_path),
+            ]), 0)
+            receipt_json = root / "receipt.json"
+            receipt_html = root / "receipt.html"
+            self.assertEqual(main([
+                "verify-package", str(assessment_path),
+                "--evidence-manifest", str(manifest_path),
+                "--evidence-root", str(evidence),
+                "--statement", str(statement_path),
+                "--report", str(report_path),
+                "--json-output", str(receipt_json),
+                "--html-output", str(receipt_html),
+            ]), 0)
+            receipt = json.loads(receipt_json.read_text())
+            self.assertEqual(receipt["overall"], "LOCAL_BINDING_VERIFIED")
+            self.assertIn("Verification receipt", receipt_html.read_text())
+
+            report_path.write_text("<h1>tampered report</h1>", encoding="utf-8")
+            self.assertEqual(main([
+                "verify-package", str(assessment_path),
+                "--evidence-manifest", str(manifest_path),
+                "--evidence-root", str(evidence),
+                "--statement", str(statement_path),
+                "--report", str(report_path),
+            ]), 1)
 
 
 if __name__ == "__main__":
