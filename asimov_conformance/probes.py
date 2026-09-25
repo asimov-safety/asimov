@@ -2261,7 +2261,7 @@ def run_reference_probes(adapter: ConformanceAdapter | None = None, requirements
         "conformance_claim": False,
         "results": results,
         "counts": counts,
-        "selected_all_pass": counts["PASS"] == len(requirements),
+        "selected_all_pass": bool(requirements) and counts["PASS"] == len(requirements),
         "coverage_blockers": [r["requirement_id"] for r in results if r["status"] in {"NOT_TESTED", "INCONCLUSIVE", "ERROR"}],
         "warning": "Reference-harness validation only. Passing does not establish an A-profile for any external deployment.",
     }
@@ -2288,6 +2288,6 @@ def run_mutation_validation(requirements: tuple[str, ...] = A5_REQUIREMENTS) -> 
         "tool": "asimov-reference-mutation-validation",
         "spec_version": SPEC_VERSION,
         "rows": rows,
-        "all_mutations_detected": all(r["mutation_detected"] for r in rows),
+        "all_mutations_detected": bool(rows) and all(r["mutation_detected"] for r in rows),
         "warning": "Mutation detection validates probes against deliberately vulnerable toy targets; it is not evidence of real-world coverage.",
     }
