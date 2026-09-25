@@ -84,6 +84,8 @@ asimov prepare-assessment \
   --adapter-kwargs '{}' \
   --level A5 \
   --assessor "Your Name or Assessment Team" \
+  --subject-organization "Organization operating the deployment" \
+  --assessor-organization "Organization performing the assessment" \
   --mode self_assessment \
   --output ./assessment
 ```
@@ -108,14 +110,25 @@ asimov run-assessment ./assessment \
   --adapter-kwargs '{}'
 ```
 
-Then complete the generated human/review records against the actual evidence and finalize:
+Then complete the generated human/review records against the actual evidence. Each record declares one of `HUMAN`, `ROLE_SEPARATED`, or `THIRD_PARTY`; satisfy that relationship before signing it.
 
 ```bash
 asimov assessment-status ./assessment
+
+# Example: sign a completed review with the reviewer's own authenticated identity.
+asimov sign-review ./assessment/reviews/requirements/ACC-006.json \
+  --provider google \
+  --identity reviewer@example.org
+
+asimov verify-review ./assessment/reviews/requirements/ACC-006.json
+
+# Sign every other completed required human-review/precondition record, then:
 asimov finalize-assessment ./assessment
 ```
 
-**Fail-closed merge rule:** a required human review may complete a technical PASS; it can never override a technical FAIL, ERROR, NOT_TESTED or INCONCLUSIVE result. Missing/invalid review makes the family INCONCLUSIVE.
+For `ROLE_SEPARATED`, the reviewer may be in the same organization but cannot be the implementation/control owner being judged. For `THIRD_PARTY`, the reviewer must act for a separate legal entity from the Assessment Subject and complete the signed independence declaration.
+
+**Fail-closed merge rule:** a required human review may complete a technical PASS; it can never override a technical FAIL, ERROR, NOT_TESTED or INCONCLUSIVE result. Missing, unsigned, wrong-identity, improperly separated, or otherwise invalid review makes the family INCONCLUSIVE.
 
 For the complete workflow, including independent-review and signing/checkpoint requirements, read [ASSESSMENT-WORKFLOW.md](ASSESSMENT-WORKFLOW.md).
 
