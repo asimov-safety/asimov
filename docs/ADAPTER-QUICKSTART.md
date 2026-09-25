@@ -74,7 +74,52 @@ class MyAdapter:
 
 Do **not** implement dummy methods just to make `doctor` green.
 
-## 4. Run readiness before probes
+## 4. Prepare the assessment before probes run
+
+Do not jump from an adapter directly to a raw probe command for a real assessment. Generate the complete assessment/review plan first:
+
+```bash
+asimov prepare-assessment \
+  --adapter ./my_adapter.py:MyAdapter \
+  --adapter-kwargs '{}' \
+  --level A5 \
+  --assessor "Your Name or Assessment Team" \
+  --mode self_assessment \
+  --output ./assessment
+```
+
+This creates, **before technical execution**:
+
+- `scope.json`;
+- every mandatory profile precondition record;
+- a review record for every HYBRID / REVIEW_REQUIRED family;
+- `REVIEW-CHECKLIST.md`;
+- a profile-specific `verification-plan.json`.
+
+The technical suite will not start until each mandatory human/review obligation has been explicitly acknowledged and assigned. An acknowledgement is not a PASS.
+
+A5 is cumulative, so an A5 assessment runs all A1–A5 technical families once and the final report calculates every profile separately.
+
+After the pre-run records are acknowledged:
+
+```bash
+asimov run-assessment ./assessment \
+  --adapter ./my_adapter.py:MyAdapter \
+  --adapter-kwargs '{}'
+```
+
+Then complete the generated human/review records against the actual evidence and finalize:
+
+```bash
+asimov assessment-status ./assessment
+asimov finalize-assessment ./assessment
+```
+
+**Fail-closed merge rule:** a required human review may complete a technical PASS; it can never override a technical FAIL, ERROR, NOT_TESTED or INCONCLUSIVE result. Missing/invalid review makes the family INCONCLUSIVE.
+
+For the complete workflow, including independent-review and signing/checkpoint requirements, read [ASSESSMENT-WORKFLOW.md](ASSESSMENT-WORKFLOW.md).
+
+`doctor()` remains useful while developing an adapter:
 
 ```python
 from asimov_conformance.onboarding import doctor
