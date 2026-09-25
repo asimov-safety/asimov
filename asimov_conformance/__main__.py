@@ -7,7 +7,14 @@ from pathlib import Path
 from .evidence import EvidenceError, build_evidence_manifest, verify_evidence_manifest
 from .gate import ReportError, catalog, evaluate_report, load_report
 from .render import render_html, render_probe_html, render_summary_html, render_verification_receipt
-from .verification import VerificationError, build_verification_statement, sigstore_sign, verify_package
+from .verification import (
+    VerificationError,
+    build_public_verification_record,
+    build_verification_statement,
+    sigstore_sign,
+    verify_package,
+    verify_public_report,
+)
 from .probes import run_initial_probes, run_mutation_validation
 from .onboarding import doctor, init_project
 from .reference_target import ReferenceTarget
@@ -90,6 +97,20 @@ def main(argv: list[str] | None = None) -> int:
     ss.add_argument("--bundle", type=Path, required=True)
     ss.add_argument("--cosign-bin", default="cosign")
     ss.add_argument("--yes", action="store_true", help="Pass --yes to Cosign for non-interactive confirmation.")
+
+    pr = sub.add_parser("public-record", help="Build the one-file public verification sidecar that travels with a shared report.")
+    pr.add_argument("--statement", type=Path, required=True)
+    pr.add_argument("--report", type=Path, required=True)
+    pr.add_argument("--bundle", type=Path)
+    pr.add_argument("--certificate-identity")
+    pr.add_argument("--certificate-oidc-issuer")
+    pr.add_argument("--output", type=Path, required=True)
+
+    vr = sub.add_parser("verify-report", help="Verify a public report against its Asimov public verification sidecar.")
+    vr.add_argument("report", type=Path)
+    vr.add_argument("record", type=Path)
+    vr.add_argument("--cosign-bin", default="cosign")
+    vr.add_argument("--json-output", type=Path)
 
     pv = sub.add_parser("verify-package", help="Verify evidence, report binding, scope binding, and optionally a Sigstore identity/transparency bundle.")
     pv.add_argument("assessment", type=Path)
@@ -205,6 +226,46 @@ def main(argv: list[str] | None = None) -> int:
         print("IMPORTANT: finalization builds the package but does not invent signer identity, an external checkpoint, independent review, or A5 evidence escrow. Follow VERIFICATION-INSTRUCTIONS.md.")
         state = result["reported_outcome"]
         return 0 if state == "REPORTED_PASS" else 1 if state == "REPORTED_FAIL" else 2
+
+    if args.command == "public-record":
+        try:
+            record = build_public_verification_record(
+                args.statement,
+                args.report,
+                bundle_path=args.bundle,
+                certificate_identity=args.certificate_identity,
+                certificate_oidc_issuer=args.certificate_oidc_issuer,
+            )
+            args.output.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+        except (VerificationError, OSError, ValueError) as exc:
+            print(f"PUBLIC VERIFICATION ERROR: {exc}", file=sys.stderr)
+            return 3
+        print(f"Public verification record written: {args.output}")
+        print("Share this JSON alongside the report. It contains no private assessment evidence.")
+        if record.get("sigstore") is None:
+            print("Provenance is not authenticated yet; add a Sigstore bundle for public signer verification.")
+        else:
+            print("Sigstore material embedded for public provenance verification.")
+        return 0
+
+    if args.command == "verify-report":
+        try:
+            result = verify_public_report(args.report, args.record, cosign_bin=args.cosign_bin)
+            if args.json_output is not None:
+                args.json_output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+        except (VerificationError, OSError, ValueError) as exc:
+            print(f"PUBLIC VERIFICATION ERROR: {exc}", file=sys.stderr)
+            return 3
+        print(f"ASIMOV PUBLIC VERIFY — {result['overall']}")
+        print(f"Report integrity: {result['report_integrity']['state']}")
+        print(f"Provenance: {result['provenance']['state']}")
+        binding = result["assessment_binding"]
+        print(f"Report ID: {binding.get('report_id')}")
+        print(f"System: {binding.get('system_id')}")
+        print(f"Requested profile: {binding.get('requested_profile')}")
+        print(f"Reported outcome: {binding.get('reported_outcome')}")
+        print("Semantic assurance is not established by cryptography.")
+        return 1 if result["overall"] == "FAILED" else 0
 
     if args.command == "verification-statement":
         try:
