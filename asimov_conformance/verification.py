@@ -69,6 +69,7 @@ def build_verification_statement(
             "specVersion": SPEC_VERSION,
             "reportId": assessment["report_id"],
             "assessmentMode": assessment["assessment"]["mode"],
+            "assessor": assessment["assessment"]["assessor"],
             "assessmentCreatedAt": assessment["created_at"],
             "system": {
                 "id": assessment["system"]["id"],
