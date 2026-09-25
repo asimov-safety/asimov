@@ -13,10 +13,14 @@ from unittest.mock import patch
 
 from asimov_conformance.__main__ import main
 from asimov_conformance.studio import (
+    acknowledge_from_payload,
     create_server,
+    finalize_from_payload,
     get_review,
     prepare_from_payload,
+    run_from_payload,
     save_review,
+    save_scope,
     workspace_state,
 )
 
@@ -104,6 +108,90 @@ class StudioTests(unittest.TestCase):
             self.assertEqual(result["rationale"], "Changed after signing.")
             self.assertEqual(result["signing_identity"]["expected_subject"], "")
             self.assertEqual(result["signing_identity"]["expected_issuer"], "")
+
+    def test_full_studio_a1_workflow_uses_portable_workspace_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "assessment"
+            adapter = "asimov_conformance.reference_target:ReferenceTarget"
+            prepare_from_payload({
+                "workspace": str(root),
+                "adapter": adapter,
+                "adapter_kwargs": {},
+                "level": "A1",
+                "assessor": "Studio Test",
+                "subject_organization": "Target Org",
+                "assessor_organization": "Target Org",
+                "mode": "self_assessment",
+            })
+            save_scope({
+                "workspace": str(root),
+                "scope_description": "Disposable Studio reference assessment.",
+                "threat_model": "Reference actor is untrusted relative to reference controls.",
+                "exclusions": [],
+            })
+            acknowledged = acknowledge_from_payload({
+                "workspace": str(root),
+                "reviewer": "Studio Test",
+                "reviewer_role": "Reference assessor",
+            })
+            self.assertTrue(acknowledged["status"]["pre_run_ready"])
+
+            run_state = run_from_payload({
+                "workspace": str(root),
+                "adapter": adapter,
+                "adapter_kwargs": {},
+            })
+            self.assertEqual(run_state["technical"]["counts"]["PASS"], 8)
+
+            manual = root / "evidence" / "manual"
+            manual.mkdir(parents=True, exist_ok=True)
+            plan = json.loads((root / "assessment-plan.json").read_text())
+
+            for item_type, ids in (
+                ("precondition", plan["required_preconditions"]),
+                ("requirement", plan["human_review_requirements"]),
+            ):
+                for item_id in ids:
+                    evidence = manual / f"{item_id}.txt"
+                    evidence.write_text(f"Studio evidence for {item_id}\n", encoding="utf-8")
+                    record = get_review(str(root), item_type, item_id)
+                    record.pop("_studio", None)
+                    record["decision"] = "PASS"
+                    record["reviewed_at"] = "2026-09-25T02:00:00Z"
+                    record["rationale"] = f"Studio completed review for {item_id}."
+                    record["reviewer_organization"] = "Target Org"
+                    record["subject_organization"] = "Target Org"
+                    record["evidence_refs"] = [f"manual/{item_id}.txt"]
+                    for check in record["checklist"]:
+                        check["status"] = "PASS"
+                        check["evidence_refs"] = [f"manual/{item_id}.txt"]
+                    if item_type == "requirement":
+                        record["signing_identity"] = {
+                            "type": "sigstore",
+                            "expected_subject": "studio@example.com",
+                            "expected_issuer": "https://accounts.google.com",
+                        }
+                    save_review({
+                        "workspace": str(root),
+                        "item_type": item_type,
+                        "item_id": item_id,
+                        "record": record,
+                    })
+                    if item_type == "requirement":
+                        (root / "reviews" / "requirements" / f"{item_id}.sigstore.json").write_text(
+                            "{}\n", encoding="utf-8"
+                        )
+
+            final_state = finalize_from_payload({"workspace": str(root)})
+            self.assertTrue(final_state["finalized"])
+            self.assertEqual(final_state["result"]["reported_outcome"], "REPORTED_PASS")
+            self.assertTrue((root / "assessment.json").is_file())
+            self.assertTrue((root / "report.html").is_file())
+            self.assertTrue((root / "evidence-manifest.json").is_file())
+
+            # Studio has not created a private database or alternate project format.
+            self.assertFalse((root / "studio.db").exists())
+            self.assertEqual(workspace_state(root)["result"]["reported_outcome"], "REPORTED_PASS")
 
     def test_studio_cli_launch_path(self):
         with patch("asimov_conformance.__main__.launch_studio") as launch:
