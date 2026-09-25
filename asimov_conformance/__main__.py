@@ -13,6 +13,7 @@ from .verification import (
     build_verification_statement,
     embed_public_verification_record,
     sigstore_sign,
+    sigstore_verify,
     verify_package,
     verify_public_report,
 )
@@ -324,6 +325,19 @@ def main(argv: list[str] | None = None) -> int:
             if code != 0:
                 print(f"SIGSTORE SIGNING FAILED (exit {code})", file=sys.stderr)
                 return 1
+            verified, detail = sigstore_verify(
+                args.statement,
+                bundle,
+                certificate_identity=args.identity,
+                certificate_oidc_issuer=issuer,
+                cosign_bin=args.cosign_bin,
+            )
+            if not verified:
+                print("SIGN REPORT ERROR: the new Sigstore signature did not verify against the declared signer identity/issuer.", file=sys.stderr)
+                if detail:
+                    print(detail, file=sys.stderr)
+                return 1
+            print("Sigstore signer verification: VERIFIED")
             record = build_public_verification_record(
                 args.statement,
                 args.report,
