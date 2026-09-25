@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from .gate import catalog
-from .probes import PROBE_CAPABILITIES, PROBES
+from .probes import PROBE_CAPABILITIES, PROBES, declared_capabilities, unavailable_capability_methods
 
 
 PROFILE_REQUIREMENTS = {
@@ -83,7 +83,30 @@ CAPABILITY_REMEDIATION = {
 def doctor(adapter: Any, profile: str = "A2") -> dict[str, Any]:
     if profile not in PROFILE_REQUIREMENTS:
         raise ValueError(f"unsupported profile {profile!r}")
-    available = set(adapter.capabilities())
+    try:
+        available = declared_capabilities(adapter)
+    except Exception as exc:
+        findings = [
+            ReadinessFinding(
+                rid,
+                "BLOCKED_CAPABILITY_DISCOVERY",
+                tuple(sorted(PROBE_CAPABILITIES.get(rid, set()))),
+                f"Adapter capabilities() failed closed with {type(exc).__name__}: {exc}",
+            )
+            for rid in PROFILE_REQUIREMENTS[profile]
+        ]
+        return {
+            "tool": "asimov-doctor",
+            "profile": profile,
+            "adapter_id": getattr(adapter, "adapter_id", "unknown"),
+            "platform": platform.system(),
+            "ready": False,
+            "requirements": len(findings),
+            "blockers": len(findings),
+            "findings": [asdict(f) for f in findings],
+            "rule": "Every mandatory requirement must be testable with an independent control/evidence surface. Coverage gaps block the profile; they are not averaged away.",
+        }
+
     findings: list[ReadinessFinding] = []
     for rid in PROFILE_REQUIREMENTS[profile]:
         if rid not in PROBES:
@@ -92,10 +115,19 @@ def doctor(adapter: Any, profile: str = "A2") -> dict[str, Any]:
                 "The normative family exists, but this Asimov release does not yet ship an executable reference probe for it.",
             ))
             continue
-        missing = tuple(sorted(PROBE_CAPABILITIES[rid] - available))
+        required = PROBE_CAPABILITIES[rid]
+        missing = tuple(sorted(required - available))
+        missing_methods = unavailable_capability_methods(adapter, required & available)
         if missing:
             remediation = " ".join(CAPABILITY_REMEDIATION.get(c, f"Provide capability: {c}.") for c in missing)
             findings.append(ReadinessFinding(rid, "BLOCKED_MISSING_CONTROL_SURFACE", missing, remediation))
+        elif missing_methods:
+            remediation = (
+                "The adapter declares the required capability, but these required methods are missing or not callable: "
+                + ", ".join(f"{name}()" for name in missing_methods)
+                + ". Wire the real implementation or remove the capability claim."
+            )
+            findings.append(ReadinessFinding(rid, "BLOCKED_ADAPTER_METHOD_UNAVAILABLE", (), remediation))
         else:
             findings.append(ReadinessFinding(rid, "READY_TO_TEST", (), "No capability blocker detected; run the probe and review evidence."))
     blockers = [f for f in findings if f.state.startswith("BLOCKED")]
