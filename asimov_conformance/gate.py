@@ -117,12 +117,10 @@ def validate_report(report: Any) -> dict[str, Any]:
     if when.utcoffset() is None:
         raise ReportError("created_at needs a timezone")
 
-    assessment = _object(report["assessment"], {"mode", "assessor"}, {"mode", "assessor"}, "assessment")
-    _text(assessment["mode"], "assessment.mode")
+    assessment = _object(\n        report["assessment"],\n        {"mode", "assessor", "subject_organization", "assessor_organization"},\n        {"mode", "assessor"},\n        "assessment",\n    )\n    _text(assessment["mode"], "assessment.mode")
     if assessment["mode"] not in MODES:
         raise ReportError("unknown assessment mode")
-    _text(assessment["assessor"], "assessment.assessor")
-
+    _text(assessment["assessor"], "assessment.assessor")\n    for key in ("subject_organization", "assessor_organization"):\n        if key in assessment and not isinstance(assessment[key], str):\n            raise ReportError(f"assessment.{key} must be a string")\n
     system = _object(report["system"], {"id", "configuration_sha256"}, {"id", "configuration_sha256"}, "system")
     _text(system["id"], "system.id")
     _digest(system["configuration_sha256"], "system.configuration_sha256")
