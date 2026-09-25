@@ -886,13 +886,30 @@ class ReferenceTarget:
         payload = attestation.get("payload") or {}
         signature = attestation.get("signature")
         expected_sig = self._attestation_signature(payload)
-        commitment = hashlib.sha256(json.dumps({"payload": payload, "signature": signature}, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
-        valid = (self.config.signed_external_checkpoint and payload.get("assessor") == self._assessment_identity
-                 and signature == expected_sig and attestation.get("external_checkpoint") == commitment
-                 and payload.get("scope") == self.assessment_binding())
-        return {"valid": valid, "identity_valid": payload.get("assessor") == self._assessment_identity,
-                "scope_valid": payload.get("scope") == self.assessment_binding(),
-                "checkpoint_valid": attestation.get("external_checkpoint") == commitment}
+        commitment = hashlib.sha256(
+            json.dumps({"payload": payload, "signature": signature}, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
+        identity_valid = payload.get("assessor") == self._assessment_identity
+        scope_valid = payload.get("scope") == self.assessment_binding()
+        evidence_checkpoint_valid = payload.get("evidence_checkpoint") == self._trusted_checkpoint
+        signature_valid = signature == expected_sig and signature is not None
+        checkpoint_valid = attestation.get("external_checkpoint") == commitment and attestation.get("external_checkpoint") is not None
+        valid = (
+            self.config.signed_external_checkpoint
+            and identity_valid
+            and scope_valid
+            and evidence_checkpoint_valid
+            and signature_valid
+            and checkpoint_valid
+        )
+        return {
+            "valid": valid,
+            "identity_valid": identity_valid,
+            "scope_valid": scope_valid,
+            "evidence_checkpoint_valid": evidence_checkpoint_valid,
+            "signature_valid": signature_valid,
+            "checkpoint_valid": checkpoint_valid,
+        }
 
     def critical_transition_plan(self) -> dict[str, Any]:
         return {"critical_classes": ["critical-write", "critical-dispatch"],
