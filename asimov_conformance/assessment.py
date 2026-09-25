@@ -34,7 +34,11 @@ from .evidence import build_evidence_manifest
 from .gate import PROFILE_PRECONDITIONS, SPEC_VERSION, catalog, evaluate_report
 from .probes import run_reference_probes
 from .render import render_html, render_summary_html
-from .verification import build_public_verification_record, build_verification_statement
+from .verification import (
+    build_public_verification_record,
+    build_verification_statement,
+    embed_public_verification_record,
+)
 
 
 WORKFLOW_VERSION = "1"
@@ -997,6 +1001,7 @@ def finalize_assessment(workspace: Path) -> dict[str, Any]:
         workspace / "report.html",
     )
     _json_write(workspace / "public-verification.json", public_record)
+    embed_public_verification_record(workspace / "report.html", public_record)
     (workspace / "VERIFICATION-INSTRUCTIONS.md").write_text(
         _render_verification_instructions(plan["requested_profile"]), encoding="utf-8"
     )
@@ -1027,19 +1032,20 @@ def _render_verification_instructions(profile: str) -> str:
         "",
         "## Public sharing — primary verification path",
         "",
-        "For ordinary public/media sharing, distribute these two files together:",
+        "The HTML report is self-contained for public verification. Its embedded verification capsule "
+        "contains the exact statement and no private evidence files. A reader can upload only `report.html` "
+        "to the public Verify page or run `asimov verify-report report.html`.",
         "",
-        "- `report.html`",
-        "- `public-verification.json`",
+        "The separate `public-verification.json` is still emitted as a portable/exportable copy of the same "
+        "verification record, but ordinary public verification does not require it.",
         "",
-        "The public sidecar contains the exact verification statement and no private evidence files. "
-        "A reader can verify the report digest and the assessment metadata bound by the statement. "
-        "For authenticated public provenance, sign the statement and rebuild the public record with the Sigstore bundle:",
+        "For authenticated public provenance, sign the statement and then rebuild/embed the public record with the Sigstore bundle:",
         "",
         "```bash",
         "asimov public-record --statement asimov-statement.json --report report.html --bundle asimov.sigstore.json --certificate-identity '<EXPECTED_IDENTITY>' --certificate-oidc-issuer '<EXPECTED_OIDC_ISSUER>' --output public-verification.json",
         "```",
         "",
+        "The command refreshes both the embedded capsule in `report.html` and the optional JSON export. "
         "Public verification proves integrity/provenance/binding. It does not decide whether the evidence "
         "or assessment conclusion is substantively correct.",
         "",
