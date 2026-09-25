@@ -378,6 +378,14 @@ def sign_review_from_payload(payload: dict[str, Any]) -> dict[str, Any]:
     bundle = path.with_suffix(".sigstore.json")
     code = sigstore_attest_blob(path, path, bundle, yes=True)
     if code != 0:
+        record["signing_identity"] = {
+            "type": "sigstore",
+            "expected_subject": "",
+            "expected_issuer": "",
+        }
+        _json_write(path, record)
+        if bundle.exists():
+            bundle.unlink()
         raise StudioError(f"Cosign review signing failed with exit code {code}.")
     verified = verify_review_attestation(path, bundle)
     if verified.get("state") != "VERIFIED":
@@ -494,11 +502,12 @@ def make_handler(token: str):
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("Referrer-Policy", "no-referrer")
             self.send_header("Cross-Origin-Opener-Policy", "same-origin")
+            self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
             self.send_header(
                 "Content-Security-Policy",
-                "default-src 'self'; img-src 'self' data:; style-src 'self'; "
+                "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; "
                 "script-src 'self'; connect-src 'self'; frame-src 'self'; "
-                "base-uri 'none'; form-action 'none'",
+                "frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
             )
 
         def _send_bytes(self, data: bytes, content_type: str, status: int = 200) -> None:
