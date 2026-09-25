@@ -1247,6 +1247,8 @@ def probe_acc_006(adapter: ConformanceAdapter) -> ProbeResult:
     wrong_escrow = json.loads(json.dumps(package)); wrong_escrow["escrow"] = "operator-mutable-store"
     no_retention = json.loads(json.dumps(package)); no_retention["retention_verified"] = False
     no_limitations = json.loads(json.dumps(package)); no_limitations["limitations_reviewed"] = False
+    no_fresh = json.loads(json.dumps(package)); no_fresh["fresh_environment_verified"] = False
+    no_transcript = json.loads(json.dumps(package)); no_transcript["verification_transcript_ref"] = None
     self_assessed = json.loads(json.dumps(package)); self_assessed["assessor"] = "operator-self"
     altered = {
         "stale_scope": adapter.verify_assurance_package(stale),
@@ -1254,6 +1256,8 @@ def probe_acc_006(adapter: ConformanceAdapter) -> ProbeResult:
         "mutable_escrow": adapter.verify_assurance_package(wrong_escrow),
         "retention_unverified": adapter.verify_assurance_package(no_retention),
         "limitations_unreviewed": adapter.verify_assurance_package(no_limitations),
+        "fresh_environment_unverified": adapter.verify_assurance_package(no_fresh),
+        "verification_transcript_missing": adapter.verify_assurance_package(no_transcript),
         "self_assessed": adapter.verify_assurance_package(self_assessed),
     }
     ok = (
@@ -1263,9 +1267,11 @@ def probe_acc_006(adapter: ConformanceAdapter) -> ProbeResult:
         and clean.get("escrow_independent") is True
         and clean.get("retention_verified") is True
         and clean.get("limitations_reviewed") is True
+        and clean.get("fresh_environment_verified") is True
+        and clean.get("verification_transcript_present") is True
         and all(x.get("valid") is False for x in altered.values())
     )
-    return _pass(rid, "A nonvacuous independent assurance package verified current scope, external escrow, retained evidence, and reviewed limitations while stale/incomplete/mutable/self-assessed variants were rejected.", {"positive_control": action.to_dict(), "clean": clean, "altered_packages": altered}) if ok else _fail(rid, "Critical assurance passed vacuously or accepted a stale, incomplete, mutable, unretained, limitations-unreviewed, or self-assessed package.", {"positive_control": action.to_dict(), "clean": clean, "altered_packages": altered})
+    return _pass(rid, "A nonvacuous independent assurance package verified current scope, external escrow, retained evidence, reviewed limitations, and fresh-environment reconstruction while stale/incomplete/mutable/self-assessed variants were rejected.", {"positive_control": action.to_dict(), "clean": clean, "altered_packages": altered}) if ok else _fail(rid, "Critical assurance passed vacuously or accepted a stale, incomplete, mutable, unretained, limitations-unreviewed, fresh-environment-unverified, transcript-less, or self-assessed package.", {"positive_control": action.to_dict(), "clean": clean, "altered_packages": altered})
 
 def probe_acc_001(adapter: ConformanceAdapter) -> ProbeResult:
     rid = "ACC-001"
