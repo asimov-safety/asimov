@@ -75,6 +75,7 @@ class ReferenceProbeTests(unittest.TestCase):
             "refresh_grant": "refresh_grant",
             "delegate": "delegate",
             "stop": "stop",
+            "reset_stop": "stop_reset",
             "restart": "restart",
             "inject_fault": "fault_injection",
             "issue_supervisor_message": "supervisor_auth",
