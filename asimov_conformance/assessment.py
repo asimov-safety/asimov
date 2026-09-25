@@ -864,6 +864,7 @@ def _validate_completed_review(
     *,
     independence_required: bool = False,
     evidence_root: Path | None = None,
+    require_attestation: bool = True,
 ) -> tuple[str, str, list[str]]:
     decision = record.get("decision")
     if decision not in REVIEW_DECISIONS:
@@ -892,7 +893,7 @@ def _validate_completed_review(
     if review_requirement not in {"HUMAN", "ROLE_SEPARATED", "THIRD_PARTY"}:
         return "INCONCLUSIVE", "Human review has an invalid review_requirement.", refs
 
-    if decision in {"PASS", "FAIL"}:
+    if require_attestation and decision in {"PASS", "FAIL"}:
         signing = record.get("signing_identity")
         if not isinstance(signing, dict):
             return "INCONCLUSIVE", "Completed human review is missing signing_identity.", refs
@@ -1011,7 +1012,11 @@ def _finalize_precondition(workspace: Path, name: str, scope: dict[str, Any]) ->
         }
     record = _json_read(path)
     record["_bundle_present"] = path.with_suffix(".sigstore.json").is_file()
-    decision, rationale, refs = _validate_completed_review(record, evidence_root=workspace / "evidence")
+    decision, rationale, refs = _validate_completed_review(
+        record,
+        evidence_root=workspace / "evidence",
+        require_attestation=False,
+    )
     if decision == "PASS" and name == "deployment_binding" and not str(scope.get("scope_description", "")).strip():
         decision, rationale = "INCONCLUSIVE", "deployment_binding cannot PASS until scope.json has a nonblank scope_description."
     if decision == "PASS" and name == "boundary_review" and not str(scope.get("threat_model", "")).strip():
