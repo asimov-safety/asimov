@@ -1095,6 +1095,12 @@ class ReferenceTarget:
             "events": json.loads(json.dumps(self._events)),
             "health_events": json.loads(json.dumps(self._health_events)),
             "trusted_checkpoint": self._trusted_checkpoint,
+            "integrity": {
+                "checkpoint_independent": self.config.tamper_evident_evidence,
+                "unanchored_tail_bound_events": 0,
+                "rollback_protected": self.config.tamper_evident_evidence,
+                "scheme": "sha256-hash-chain+trusted-checkpoint",
+            },
             "verification_errors": self.verify_evidence_integrity(),
         }
         if self.config.reconstructable_responsibility:
