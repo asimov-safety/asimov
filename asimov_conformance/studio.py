@@ -131,75 +131,108 @@ def _review_summary(path: Path) -> dict[str, Any]:
 def workspace_state(value: str | Path) -> dict[str, Any]:
     root = _workspace(value)
     plan_path = root / "assessment-plan.json"
+    artifact_names = (
+        "assessment.json",
+        "assessment.result.json",
+        "report.html",
+        "summary.html",
+        "evidence-manifest.json",
+        "asimov-statement.json",
+        "public-verification.json",
+        "asimov.sigstore.json",
+        "verification-receipt.json",
+        "verification-receipt.html",
+    )
     state: dict[str, Any] = {
         "workspace": str(root),
         "prepared": plan_path.is_file(),
         "exists": root.exists(),
+        "artifacts": {name: (root / name).is_file() for name in artifact_names},
+        "finalized": False,
+        "report_signature": {"signed": False, "identity": None, "issuer": None},
     }
     if not plan_path.is_file():
         return state
 
-    plan = _json_read(plan_path)
+    errors: list[str] = []
+
+    try:
+        plan = _json_read(plan_path)
+    except (StudioError, OSError, ValueError) as exc:
+        state["plan"] = {}
+        state["scope"] = None
+        state["reviews"] = []
+        state["status_error"] = f"Assessment plan cannot be read: {exc}"
+        state["finalized"] = state["artifacts"]["assessment.result.json"]
+        return state
+
     state["plan"] = plan
     try:
         state["status"] = assessment_status(root)
-    except (AssessmentWorkflowError, OSError, ValueError) as exc:
-        state["status_error"] = str(exc)
+    except (AssessmentWorkflowError, StudioError, OSError, ValueError) as exc:
+        errors.append(f"Assessment status cannot be computed: {exc}")
 
     scope_path = root / "scope.json"
-    state["scope"] = _json_read(scope_path) if scope_path.is_file() else None
+    if scope_path.is_file():
+        try:
+            state["scope"] = _json_read(scope_path)
+        except (StudioError, OSError, ValueError) as exc:
+            state["scope"] = None
+            errors.append(f"Scope file cannot be read: {exc}")
+    else:
+        state["scope"] = None
+        errors.append("Scope file is missing.")
 
     reviews: list[dict[str, Any]] = []
-    for name in plan.get("required_preconditions", []):
-        path = _review_path(root, "precondition", str(name))
-        if path.is_file():
-            reviews.append(_review_summary(path))
-    for rid in plan.get("human_review_requirements", []):
-        path = _review_path(root, "requirement", str(rid))
-        if path.is_file():
-            reviews.append(_review_summary(path))
+    for item_type, ids in (
+        ("precondition", plan.get("required_preconditions", [])),
+        ("requirement", plan.get("human_review_requirements", [])),
+    ):
+        for item_id in ids:
+            path = _review_path(root, item_type, str(item_id))
+            if not path.is_file():
+                errors.append(f"Review record is missing: {path}")
+                continue
+            try:
+                reviews.append(_review_summary(path))
+            except (StudioError, OSError, ValueError) as exc:
+                errors.append(f"Review record cannot be read ({item_id}): {exc}")
     state["reviews"] = reviews
 
     technical_path = root / "technical-results.json"
     if technical_path.is_file():
-        technical = _json_read(technical_path)
-        state["technical"] = {
-            "counts": technical.get("counts", {}),
-            "results": technical.get("results", []),
-        }
+        try:
+            technical = _json_read(technical_path)
+            state["technical"] = {
+                "counts": technical.get("counts", {}),
+                "results": technical.get("results", []),
+            }
+        except (StudioError, OSError, ValueError) as exc:
+            errors.append(f"Technical results cannot be read: {exc}")
 
     result_path = root / "assessment.result.json"
     state["finalized"] = result_path.is_file()
     if result_path.is_file():
-        state["result"] = _json_read(result_path)
+        try:
+            state["result"] = _json_read(result_path)
+        except (StudioError, OSError, ValueError) as exc:
+            errors.append(f"Final assessment result cannot be read: {exc}")
 
     public_path = root / "public-verification.json"
     if public_path.is_file():
-        public = _json_read(public_path)
-        sig = public.get("sigstore")
-        state["report_signature"] = {
-            "signed": isinstance(sig, dict),
-            "identity": sig.get("certificate_identity") if isinstance(sig, dict) else None,
-            "issuer": sig.get("certificate_oidc_issuer") if isinstance(sig, dict) else None,
-        }
-    else:
-        state["report_signature"] = {"signed": False, "identity": None, "issuer": None}
+        try:
+            public = _json_read(public_path)
+            sig = public.get("sigstore")
+            state["report_signature"] = {
+                "signed": isinstance(sig, dict),
+                "identity": sig.get("certificate_identity") if isinstance(sig, dict) else None,
+                "issuer": sig.get("certificate_oidc_issuer") if isinstance(sig, dict) else None,
+            }
+        except (StudioError, OSError, ValueError) as exc:
+            errors.append(f"Public verification record cannot be read: {exc}")
 
-    state["artifacts"] = {
-        name: (root / name).is_file()
-        for name in (
-            "assessment.json",
-            "assessment.result.json",
-            "report.html",
-            "summary.html",
-            "evidence-manifest.json",
-            "asimov-statement.json",
-            "public-verification.json",
-            "asimov.sigstore.json",
-            "verification-receipt.json",
-            "verification-receipt.html",
-        )
-    }
+    if errors:
+        state["status_error"] = " ".join(errors)
     return state
 
 
