@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f1eee5">
+  <title>Asimov Studio</title>
+  <link rel="stylesheet" href="/studio.css">
+</head>
+<body>
+<div class="studio-shell">
+  <aside class="rail">
+    <div class="brand">
+      <img src="/asimov-mark.svg" alt="">
+      <div><span>Asimov</span><strong>Studio</strong></div>
+    </div>
+    <div class="local-badge"><i></i> Local only</div>
+    <nav>
+      <a href="#workspace" data-nav="workspace"><span>01</span> Workspace</a>
+      <a href="#scope" data-nav="scope"><span>02</span> Scope</a>
+      <a href="#readiness" data-nav="readiness"><span>03</span> Readiness</a>
+      <a href="#run" data-nav="run"><span>04</span> Test</a>
+      <a href="#reviews" data-nav="reviews"><span>05</span> Review</a>
+      <a href="#finish" data-nav="finish"><span>06</span> Finish</a>
+    </nav>
+    <div class="rail-foot">
+      <p>Nothing is uploaded to Asimov. Studio talks only to the local process you launched.</p>
+    </div>
+  </aside>
+
+  <main>
+    <header class="topbar">
+      <div>
+        <div class="overline">Local assessment workspace</div>
+        <h1 id="page-title">Asimov Studio</h1>
+      </div>
+      <div class="top-actions">
+        <button class="text-button" id="refresh">Refresh</button>
+        <span class="state-pill" id="state-pill">No workspace</span>
+      </div>
+    </header>
+
+    <section class="hero-panel">
+      <div>
+        <div class="overline">Assessment without hand-editing JSON</div>
+        <h2>Build the evidence.<br><em>Keep the rigor.</em></h2>
+      </div>
+      <p>Studio is a local interface over the same Asimov engine and files used by the CLI. Every assessment remains portable, inspectable, and independently verifiable.</p>
+    </section>
+
+    <section class="panel" id="workspace">
+      <div class="section-head">
+        <div><div class="overline">01 · Workspace</div><h2>Create or open an assessment.</h2></div>
+        <div class="section-status" id="workspace-status">Not prepared</div>
+      </div>
+
+      <div class="form-grid">
+        <label class="field span-2">
+          <span>Workspace folder</span>
+          <input id="workspace-path" type="text" value="./asimov-assessment" autocomplete="off">
+          <small>A local folder. Existing Asimov workspaces can be reopened here.</small>
+        </label>
+        <div class="field-actions">
+          <button class="button secondary" id="open-workspace">Open workspace</button>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="form-grid">
+        <label class="field span-2">
+          <span>Adapter</span>
+          <input id="adapter" type="text" placeholder="./my_adapter.py:MyAdapter" autocomplete="off">
+          <small>Path or Python module plus class name. Studio does not store adapter settings in the assessment.</small>
+        </label>
+        <label class="field span-2">
+          <span>Adapter settings <em>session only</em></span>
+          <textarea id="adapter-kwargs" rows="3" spellcheck="false">{}</textarea>
+          <small>JSON object passed to your adapter. Keep secrets here only for the current Studio session.</small>
+        </label>
+        <label class="field">
+          <span>Assurance level</span>
+          <select id="level">
+            <option>A1</option><option>A2</option><option>A3</option><option>A4</option><option selected>A5</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Assessment type</span>
+          <select id="mode">
+            <option value="self_assessment">Self-assessment</option>
+            <option value="independent_assessment">Independent assessment</option>
+          </select>
+        </label>
+        <label class="field span-2">
+          <span>Assessor</span>
+          <input id="assessor" type="text" placeholder="Name or assessment team">
+        </label>
+        <label class="field">
+          <span>Organization being assessed</span>
+          <input id="subject-org" type="text" placeholder="Example AI">
+        </label>
+        <label class="field">
+          <span>Assessment organization</span>
+          <input id="assessor-org" type="text" placeholder="Internal team or independent firm">
+        </label>
+      </div>
+      <div class="button-row">
+        <button class="button" id="prepare">Create assessment</button>
+      </div>
+    </section>
+
+    <section class="panel" id="scope">
+      <div class="section-head">
+        <div><div class="overline">02 · Scope</div><h2>Say what you are actually testing.</h2></div>
+        <div class="section-status" id="scope-status">Workspace required</div>
+      </div>
+      <div class="form-grid">
+        <label class="field span-2">
+          <span>What deployment or configuration is in scope?</span>
+          <textarea id="scope-description" rows="4" placeholder="Describe the actual deployment, environment, users, enabled tools, and boundaries."></textarea>
+        </label>
+        <label class="field span-2">
+          <span>What could go wrong?</span>
+          <textarea id="threat-model" rows="5" placeholder="Describe the actor capabilities, credible misuse/failure cases, and the controls expected to stop them."></textarea>
+        </label>
+        <label class="field span-2">
+          <span>Explicit exclusions</span>
+          <textarea id="exclusions" rows="4" placeholder="One exclusion per line. Keep exclusions narrow and defensible."></textarea>
+        </label>
+      </div>
+      <div class="button-row"><button class="button" id="save-scope">Save scope</button></div>
+    </section>
+
+    <section class="panel" id="readiness">
+      <div class="section-head">
+        <div><div class="overline">03 · Readiness</div><h2>Find what blocks the assessment.</h2></div>
+        <div class="section-status" id="readiness-status">Not checked</div>
+      </div>
+      <p class="lede">Studio asks the same <code>asimov doctor</code> questions as the CLI. A missing control surface is a blocker, not a lower score.</p>
+      <div class="button-row"><button class="button" id="check-readiness">Check readiness</button></div>
+      <div id="readiness-results" class="result-list empty-state">No readiness check yet.</div>
+    </section>
+
+    <section class="panel" id="run">
+      <div class="section-head">
+        <div><div class="overline">04 · Test</div><h2>Run the technical evidence.</h2></div>
+        <div class="section-status" id="run-status">Not run</div>
+      </div>
+      <div class="callout">
+        <strong>Before the first run</strong>
+        <p>Asimov requires the human obligations to be visible and assigned before technical execution. Acknowledging them does not mark anything PASS.</p>
+      </div>
+      <div class="form-grid compact">
+        <label class="field">
+          <span>Acknowledgement owner</span>
+          <input id="ack-reviewer" type="text" placeholder="Your name">
+        </label>
+        <label class="field">
+          <span>Role</span>
+          <input id="ack-role" type="text" placeholder="System owner / assessor">
+        </label>
+      </div>
+      <div class="button-row">
+        <button class="button secondary" id="acknowledge">Acknowledge obligations</button>
+        <button class="button" id="run-assessment">Run technical assessment</button>
+      </div>
+      <div id="technical-summary" class="metric-strip"></div>
+    </section>
+
+    <section class="panel" id="reviews">
+      <div class="section-head">
+        <div><div class="overline">05 · Review</div><h2>Turn human judgment into attributable evidence.</h2></div>
+        <div class="section-status" id="reviews-status">No workspace</div>
+      </div>
+      <div class="review-legend">
+        <div><b>Human</b><span>Named human judgment. Same organization allowed.</span></div>
+        <div><b>Role separated</b><span>May be internal, but not the implementation/control owner.</span></div>
+        <div><b>Third party</b><span>Separate legal entity with a signed independence declaration.</span></div>
+      </div>
+      <div class="review-grid" id="review-list">
+        <div class="empty-state">Create or open a workspace to see reviews.</div>
+      </div>
+    </section>
+
+    <section class="panel" id="finish">
+      <div class="section-head">
+        <div><div class="overline">06 · Finish</div><h2>Finalize, sign, and verify.</h2></div>
+        <div class="section-status" id="finish-status">Not finalized</div>
+      </div>
+      <div class="finish-grid">
+        <div class="finish-card">
+          <span class="step-number">01</span>
+          <h3>Finalize assessment</h3>
+          <p>Merges technical and human results fail-closed, builds the evidence manifest, and renders the report.</p>
+          <button class="button" id="finalize">Finalize</button>
+        </div>
+        <div class="finish-card">
+          <span class="step-number">02</span>
+          <h3>Sign public report</h3>
+          <p>Authenticate the final report with your Sigstore identity.</p>
+          <label class="mini-field"><span>Identity</span><input id="report-identity" placeholder="you@example.com"></label>
+          <label class="mini-field"><span>Provider</span><select id="report-provider"><option value="google">Google</option><option value="github">GitHub</option><option value="microsoft">Microsoft</option><option value="github-actions">GitHub Actions</option><option value="custom">Custom OIDC</option></select></label>
+          <label class="mini-field hidden" id="report-issuer-wrap"><span>OIDC issuer</span><input id="report-issuer"></label>
+          <button class="button secondary" id="sign-report">Sign report</button>
+        </div>
+        <div class="finish-card">
+          <span class="step-number">03</span>
+          <h3>Verify complete package</h3>
+          <p>Checks evidence binding, family review attestations, and the package signer when present.</p>
+          <button class="button secondary" id="verify-package">Verify package</button>
+          <button class="text-button" id="open-report">Open report ↗</button>
+        </div>
+      </div>
+      <div id="verification-result"></div>
+    </section>
+  </main>
+</div>
+
+<dialog id="review-dialog">
+  <form method="dialog" class="dialog-frame">
+    <div class="dialog-head">
+      <div>
+        <div class="overline" id="review-type-label">Human review</div>
+        <h2 id="review-title">Review</h2>
+      </div>
+      <button class="icon-button" value="cancel" aria-label="Close">×</button>
+    </div>
+    <div id="review-banner" class="review-banner"></div>
+    <input type="hidden" id="review-item-type">
+    <input type="hidden" id="review-item-id">
+
+    <div class="dialog-section">
+      <h3>Reviewer</h3>
+      <div class="form-grid">
+        <label class="field"><span>Name</span><input id="reviewer-name"></label>
+        <label class="field"><span>Role</span><input id="reviewer-role"></label>
+        <label class="field"><span>Reviewer organization</span><input id="reviewer-org"></label>
+        <label class="field"><span>Organization being assessed</span><input id="review-subject-org"></label>
+      </div>
+      <label class="check-line" id="role-separated-wrap"><input id="role-separated" type="checkbox"><span>I am separated from the implementation/control-owner role for this item.</span></label>
+    </div>
+
+    <div class="dialog-section" id="independence-section">
+      <h3>Independence declaration</h3>
+      <div class="independence-grid">
+        <label><input type="checkbox" id="separate-entity"><span>I act for a separate legal entity.</span></label>
+        <label><input type="checkbox" id="subject-no-control"><span>The assessed organization does not control my conclusion.</span></label>
+        <label><input type="checkbox" id="non-contingent"><span>My compensation is not contingent on a passing result.</span></label>
+        <label class="span-2"><span>Conflicts to disclose</span><textarea id="conflicts" rows="3" placeholder="One per line. Leave blank if none."></textarea></label>
+        <label class="span-2"><span>Relationship to the system being assessed</span><input id="relationship" placeholder="Independent contracted assessor"></label>
+      </div>
+    </div>
+
+    <div class="dialog-section">
+      <h3>Evidence checklist</h3>
+      <div id="checklist"></div>
+    </div>
+
+    <div class="dialog-section">
+      <h3>Decision</h3>
+      <div class="form-grid">
+        <label class="field">
+          <span>Decision</span>
+          <select id="review-decision"><option>PENDING</option><option>PASS</option><option>FAIL</option><option>INCONCLUSIVE</option></select>
+        </label>
+        <label class="field span-2">
+          <span>Evidence references</span>
+          <textarea id="review-evidence" rows="3" placeholder="One evidence reference per line"></textarea>
+        </label>
+        <label class="field span-2">
+          <span>Rationale</span>
+          <textarea id="review-rationale" rows="5" placeholder="Explain why the evidence supports this decision and note important limitations."></textarea>
+        </label>
+      </div>
+    </div>
+
+    <div class="dialog-actions">
+      <button class="button secondary" type="button" id="save-review">Save review</button>
+      <div class="sign-inline" id="review-signing">
+        <input id="review-sign-identity" placeholder="reviewer@example.com">
+        <select id="review-sign-provider"><option value="google">Google</option><option value="github">GitHub</option><option value="microsoft">Microsoft</option><option value="github-actions">GitHub Actions</option><option value="custom">Custom OIDC</option></select>
+        <input class="hidden" id="review-sign-issuer" placeholder="OIDC issuer">
+        <button class="button" type="button" id="sign-review">Save & sign review</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<div class="busy hidden" id="busy"><div class="busy-card"><div class="spinner"></div><strong id="busy-title">Working…</strong><p id="busy-text">Studio is running the Asimov engine locally.</p></div></div>
+<div class="toast hidden" id="toast"></div>
+<script src="/studio.js"></script>
+</body>
+</html>
