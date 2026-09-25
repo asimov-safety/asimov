@@ -650,7 +650,8 @@ def _render_review_checklist(plan: dict[str, Any], requirements: list[dict[str, 
         "it means the obligation was visible and assigned before execution.",
         "",
         "For each record, name the reviewer, reviewer organization, relationship/role, "
-        "Assessment Subject organization, planned evidence, and expected Sigstore signing identity. "
+        "Assessment Subject organization, and planned evidence. For HYBRID/REVIEW_REQUIRED family "
+        "reviews, also declare the expected Sigstore signing identity. "
         "The catalog review requirement is normative: HUMAN permits same-organization review; "
         "ROLE_SEPARATED requires separation from implementation/control ownership; THIRD_PARTY "
         "requires a separate legal entity plus the signed independence declaration.",
@@ -692,16 +693,18 @@ def _render_review_checklist(plan: dict[str, Any], requirements: list[dict[str, 
         "",
         "## Sign completed reviews",
         "",
-        "Before finalization, each completed PASS/FAIL human review must have a companion "
-        "Sigstore attestation. Use `asimov sign-review <record.json> --provider <provider> "
+        "Before finalization, each completed PASS/FAIL HYBRID/REVIEW_REQUIRED family review must have a companion "
+        "Sigstore attestation. Assessment preconditions do not each require a separate attestation in 0.2. "
+        "Use `asimov sign-review <record.json> --provider <provider> "
         "--identity <reviewer-identity>` and optionally confirm it with `asimov verify-review`.",
         "",
         "## Finalization",
         "",
-        "Run `asimov finalize-assessment <workspace>`. A PASS review is accepted only "
+        "Run `asimov finalize-assessment <workspace>`. A PASS family review is accepted only "
         "when every checklist item is PASS, reviewer/rationale/timestamp are present, "
         "required evidence references are present, the required relationship declarations are met, "
-        "and the companion review-attestation bundle exists. Full cryptographic validity is checked "
+        "and the companion review-attestation bundle exists. Preconditions use the same evidence/checklist "
+        "discipline but do not require an individual bundle. Full cryptographic validity is checked "
         "by `asimov verify-package`.",
         "",
         "Read `verification-plan.json` before distributing the result. A4 requires "
