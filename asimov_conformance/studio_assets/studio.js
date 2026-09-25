@@ -91,9 +91,17 @@
     try {
       const result = await apiPost("/api/generate-adapter", payload);
       set("adapter", result.adapter_spec);
+      set("adapter-kwargs", "{}");
       persistSessionFields();
+      validateAdapterSettings();
       renderAdapterRecommendation(result.recommendation);
-      toast("Starter adapter created. Studio populated the Adapter field; wire real controls before running doctor.");
+      $("generated-adapter-text").innerHTML =
+        "Studio created <code>" + escapeHtml(result.adapter_path) + "</code>. " +
+        "Read <code>" + escapeHtml(result.readme_path) + "</code>, wire the real deployment controls, then run <strong>Check readiness</strong>. " +
+        "The generated adapter starts with zero capabilities on purpose.";
+      $("generated-adapter-note").classList.remove("hidden");
+      updateControls();
+      toast("Starter adapter created and selected.");
       document.querySelector("#workspace").scrollIntoView({behavior: "smooth"});
     } finally { busy(false); }
   }
@@ -104,7 +112,7 @@
     el.classList.toggle("bad", !!bad);
     el.classList.remove("hidden");
     clearTimeout(el._timer);
-    el._timer = setTimeout(() => el.classList.add("hidden"), 5000);
+    el._timer = setTimeout(() => el.classList.add("hidden"), bad ? 10000 : 5000);
   }
 
   function busy(on, title, text) {
@@ -131,13 +139,73 @@
   }
   const apiPost = (path, body) => request(path, {method: "POST", body: JSON.stringify(body)});
 
-  function adapterPayload() {
-    let kwargs = {};
+  function parseAdapterSettings() {
     const raw = val("adapter-kwargs").trim() || "{}";
-    try { kwargs = JSON.parse(raw); }
-    catch (_) { throw new Error("Adapter settings must be valid JSON."); }
-    if (!kwargs || Array.isArray(kwargs) || typeof kwargs !== "object") throw new Error("Adapter settings must be a JSON object.");
-    return {adapter: val("adapter").trim(), adapter_kwargs: kwargs, level: val("level")};
+    let value;
+    try { value = JSON.parse(raw); }
+    catch (_) { return {ok: false, value: null, error: "Adapter runtime settings must be valid JSON."}; }
+    if (!value || Array.isArray(value) || typeof value !== "object") {
+      return {ok: false, value: null, error: "Adapter runtime settings must be a JSON object."};
+    }
+    return {ok: true, value: value, error: ""};
+  }
+
+  function validateAdapterSettings() {
+    const parsed = parseAdapterSettings();
+    const status = $("adapter-kwargs-status");
+    status.classList.remove("ok", "warn", "bad");
+    if (!parsed.ok) {
+      status.textContent = parsed.error;
+      status.classList.add("bad");
+      return false;
+    }
+    const keys = Object.keys(parsed.value);
+    const risky = keys.filter(k => /(secret|password|passwd|token|api.?key|credential|private.?key)/i.test(k));
+    if (risky.length) {
+      status.textContent = "Valid JSON, but these keys look secret-like: " + risky.join(", ") + ". Prefer environment variables or provider credentials.";
+      status.classList.add("warn");
+    } else if (keys.length) {
+      status.textContent = "Valid JSON object · " + keys.length + " runtime setting" + (keys.length === 1 ? "" : "s") + ". Session only.";
+      status.classList.add("ok");
+    } else {
+      status.textContent = "Valid JSON object · nothing required by default.";
+      status.classList.add("ok");
+    }
+    return true;
+  }
+
+  function updateControls() {
+    const prepared = !!(state && state.prepared);
+    const preRunReady = !!(state && state.status && state.status.pre_run_ready);
+    const adapterReady = !!val("adapter").trim() && validateAdapterSettings();
+    const workspaceReady = !!workspace();
+    const assessorReady = !!val("assessor").trim();
+
+    $("open-workspace").disabled = !workspaceReady;
+    $("prepare").disabled = !(workspaceReady && adapterReady && assessorReady);
+    $("save-scope").disabled = !prepared;
+    $("check-readiness").disabled = !adapterReady;
+    $("acknowledge").disabled = !prepared;
+    $("run-assessment").disabled = !(prepared && preRunReady && adapterReady);
+
+    $("run-assessment").title = prepared && !preRunReady
+      ? "Acknowledge the pre-run human obligations first."
+      : "";
+    $("prepare").title = !workspaceReady
+      ? "Choose a workspace folder first."
+      : !val("adapter").trim()
+      ? "Choose or generate an adapter first."
+      : !assessorReady
+      ? "Name the assessor first."
+      : !validateAdapterSettings()
+      ? "Fix the adapter runtime settings JSON first."
+      : "";
+  }
+
+  function adapterPayload() {
+    const parsed = parseAdapterSettings();
+    if (!parsed.ok) throw new Error(parsed.error);
+    return {adapter: val("adapter").trim(), adapter_kwargs: parsed.value, level: val("level")};
   }
 
   function persistSessionFields() {
@@ -161,7 +229,10 @@
     if (!root) return;
     state = await apiGet("/api/state", {workspace: root});
     renderState();
-    if (showMessage) toast(state.prepared ? "Workspace opened." : "No prepared assessment exists in that folder yet.");
+    if (showMessage) {
+      if (state.status_error) toast("Workspace opened, but its assessment plan needs attention: " + state.status_error, true);
+      else toast(state.prepared ? "Workspace opened." : "No prepared assessment exists in that folder yet.");
+    }
   }
 
   function renderState() {
@@ -172,7 +243,9 @@
     const reviews = (state && state.reviews) || [];
 
     $("state-pill").textContent = prepared ? ((plan.requested_profile || "") + " · " + pretty(plan.state || "prepared")) : "No workspace";
-    $("workspace-status").textContent = prepared ? "Prepared" : "Not prepared";
+    $("workspace-status").textContent = state && state.status_error ? "Integrity error" : prepared ? "Prepared" : "Not prepared";
+    $("workspace-alert").classList.toggle("hidden", !(state && state.status_error));
+    if (state && state.status_error) $("workspace-alert-text").textContent = state.status_error;
     $("scope-status").textContent = prepared ? (scope.scope_description ? "Defined" : "Needs description") : "Workspace required";
     $("run-status").textContent = state && state.technical ? "Technical run complete" : prepared ? "Ready when acknowledged" : "Not run";
     $("finish-status").textContent = state && state.finalized ? pretty((state.result && state.result.reported_outcome) || "Finalized") : "Not finalized";
@@ -194,6 +267,7 @@
     renderTechnical();
     renderFinish();
     renderReviewStatus(reviews, status);
+    updateControls();
   }
 
   function renderReviewStatus(reviews, status) {
@@ -296,11 +370,17 @@
     try {
       const result = await apiPost("/api/readiness", a);
       $("readiness-status").textContent = result.ready ? "Ready to test" : (result.blockers + " blockers");
-      $("readiness-results").innerHTML = result.findings.map(f =>
-        '<div class="result-row"><code>' + escapeHtml(f.requirement_id) + '</code>' +
-        '<div class="result-state ' + (f.state === "READY_TO_TEST" ? "ok" : "bad") + '">' + escapeHtml(pretty(f.state)) + '</div>' +
-        '<p>' + escapeHtml(f.remediation) + '</p></div>'
-      ).join("");
+      $("readiness-results").innerHTML = result.findings.map(f => {
+        const missingCaps = (f.missing_capabilities || []).map(x => '<code>' + escapeHtml(x) + '</code>').join(" ");
+        const missingMethods = (f.missing_methods || []).map(x => '<code>' + escapeHtml(x) + '()</code>').join(" ");
+        const detail = [
+          missingCaps ? '<span><b>Missing surfaces:</b> ' + missingCaps + '</span>' : '',
+          missingMethods ? '<span><b>Missing methods:</b> ' + missingMethods + '</span>' : ''
+        ].filter(Boolean).join(' · ');
+        return '<div class="result-row"><code>' + escapeHtml(f.requirement_id) + '</code>' +
+          '<div class="result-state ' + (f.state === "READY_TO_TEST" ? "ok" : "bad") + '">' + escapeHtml(pretty(f.state)) + '</div>' +
+          '<p>' + escapeHtml(f.remediation) + (detail ? '<small class="result-detail">' + detail + '</small>' : '') + '</p></div>';
+      }).join("");
       toast(result.ready ? "No capability blockers detected." : (result.blockers + " readiness blockers found."), !result.ready);
     } finally { busy(false); }
   }
@@ -538,6 +618,8 @@
     $("report-provider").addEventListener("change", () => $("report-issuer-wrap").classList.toggle("hidden", val("report-provider") !== "custom"));
 
     ["adapter","adapter-kwargs","workspace-path"].forEach(id => $(id).addEventListener("change", persistSessionFields));
+    ["adapter","adapter-kwargs","workspace-path","assessor"].forEach(id => $(id).addEventListener("input", updateControls));
+    $("adapter-kwargs").addEventListener("input", validateAdapterSettings);
     document.querySelectorAll(".rail nav a").forEach(a => a.addEventListener("click", () => {
       document.querySelectorAll(".rail nav a").forEach(x => x.classList.remove("active"));
       a.classList.add("active");
@@ -557,6 +639,8 @@
       return;
     }
     await action(loadAdapterCatalog);
+    validateAdapterSettings();
+    updateControls();
     if (workspace()) await action(() => loadWorkspace(false));
   }
 
