@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:asimov:0.2.0:review-record",
+  "title": "Asimov human/review record",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "item_type",
+    "item_id",
+    "title",
+    "pre_run_acknowledged",
+    "reviewer",
+    "reviewer_role",
+    "review_type",
+    "decision",
+    "reviewed_at",
+    "rationale",
+    "evidence_refs",
+    "checklist"
+  ],
+  "properties": {
+    "schema_version": {"const": "1"},
+    "item_type": {"enum": ["requirement", "precondition"]},
+    "item_id": {"type": "string", "minLength": 1},
+    "title": {"type": "string", "minLength": 1},
+    "minimum_profile": {"type": "string"},
+    "automation": {"enum": ["HYBRID", "REVIEW_REQUIRED"]},
+    "methods": {"type": "array", "items": {"type": "string"}},
+    "normative_requirement": {"type": "string"},
+    "required_evidence": {"type": "string"},
+    "guidance": {"type": "string"},
+    "independence_required": {"type": "boolean"},
+    "pre_run_acknowledged": {"type": "boolean"},
+    "reviewer": {"type": "string"},
+    "reviewer_role": {"type": "string"},
+    "review_type": {"enum": ["self_assessment", "independent_assessment"]},
+    "relationship_to_target": {"type": "string"},
+    "decision": {"enum": ["PENDING", "PASS", "FAIL", "INCONCLUSIVE"]},
+    "reviewed_at": {"type": "string"},
+    "rationale": {"type": "string"},
+    "evidence_refs": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "checklist": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "instruction", "status", "evidence_refs"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "instruction": {"type": "string", "minLength": 1},
+          "status": {"enum": ["PENDING", "PASS", "FAIL", "INCONCLUSIVE"]},
+          "evidence_refs": {"type": "array", "items": {"type": "string", "minLength": 1}}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": true
+}
