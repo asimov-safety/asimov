@@ -46,6 +46,30 @@ Asimov is framework-neutral. Adapters translate native infrastructure—agent fr
 
 Missing mandatory control surfaces block the corresponding A-level.
 
+## Assess a real deployment
+
+Use the staged generic workflow rather than hand-building a report from raw probe output:
+
+```bash
+asimov prepare-assessment \
+  --adapter ./my_adapter.py:MyAdapter \
+  --level A5 \
+  --assessor "Assessment Team" \
+  --output ./assessment
+
+# Review and acknowledge the generated scope, preconditions,
+# HYBRID / REVIEW_REQUIRED records, and verification plan.
+
+asimov run-assessment ./assessment \
+  --adapter ./my_adapter.py:MyAdapter
+
+# Complete required human/review records against the actual evidence.
+asimov assessment-status ./assessment
+asimov finalize-assessment ./assessment
+```
+
+An A5 run is cumulative and covers A1–A5. HYBRID and REVIEW_REQUIRED findings remain INCONCLUSIVE until their required review records are valid; human review cannot override a technical failure. See [End-to-end Assessment Workflow](docs/ASSESSMENT-WORKFLOW.md).
+
 ## Specification and methodology
 
 - [ASIMOV CORE 0.2](ASIMOV-CORE-0.2.md)
