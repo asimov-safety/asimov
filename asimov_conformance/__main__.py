@@ -12,10 +12,12 @@ from .verification import (
     build_public_verification_record,
     build_verification_statement,
     embed_public_verification_record,
+    sigstore_attest_blob,
     sigstore_sign,
     sigstore_verify,
     verify_package,
     verify_public_report,
+    verify_review_attestation,
 )
 from .probes import run_initial_probes, run_mutation_validation
 from .onboarding import doctor, init_project
@@ -69,6 +71,8 @@ def main(argv: list[str] | None = None) -> int:
     pa.add_argument("--adapter-kwargs", default="{}", help="JSON object passed to the adapter constructor")
     pa.add_argument("--level", choices=["A1", "A2", "A3", "A4", "A5"], default="A5")
     pa.add_argument("--assessor", required=True)
+    pa.add_argument("--subject-organization", default="", help="Organization responsible for the assessed deployment.")
+    pa.add_argument("--assessor-organization", default="", help="Organization performing the assessment/review work.")
     pa.add_argument("--mode", choices=["self_assessment", "independent_assessment"], default="self_assessment")
     pa.add_argument("--output", type=Path, required=True)
 
@@ -104,6 +108,21 @@ def main(argv: list[str] | None = None) -> int:
     sr.add_argument("--json-export", type=Path, help="Optional export of the embedded public verification record.")
     sr.add_argument("--cosign-bin", default="cosign")
     sr.add_argument("--yes", action="store_true", help="Pass --yes to Cosign for non-interactive confirmation.")
+
+    rv = sub.add_parser("sign-review", help="Sign a completed human review as a Sigstore blob attestation.")
+    rv.add_argument("review", type=Path)
+    rv.add_argument("--identity", required=True, help="Exact reviewer signing identity expected in the Sigstore certificate.")
+    rv.add_argument("--provider", choices=["google", "github", "microsoft", "github-actions", "custom"], default="google")
+    rv.add_argument("--oidc-issuer", help="Required only with --provider custom.")
+    rv.add_argument("--bundle", type=Path, help="Defaults to <review>.sigstore.json beside the review record.")
+    rv.add_argument("--cosign-bin", default="cosign")
+    rv.add_argument("--yes", action="store_true", help="Pass --yes to Cosign for non-interactive confirmation.")
+
+    vrv = sub.add_parser("verify-review", help="Verify a human review's Sigstore attestation and declared reviewer identity.")
+    vrv.add_argument("review", type=Path)
+    vrv.add_argument("--bundle", type=Path)
+    vrv.add_argument("--cosign-bin", default="cosign")
+    vrv.add_argument("--json-output", type=Path)
 
     ss = sub.add_parser("sigstore-sign", help="Sign an Asimov verification statement with Cosign/Sigstore.")
     ss.add_argument("statement", type=Path)
@@ -155,6 +174,8 @@ def main(argv: list[str] | None = None) -> int:
                         assessor=args.assessor,
                         mode=args.mode,
                         adapter_spec=args.adapter,
+                        subject_organization=args.subject_organization,
+                        assessor_organization=args.assessor_organization,
                     )
                     print(f"ASIMOV ASSESSMENT PREPARED — {plan['requested_profile']}")
                     print(f"System: {plan['system_id']} | Adapter: {plan['adapter_id']}")
@@ -236,7 +257,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Full report: {args.workspace / 'report.html'}")
         print(f"Summary: {args.workspace / 'summary.html'}")
         print(f"Verification instructions: {args.workspace / 'VERIFICATION-INSTRUCTIONS.md'}")
-        print("IMPORTANT: finalization builds the package but does not invent signer identity, an external checkpoint, independent review, or A5 evidence escrow. Follow VERIFICATION-INSTRUCTIONS.md.")
+        print("IMPORTANT: completed human reviews require their own Sigstore attestations before they can contribute PASS/FAIL. Finalization does not invent reviewer identity, independence, package signer identity, external checkpoints, or A5 evidence escrow. Follow VERIFICATION-INSTRUCTIONS.md.")
         state = result["reported_outcome"]
         return 0 if state == "REPORTED_PASS" else 1 if state == "REPORTED_FAIL" else 2
 
@@ -367,6 +388,69 @@ def main(argv: list[str] | None = None) -> int:
         print("Public verification now requires only the HTML report.")
         print("Anyone can check it with: asimov verify-report " + str(args.report))
         return 0
+
+    if args.command == "sign-review":
+        issuers = {
+            "google": "https://accounts.google.com",
+            "github": "https://github.com/login/oauth",
+            "microsoft": "https://login.microsoftonline.com",
+            "github-actions": "https://token.actions.githubusercontent.com",
+        }
+        issuer = args.oidc_issuer if args.provider == "custom" else issuers[args.provider]
+        if args.provider == "custom" and not issuer:
+            print("SIGN REVIEW ERROR: --oidc-issuer is required with --provider custom", file=sys.stderr)
+            return 3
+        try:
+            record = json.loads(args.review.read_text(encoding="utf-8"))
+            if not isinstance(record, dict):
+                raise ValueError("review record must be a JSON object")
+            if record.get("decision") not in {"PASS", "FAIL", "INCONCLUSIVE"}:
+                raise ValueError("review decision must be PASS, FAIL, or INCONCLUSIVE before signing")
+            record["signing_identity"] = {
+                "type": "sigstore",
+                "expected_subject": args.identity,
+                "expected_issuer": issuer,
+            }
+            args.review.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+            bundle = args.bundle or args.review.with_suffix(".sigstore.json")
+            code = sigstore_attest_blob(
+                args.review,
+                args.review,
+                bundle,
+                cosign_bin=args.cosign_bin,
+                yes=args.yes,
+            )
+            if code != 0:
+                print(f"SIGN REVIEW FAILED (exit {code})", file=sys.stderr)
+                return 1
+            verified = verify_review_attestation(args.review, bundle, cosign_bin=args.cosign_bin)
+        except (VerificationError, OSError, ValueError, json.JSONDecodeError) as exc:
+            print(f"SIGN REVIEW ERROR: {exc}", file=sys.stderr)
+            return 3
+        print(f"ASIMOV REVIEW ATTESTATION — {verified['state']}")
+        print(f"Review: {verified.get('item_id')} ({verified.get('review_requirement')})")
+        print(f"Authenticated reviewer identity: {verified.get('signer_identity')}")
+        print(f"Sigstore bundle: {bundle}")
+        return 0 if verified["state"] == "VERIFIED" else 1
+
+    if args.command == "verify-review":
+        try:
+            result = verify_review_attestation(
+                args.review,
+                args.bundle,
+                cosign_bin=args.cosign_bin,
+            )
+            if args.json_output is not None:
+                args.json_output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+        except (VerificationError, OSError, ValueError) as exc:
+            print(f"VERIFY REVIEW ERROR: {exc}", file=sys.stderr)
+            return 3
+        print(f"ASIMOV REVIEW VERIFY — {result['state']}")
+        print(f"Review: {result.get('item_id')} ({result.get('review_requirement')})")
+        print(f"Authenticated reviewer identity: {result.get('signer_identity')}")
+        if result.get("detail"):
+            print(result["detail"])
+        return 0 if result["state"] == "VERIFIED" else 1
 
     if args.command == "sigstore-sign":
         try:
