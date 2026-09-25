@@ -40,8 +40,9 @@ asimov studio --no-browser
 
 ## What Studio does
 
-The first Studio release supports the full staged assessment workflow:
+Studio supports the full staged assessment workflow:
 
+0. **Adapter Assistant** — choose a current agent runtime, hosting model, authority system, protected resources, and evidence sources; inspect the six-surface mapping; optionally generate a fail-closed starter adapter.
 1. **Workspace** — create or reopen an assessment and identify the deployment, assessor, organizations, adapter, and target assurance level.
 2. **Scope** — describe the deployment, threat model, and explicit exclusions without editing `scope.json`.
 3. **Readiness** — run the same fail-closed capability diagnostics as `asimov doctor`.
@@ -50,6 +51,24 @@ The first Studio release supports the full staged assessment workflow:
 6. **Finish** — finalize the assessment, sign family-review judgments, sign the public report, and verify the complete package.
 
 Studio writes the ordinary Asimov workspace files. A Studio-created assessment remains usable from the CLI, and a CLI-created assessment can be opened in Studio.
+
+## Adapter Assistant
+
+Provider APIs change faster than the Asimov Core specification. Studio's Adapter Assistant is driven by the packaged `adapter_catalog.json`, which distinguishes managed and application-owned runtimes rather than treating a vendor as one architecture.
+
+The catalog currently covers OpenAI Agents API / Agents SDK / custom Responses loops, Claude Managed Agents / Claude Agent SDK / custom Messages loops, Google ADK, Microsoft Agent Framework, LangGraph, CrewAI, custom/local open-weight stacks, MCP, common cloud/lifecycle options, authority systems, protected resources, and evidence sources.
+
+Generated starters contain three files:
+
+```text
+adapter.py
+README.md
+asimov-adapter.json
+```
+
+The generated `capabilities()` is intentionally empty. Studio can suggest where a framework hook maps into Asimov, but it cannot turn the presence of a framework feature into proof that the deployment satisfies a control.
+
+The same catalog/generator is available from the CLI with `asimov adapter-catalog` and `asimov adapter-scaffold`. See [Provider & Stack Guide](ADAPTER-PROVIDERS.md).
 
 ## Local-first architecture
 
