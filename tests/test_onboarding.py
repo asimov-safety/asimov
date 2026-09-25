@@ -36,5 +36,34 @@ class OnboardingTests(unittest.TestCase):
                 init_project(path)
 
 
+    def test_claimed_capability_without_callable_method_is_blocked(self):
+        class Overclaiming:
+            adapter_id = "overclaiming"
+            def capabilities(self):
+                return {"action_surface", "fault_injection", "attempt", "issue_grant", "alternate_routes", "observe"}
+            def discover_action_surface(self): return {"declared": ["normal"], "discovered": ["normal"], "unknown": [], "coverage_complete": True}
+            def inject_fault(self, *args, **kwargs): return {"ok": True}
+            def attempt(self, *args, **kwargs): return None
+            def issue_grant(self, *args, **kwargs): return "grant"
+            observe = None
+
+        report = doctor(Overclaiming(), "A1")
+        self.assertFalse(report["ready"])
+        obs001 = next(x for x in report["findings"] if x["requirement_id"] == "OBS-001")
+        self.assertEqual(obs001["state"], "BLOCKED_MISSING_ADAPTER_METHOD")
+        self.assertIn("observe", obs001["missing_methods"])
+
+    def test_malformed_capability_declaration_fails_readiness_closed(self):
+        class Broken:
+            adapter_id = "broken"
+            def capabilities(self): return "attempt"
+
+        report = doctor(Broken(), "A1")
+        self.assertFalse(report["ready"])
+        self.assertEqual(report["blockers"], report["requirements"])
+        self.assertTrue(all(x["state"] == "BLOCKED_INVALID_ADAPTER_CAPABILITIES" for x in report["findings"]))
+
+
+
 if __name__ == "__main__":
     unittest.main()
