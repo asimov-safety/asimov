@@ -194,9 +194,9 @@ def render_html(result: dict[str, Any]) -> str:
 <section class="page page-break">
   <div class="eyebrow">Public verification</div>
   <h2>Verify the report people actually share.</h2>
-  <p>For public or media distribution, share this report together with <strong>public-verification.json</strong>. A reader can verify that the report bytes match the issued verification statement and inspect the exact assessment identity, scope/configuration binding, requested profile, and reported outcome bound to it.</p>
-  <p><strong>Authenticated provenance:</strong> when the public verification record includes a valid Sigstore bundle, the reader can additionally verify the identity that signed the exact statement and its external transparency checkpoint.</p>
-  <p><strong>What this does not prove:</strong> cryptography does not decide whether the underlying evidence or assessment judgment is substantively correct. Human/independent review remains separately visible in the assessment result.</p>
+  <p>This HTML report is self-contained for public verification. Upload this one file to the Asimov Verify page to check that the substantive report content still matches the issued statement and to inspect the assessment identity, scope/configuration binding, requested profile, assessor claim, and reported outcome bound to it.</p>
+  <p><strong>Who signed this?</strong> If this report was signed with Sigstore, the Verify page can show the authenticated signer identity and the identity provider used to authenticate them, along with the external transparency checkpoint.</p>
+  <p><strong>What this does not prove:</strong> signer authentication does not by itself establish that the signer was an authorized or independent assessor, and cryptography does not decide whether the underlying evidence or assessment judgment is substantively correct.</p>
   <div class="section">
     <div class="label">Public verification</div><p>https://asimov-safety.github.io/verification.html</p>
     <div class="label">Report ID</div><p>{escape(result["report_id"])}</p>
