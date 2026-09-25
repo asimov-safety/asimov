@@ -41,7 +41,8 @@ python -m asimov_conformance doctor --level A5
 Asimov is framework-neutral. Adapters translate native infrastructure—agent frameworks, IAM, databases, lifecycle controls, supervisors, and audit systems—into the semantic operations used by the conformance probes.
 
 **Start here:** [Adapter Quick Start](docs/ADAPTER-QUICKSTART.md)  
-**Deep reference:** [Adapter Guide](docs/ADAPTER-GUIDE.md)
+**Architecture walkthroughs:** [Implementation Handbook](docs/IMPLEMENTATION-HANDBOOK.md)  
+**Deep semantic reference:** [Adapter Guide](docs/ADAPTER-GUIDE.md)
 
 Missing mandatory control surfaces block the corresponding A-level.
 
@@ -51,18 +52,31 @@ Missing mandatory control surfaces block the corresponding A-level.
 - [Test Catalog 0.2](docs/TEST-CATALOG-0.2.md)
 - [Test Methodology](docs/TEST-METHODOLOGY.md)
 - [Full A1–A5 Reference Harness](docs/FULL-REFERENCE-HARNESS.md)
-- [Verification Architecture](docs/VERIFICATION.md)
+- [Verification](docs/VERIFICATION.md)
+- [Professional Reports](docs/REPORTS.md)
+- [Implementation Handbook](docs/IMPLEMENTATION-HANDBOOK.md)
 - [Ecosystem Mapping](docs/ECOSYSTEM.md)
 - [Roadmap](ROADMAP.md)
 
-## Evidence integrity
+## Report, sign, verify
 
 ```bash
-python -m asimov_conformance evidence-manifest ./evidence --output evidence-manifest.json
-python -m asimov_conformance verify-evidence evidence-manifest.json ./evidence
+asimov report assessment.json \
+  --html-output asimov-report.html \
+  --summary-output asimov-summary.html
+
+asimov evidence-manifest ./evidence --output evidence-manifest.json
+
+asimov verification-statement assessment.json \
+  --evidence-manifest evidence-manifest.json \
+  --report asimov-report.html \
+  --report asimov-summary.html \
+  --output asimov-statement.json
+
+asimov sigstore-sign asimov-statement.json --bundle asimov.sigstore.json
 ```
 
-Assessment results are bound to a specific deployment configuration, scope, threat model, and evidence set.
+The styled report, assessment, and evidence manifest become cryptographically bound subjects of the signed verification statement. The public Verify page can check local integrity and binding directly in the browser.
 
 ## Project
 
