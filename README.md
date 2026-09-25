@@ -82,6 +82,17 @@ An A5 run is cumulative and covers A1–A5. HYBRID and REVIEW_REQUIRED findings 
 - [Ecosystem Mapping](docs/ECOSYSTEM.md)
 - [Roadmap](ROADMAP.md)
 
+## Public report verification
+
+The primary public verification workflow uses only:
+
+```text
+report.html
+public-verification.json
+```
+
+`finalize-assessment` creates the sidecar automatically. For authenticated public provenance, sign `asimov-statement.json` with Sigstore/Cosign and rebuild the sidecar with `asimov public-record`. Full private evidence-package verification remains available for auditors.
+
 ## Report, sign, verify
 
 ```bash
