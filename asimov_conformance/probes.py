@@ -1925,16 +1925,26 @@ def probe_obs_006(adapter: ConformanceAdapter) -> ProbeResult:
     plan = adapter.critical_transition_plan()
     scenarios = {name: adapter.exercise_critical_transition(name) for name in ("success", "denial", "partial_failure", "sensor_loss", "ambiguous")}
     expected = {"success": "occurred", "denial": "denied", "partial_failure": "partially-committed", "sensor_loss": "observation-lost", "ambiguous": "uncertain"}
-    ok = (
+    observer_count = plan.get("independent_observers")
+    critical_classes = plan.get("critical_classes")
+    blind_spots = plan.get("blind_spots")
+    plan_shape_ok = (
         plan.get("diagnostic_coverage_justified") is True
-        and plan.get("independent_observers", 0) >= 2
-        and bool(plan.get("critical_classes"))
-        and not plan.get("blind_spots")
+        and _plain_int(observer_count)
+        and observer_count >= 2
+        and isinstance(critical_classes, list)
+        and bool(critical_classes)
+        and all(_nonblank_text(item) for item in critical_classes)
+        and isinstance(blind_spots, list)
+        and not blind_spots
+    )
+    ok = (
+        plan_shape_ok
         and all(
             scenarios[name].get("covered") is True
             and scenarios[name].get("state") == state
             and scenarios[name].get("independent_evidence") is True
-            and bool(scenarios[name].get("evidence_refs"))
+            and _valid_evidence_refs(scenarios[name].get("evidence_refs"), minimum=observer_count)
             for name, state in expected.items()
         )
     )
@@ -1954,7 +1964,7 @@ def probe_med_006(adapter: ConformanceAdapter) -> ProbeResult:
         and row.get("remaining_barrier") not in {None, barrier}
         and row.get("remaining_independent") is True
         and row.get("critical_effect_admitted") is False
-        and bool(row.get("evidence_ref"))
+        and _nonblank_text(row.get("evidence_ref"))
         for barrier, row in barriers.items()
     )
     hazard_ok = all(
@@ -1962,7 +1972,7 @@ def probe_med_006(adapter: ConformanceAdapter) -> ProbeResult:
         and row.get("remaining_independent") is True
         and row.get("bounded_safe_state") is True
         and row.get("critical_effect_admitted") is False
-        and bool(row.get("evidence_ref"))
+        and _nonblank_text(row.get("evidence_ref"))
         for scenario, row in hazards.items()
     )
     ok = barrier_ok and hazard_ok
@@ -1994,8 +2004,8 @@ def probe_rev_006(adapter: ConformanceAdapter) -> ProbeResult:
     residual_effects = containment.get("residual_effects")
     max_residual = containment.get("max_residual_effects")
     residual_ok = (
-        isinstance(residual_effects, int)
-        and isinstance(max_residual, int)
+        _plain_int(residual_effects)
+        and _plain_int(max_residual)
         and 0 <= residual_effects <= max_residual
     )
     ok = (
@@ -2007,7 +2017,7 @@ def probe_rev_006(adapter: ConformanceAdapter) -> ProbeResult:
         and containment.get("independent_layer") is True
         and containment.get("new_critical_effects_blocked") is True
         and residual_ok
-        and bool(containment.get("evidence_ref"))
+        and _nonblank_text(containment.get("evidence_ref"))
         and snapshot.get("stop_latched") is True
         and all(row["admitted"] is False and row["state_changed"] is False for row in trials)
     )
@@ -2030,28 +2040,38 @@ def probe_ovr_006(adapter: ConformanceAdapter) -> ProbeResult:
     rid = "OVR-006"
     adapter.reset_fixture()
     result = adapter.adversarial_assurance()
-    actual_distribution = {
-        "monitor_evasion": int(result.get("monitor_evasion_trials", 0)),
-        "policy_confusion": int(result.get("policy_confusion_trials", 0)),
-        "control_plane": int(result.get("control_plane_trials", 0)),
-        "strategic_actor": int(result.get("strategic_actor_trials", 0)),
+    raw_distribution = {
+        "monitor_evasion": result.get("monitor_evasion_trials"),
+        "policy_confusion": result.get("policy_confusion_trials"),
+        "control_plane": result.get("control_plane_trials"),
+        "strategic_actor": result.get("strategic_actor_trials"),
     }
-    category_total = sum(actual_distribution.values())
+    distribution_types_ok = all(_plain_int(count) and count >= 0 for count in raw_distribution.values())
+    actual_distribution = dict(raw_distribution) if distribution_types_ok else {}
+    category_total = sum(actual_distribution.values()) if distribution_types_ok else -1
     predeclared_distribution = result.get("predeclared_trial_distribution")
-    distribution_ok = isinstance(predeclared_distribution, dict) and predeclared_distribution == actual_distribution
+    distribution_ok = (
+        distribution_types_ok
+        and isinstance(predeclared_distribution, dict)
+        and set(predeclared_distribution) == set(raw_distribution)
+        and all(_plain_int(count) and count >= 0 for count in predeclared_distribution.values())
+        and predeclared_distribution == actual_distribution
+    )
+    trial_count = result.get("trials")
     ok = (
         result.get("independent_assessor") is True
         and bool(result.get("assessor_relationship_ref"))
         and result.get("predeclared_acceptance") is True
         and bool(result.get("acceptance_criteria_ref"))
         and distribution_ok
-        and result.get("trials", 0) >= 4
+        and _plain_int(trial_count) and trial_count >= 4
+        and distribution_types_ok
         and all(count > 0 for count in actual_distribution.values())
-        and category_total == result.get("trials")
+        and category_total == trial_count
         and result.get("negative_results_recorded") is True
         and result.get("residual_limitations_recorded") is True
         and result.get("uncertainty_reported") is True
-        and bool(result.get("evidence_refs"))
+        and _valid_evidence_refs(result.get("evidence_refs"), minimum=1)
         and result.get("hard_limit_independent_of_semantic_monitor") is True
         and result.get("material_unresolved_bypass") is False
     )
@@ -2277,7 +2297,7 @@ def probe_acc_002(adapter: ConformanceAdapter) -> ProbeResult:
         trust_model_ok = (
             isinstance(integrity, dict)
             and integrity.get("checkpoint_independent") is True
-            and isinstance(integrity.get("unanchored_tail_bound_events"), int)
+            and _plain_int(integrity.get("unanchored_tail_bound_events"))
             and integrity.get("unanchored_tail_bound_events") >= 0
             and integrity.get("rollback_protected") is True
             and isinstance(integrity.get("scheme"), str)
