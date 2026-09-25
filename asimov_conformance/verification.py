@@ -592,11 +592,14 @@ def verify_review_attestations(
     *,
     cosign_bin: str = "cosign",
 ) -> dict[str, Any]:
-    review_root = evidence_root / "reviews" / "requirements"
+    review_root = evidence_root / "reviews"
     if not review_root.is_dir():
         return {"state": "NOT_APPLICABLE", "reviews": []}
+
     paths = sorted(
-        p for p in review_root.glob("*.json")
+        p
+        for group in ("requirements", "preconditions")
+        for p in (review_root / group).glob("*.json")
         if not p.name.endswith(".sigstore.json")
     )
     if not paths:
@@ -605,17 +608,46 @@ def verify_review_attestations(
     results = []
     for review_path in paths:
         try:
-            results.append(verify_review_attestation(review_path, cosign_bin=cosign_bin))
+            record = _load_json(review_path, "review record")
         except VerificationError as exc:
             results.append({
                 "item_id": review_path.stem,
                 "state": "FAILED",
                 "detail": str(exc),
             })
-    return {
-        "state": "VERIFIED" if all(row.get("state") == "VERIFIED" for row in results) else "FAILED",
-        "reviews": results,
-    }
+            continue
+
+        decision = record.get("decision")
+        if decision not in {"PASS", "FAIL"}:
+            results.append({
+                "item_id": record.get("item_id", review_path.stem),
+                "item_type": record.get("item_type"),
+                "decision": decision,
+                "state": "NOT_REQUIRED",
+                "detail": "No signed PASS/FAIL human judgment is being relied upon.",
+            })
+            continue
+
+        try:
+            results.append(verify_review_attestation(review_path, cosign_bin=cosign_bin))
+        except VerificationError as exc:
+            results.append({
+                "item_id": record.get("item_id", review_path.stem),
+                "item_type": record.get("item_type"),
+                "decision": decision,
+                "state": "FAILED",
+                "detail": str(exc),
+            })
+
+    relied_upon = [row for row in results if row.get("state") != "NOT_REQUIRED"]
+    state = (
+        "NOT_APPLICABLE"
+        if not relied_upon
+        else "VERIFIED"
+        if all(row.get("state") == "VERIFIED" for row in relied_upon)
+        else "FAILED"
+    )
+    return {"state": state, "reviews": results}
 
 
 def verify_package(
