@@ -90,7 +90,7 @@ The primary public verification workflow uses a single self-contained file:
 report.html
 ```
 
-`finalize-assessment` embeds a public verification capsule into the HTML report automatically. For authenticated public provenance, sign `asimov-statement.json` with Sigstore/Cosign and refresh the embedded capsule with `asimov public-record`. A separate `public-verification.json` remains an optional export. Full private evidence-package verification remains available for auditors.
+`finalize-assessment` embeds a public verification capsule into the HTML report automatically. For authenticated public provenance, install Cosign once and run `asimov sign-report report.html --statement asimov-statement.json --provider google --identity you@example.com`. A separate `public-verification.json` remains an optional export. Full private evidence-package verification remains available for auditors.
 
 ## Report, sign, verify
 
